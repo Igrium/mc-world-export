@@ -1,29 +1,31 @@
 {
   "schemaVersion": 1,
-  "id": "modid",
+  "id": "worldexport",
   "version": "${version}",
 
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "3D World Exporter",
+  "description": "A mod which eases the exporting of Minecraft worlds into Blender and similar software.",
   "authors": [
-    "Me!"
+    "Igrium"
   ],
   "contact": {
     "homepage": "https://fabricmc.net/",
     "sources": "https://github.com/FabricMC/fabric-example-mod"
   },
 
-  "license": "CC0-1.0",
+  "license": "MIT",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+    ],
+    "client": [
+      "org.scaffoldeditor.worldexport.WorldExport"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "worldexport.mixins.json"
   ],
 
   "depends": {
