@@ -26,8 +26,8 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-	modImplementation 'de.javagl:obj:0.3.0'
+	
+	implementation(include('de.javagl:obj:0.3.0'))
 }
 
 processResources {

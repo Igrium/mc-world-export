@@ -14,8 +14,6 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3f;
-import net.minecraft.util.math.Vec3i;
 
 public final class MeshWriter {
     private MeshWriter() {}
@@ -28,7 +26,12 @@ public final class MeshWriter {
             if (!entry.faces[d]) continue;
             Direction direction = Exporter.DIRECTIONS[d];
             List<BakedQuad> quads = model.getQuads(null, direction, random);
-
+            for (BakedQuad quad : quads) {
+                addFace(quad, obj);
+            }
+        }
+        {   // Quads that aren't assigned to a direction.   
+            List<BakedQuad> quads = model.getQuads(null, null, random);
             for (BakedQuad quad : quads) {
                 addFace(quad, obj);
             }
@@ -44,11 +47,6 @@ public final class MeshWriter {
      */
     public static void addFace(BakedQuad quad, Obj obj) {
         int[] vertData = quad.getVertexData();
-        Vec3f normal;
-        {
-            Vec3i vec = quad.getFace().getVector();
-            normal = new Vec3f(vec.getX(), vec.getY(), vec.getZ());
-        }
 
         int len = vertData.length / 8;
         ByteBuffer buffer = ByteBuffer.allocate(VertexFormats.POSITION_COLOR_TEXTURE_LIGHT_NORMAL.getVertexSize());
@@ -67,7 +65,6 @@ public final class MeshWriter {
             float z = buffer.getFloat(8);
 
             obj.addVertex(x, y, z);
-            // obj.addNormal(normal.getX(), normal.getY(), normal.getZ());
         }
 
         obj.addFace(indices, null, null);
