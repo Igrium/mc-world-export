@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.export.ExportContext;
+import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
@@ -30,7 +32,7 @@ public final class Exporter {
     };
 
     // Directions must follow this order.
-    static Direction[] DIRECTIONS = { Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP,
+    public static Direction[] DIRECTIONS = { Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP,
             Direction.DOWN };
     
     static final MinecraftClient client = MinecraftClient.getInstance();
@@ -88,7 +90,7 @@ public final class Exporter {
                     }
 
                     ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces);
-                    String id = context.getID(entry);
+                    String id = context.getID(entry, BlockModels.getModelId(state).toString());
 
                     // We don't want threads overwriting each other in the palette
                     int index;

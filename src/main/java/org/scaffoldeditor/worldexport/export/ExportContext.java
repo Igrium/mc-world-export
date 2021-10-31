@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport;
+package org.scaffoldeditor.worldexport.export;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,14 +53,20 @@ public class ExportContext {
     /**
      * Generate the ID of a model entry. Returns the current ID if it already exists.
      * @param entry Entry to generate the ID for.
+     * @param name Base name of model.
      * @return ID.
      */
-    public synchronized String getID(ModelEntry entry) {
+    public synchronized String getID(ModelEntry entry, String name) {
         String id = models.get(entry);
         if (id == null) {
-            id = String.valueOf(entry.hashCode());
+            if (name == null) name = String.valueOf(entry.model.hashCode());
+            id = name+Arrays.toString(entry.faces);
             models.put(entry, id);
         }
         return id;
+    }
+
+    public String getID(ModelEntry entry) {
+        return getID(entry, null);
     }
 }
