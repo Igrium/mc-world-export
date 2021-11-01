@@ -37,10 +37,12 @@ public final class BlockExporter {
     static final MinecraftClient client = MinecraftClient.getInstance();
     
     public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, OutputStream os) throws IOException {
-        NbtIo.writeCompressed(exportStill(world, minChunk, maxChunk, context), os);
+        NbtCompound tag = new NbtCompound();
+        tag.put("sections", exportStill(world, minChunk, maxChunk, context));
+        NbtIo.writeCompressed(tag, os);
     }
 
-    public static NbtCompound exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context) {
+    public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context) {
         NbtList sectionTag = new NbtList();
 
         for (int x = minChunk.x; x < maxChunk.x; x++) {
@@ -56,9 +58,7 @@ public final class BlockExporter {
             }
         }
 
-        NbtCompound tag = new NbtCompound();
-        tag.put("sections", sectionTag);
-        return tag;
+        return sectionTag;
     }
 
     private static NbtCompound writeSection(ChunkSection section, WorldAccess world,

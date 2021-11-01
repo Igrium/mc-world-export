@@ -26,12 +26,18 @@ import de.javagl.obj.ObjWriter;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.WorldAccess;
 
 public final class Exporter {
     private Exporter() {};
     private static Logger LOGGER = LogManager.getLogger();
+
+    public static enum FrameType {
+        INTRACODED,
+        PREDICTED
+    }
 
     /**
      * Export a voxel capture.
@@ -53,8 +59,11 @@ public final class Exporter {
         Future<NativeImage> atlasFuture = TextureExtractor.getAtlas();
         
         LOGGER.info("Reading world");
-        NbtCompound worldData = BlockExporter.exportStill(world, minChunk, maxChunk, context);
-
+        NbtList frames = new NbtList();
+        frames.add(writeFrame(BlockExporter.exportStill(world, minChunk, maxChunk, context), FrameType.INTRACODED, 0));
+        NbtCompound worldData = new NbtCompound();
+        worldData.put("frames", frames);
+        
         ZipEntry worldEntry = new ZipEntry("world.dat");
         out.putNextEntry(worldEntry);
         NbtIo.write(worldData, new DataOutputStream(out));
@@ -74,6 +83,14 @@ public final class Exporter {
         }
         writeAtlas(atlasFuture, out);
         out.close();
+    }
+
+    private static NbtCompound writeFrame(NbtList sections, FrameType type, double time) {
+        NbtCompound frame = new NbtCompound();
+        frame.put("sections", sections);
+        frame.putByte("type", (byte) type.ordinal());
+        frame.putDouble("time", time);
+        return frame;
     }
 
     private static void writeAtlas(Future<NativeImage> atlasFuture, ZipOutputStream out) throws IOException, ExecutionException, TimeoutException {
