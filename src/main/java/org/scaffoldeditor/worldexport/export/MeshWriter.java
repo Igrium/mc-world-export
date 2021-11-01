@@ -64,9 +64,13 @@ public final class MeshWriter {
             float y = buffer.getFloat(4);
             float z = buffer.getFloat(8);
 
+            float u = buffer.getFloat(16);
+            float v = buffer.getFloat(20);
+
+            obj.addTexCoord(u, 1 - v);
             obj.addVertex(x, y, z);
         }
 
-        obj.addFace(indices, null, null);
+        obj.addFace(indices, indices, null);
     }
 }
