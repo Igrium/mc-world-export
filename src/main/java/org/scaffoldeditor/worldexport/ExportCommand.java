@@ -6,12 +6,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.export.BlockExporter;
 import org.scaffoldeditor.worldexport.export.ExportContext;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
 import org.scaffoldeditor.worldexport.export.MeshWriter;
@@ -51,7 +53,7 @@ public final class ExportCommand {
 
                     File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".dat").toFile();
                     FileOutputStream os = new FileOutputStream(targetFile);
-                    Exporter.writeStill(client.world, new ChunkPos(-2, -2), new ChunkPos(2, 2), new ExportContext(), os);
+                    BlockExporter.writeStill(client.world, new ChunkPos(-2, -2), new ChunkPos(2, 2), new ExportContext(), os);
                     os.close();
                     context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
                 } catch (IOException e) {
@@ -125,7 +127,30 @@ public final class ExportCommand {
             })).build();
         root.addChild(atlas);
 
+        LiteralCommandNode<FabricClientCommandSource> full = ClientCommandManager.literal("full")
+            .then(ClientCommandManager.argument("name", StringArgumentType.word())
+            .executes(context -> {
+                new Thread(() -> {
+                    Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
+                    if (!exportFolder.toFile().isDirectory()) {
+                        exportFolder.toFile().mkdir();
+                    }
+                    File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
+                    try {
+                        FileOutputStream os = new FileOutputStream(targetFile);
+                        Exporter.Export(context.getSource().getWorld(), new ChunkPos(-2, -2), new ChunkPos(2, 2), os);
+                        os.close();
+                    } catch (IOException | ExecutionException | TimeoutException e) {
+                        LogManager.getLogger().error(e);
+                        context.getSource().sendError(new LiteralText("Unable to export world. "+e.getLocalizedMessage()));
+                    }
+    
+                    context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
+                }).start();     
+                return 0;
+            })).build();
+        root.addChild(full);
+
         ClientCommandManager.DISPATCHER.getRoot().addChild(root);
-        
     }
 }

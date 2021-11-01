@@ -5,7 +5,6 @@ import java.nio.IntBuffer;
 import java.util.List;
 import java.util.Random;
 
-import org.scaffoldeditor.worldexport.Exporter;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
 
 import de.javagl.obj.Obj;
@@ -22,9 +21,9 @@ public final class MeshWriter {
         Obj obj = Objs.create();
         BakedModel model = entry.model;
 
-        for (int d = 0; d < Exporter.DIRECTIONS.length; d++) {
+        for (int d = 0; d < BlockExporter.DIRECTIONS.length; d++) {
             if (!entry.faces[d]) continue;
-            Direction direction = Exporter.DIRECTIONS[d];
+            Direction direction = BlockExporter.DIRECTIONS[d];
             List<BakedQuad> quads = model.getQuads(null, direction, random);
             for (BakedQuad quad : quads) {
                 addFace(quad, obj);
