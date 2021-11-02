@@ -162,3 +162,5 @@ cython_debug/
 !.vscode/*.code-snippets
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
+
+test/*
