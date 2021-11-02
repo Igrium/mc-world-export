@@ -6,7 +6,7 @@ from numpy import mod
 import bpy
 from zipfile import ZipFile
 
-from bpy.types import Collection, Context, Mesh, Object
+from bpy.types import Collection, Context, Material, Mesh, Object
 from . import import_obj
 from .world import VCAPWorld
 
@@ -17,6 +17,8 @@ class VCAPContext:
     archive: ZipFile
     collection: Collection
     context: Context
+
+    material: Material
 
     models: dict[str, Mesh] = {}
     
@@ -33,6 +35,8 @@ class VCAPContext:
 
         self.collection = bpy.data.collections.new('vcap_import')
         collection.children.link(self.collection)
+
+        self.material = bpy.data.materials.new("terrain")
     
     def get_mesh(self, model_id: str):
         if (model_id in self.models):
@@ -68,11 +72,27 @@ def load(file: str, collection: Collection, context: Context):
     """
     archive = ZipFile(file, 'r')
     world_dat = archive.open('world.dat')
+
+    for obj in context.view_layer.objects.selected:
+        obj.select_set(False)
     
     vcontext = VCAPContext(archive, collection, context)
     loadMeshes(archive, vcontext)
-    readWorld(world_dat, vcontext)
+    objects = readWorld(world_dat, vcontext)
     world_dat.close()
+
+    for obj in objects:
+        obj.select_set(True)
+    
+    emptyMesh: Mesh = bpy.data.meshes.new('terrain')
+    obj = bpy.data.objects.new('terrain', emptyMesh)
+    context.collection.objects.link(obj)
+
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
+
+    print("Tessellating Mesh")
+    bpy.ops.object.join()
 
 def loadMeshes(archive: ZipFile, context: VCAPContext):
     for file in archive.filelist:
@@ -85,11 +105,17 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext):
     world = VCAPWorld(nbt.value)
     print("Loading world...")
 
+    objects: list[Object] = []
+
     frame = world.get_frame(0)
     sections: TAG_List = frame['sections']
     for i in range(0, len(sections)):
         print(f'Parsing section {i + 1} / {len(sections)}')
-        readSection(sections[i], vcontext)
+        objects.extend(readSection(sections[i], vcontext))
+    
+    return objects
+    
+    
 
 def readSection(section: TAG_Compound, vcontext: VCAPContext):
     palette: TAG_List = section['palette']
@@ -97,13 +123,19 @@ def readSection(section: TAG_Compound, vcontext: VCAPContext):
     blocks: TAG_Byte_Array = section['blocks']
     bblocks = blocks.value
 
+    models: list[Object] = []
+
     for y in range(0, 16):
         for z in range(0, 16):
             for x in range(0, 16):
                 index = bblocks.item((y * 16 + z) * 16 + x)
                 model_id: TAG_String = palette[index]
 
-                place(model_id.value, pos=(offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z), vcontext=vcontext)
+                model = place(model_id.value, pos=(offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z), vcontext=vcontext)
+                if not (model is None):
+                    models.append(model)
+    
+    return models
 
 def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext):
     # if not (model_id in vcontext.models):
@@ -116,6 +148,8 @@ def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext)
     vcontext.collection.objects.link(obj)
 
     obj.location = pos
+    obj.material_slots[0].material = vcontext.material
+    obj.select_set(True)
     return obj
 
     
