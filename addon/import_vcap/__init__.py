@@ -22,12 +22,10 @@ bl_info = {
     "category" : "Import-Export"
 }
 
-from . import auto_load
-
-auto_load.init()
+from . import operators
 
 def register():
-    auto_load.register()
+    operators.register()
 
 def unregister():
-    auto_load.unregister()
+    operators.unregister()
