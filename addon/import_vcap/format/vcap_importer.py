@@ -18,7 +18,7 @@ class VCAPContext:
     collection: Collection
     context: Context
 
-    material: Material
+    materials: dict[str, Material] = {}
 
     models: dict[str, Mesh] = {}
     
@@ -35,8 +35,6 @@ class VCAPContext:
 
         self.collection = bpy.data.collections.new('vcap_import')
         collection.children.link(self.collection)
-
-        self.material = bpy.data.materials.new("terrain")
     
     def get_mesh(self, model_id: str):
         if (model_id in self.models):
@@ -148,7 +146,7 @@ def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext)
     vcontext.collection.objects.link(obj)
 
     obj.location = pos
-    obj.material_slots[0].material = vcontext.material
+    # obj.material_slots[0].material = vcontext.material
     obj.select_set(True)
     return obj
 

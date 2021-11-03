@@ -1,4 +1,5 @@
-from .format import vcap_importer
+from os import path
+from .format import vcap_importer, obj
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -21,9 +22,29 @@ def read_some_data(context, filepath, use_some_setting):
 # invoke() function which calls the file selector.
 
 
-class ImportSomeData(Operator, ImportHelper):
+class ImportTestOperator(Operator, ImportHelper):
+    bl_idname = "vcap.importtest"
+    bl_label = "Import Test"
+
+    # ImportHelper mixin class uses this
+    filename_ext = ".txt"
+
+    filter_glob: StringProperty(
+        default="*.obj",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
+
+    def execute(self, context: Context):
+        file = self.filepath
+        obj.load(context, open(file, 'rb'), path.basename(file))
+
+        return {'FINISHED'}
+
+
+class ImportVcap(Operator, ImportHelper):
     """This appears in the tooltip of the operator and in the generated docs"""
-    bl_idname = "import_test.some_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_idname = "vcap.import_vcap"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Import VCAP"
 
     # ImportHelper mixin class uses this
@@ -61,15 +82,25 @@ class ImportSomeData(Operator, ImportHelper):
 
 # Only needed if you want to add into a dynamic menu
 def menu_func_import(self, context):
-    self.layout.operator(ImportSomeData.bl_idname,
+    self.layout.operator(ImportVcap.bl_idname,
                          text="Voxel Capture (.vcap)")
+
+# Only needed if you want to add into a dynamic menu
+def menu_func_import2(self, context):
+    self.layout.operator(ImportTestOperator.bl_idname,
+                         text="Test OBJ (.obj)")
+
 
 
 def register():
-    bpy.utils.register_class(ImportSomeData)
+    bpy.utils.register_class(ImportVcap)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.utils.register_class(ImportTestOperator)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
 
 
 def unregister():
-    bpy.utils.unregister_class(ImportSomeData)
+    bpy.utils.unregister_class(ImportVcap)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+    bpy.utils.unregister_class(ImportTestOperator)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
