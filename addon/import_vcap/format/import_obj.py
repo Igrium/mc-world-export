@@ -34,8 +34,9 @@ http://wiki.blender.org/index.php/Scripts/Manual/Import/wavefront_obj
 import array
 import os
 import time
+from typing import IO
 import bpy
-from bpy.types import Object
+from bpy.types import Context, Mesh, Object
 import mathutils
 
 from bpy_extras.io_utils import unpack_list
@@ -110,22 +111,25 @@ def obj_image_load(img_data, context_imagepath_map, line, DIR, recursive, relpat
         imagepath = os.fsdecode(b" ".join(filepath_parts[i:]))
         image = context_imagepath_map.get(imagepath, ...)
         if image is ...:
-            image = load_image(imagepath, DIR, recursive=recursive, relpath=relpath)
+            image = load_image(
+                imagepath, DIR, recursive=recursive, relpath=relpath)
             if image is None and "_" in imagepath:
-                image = load_image(imagepath.replace("_", " "), DIR, recursive=recursive, relpath=relpath)
+                image = load_image(imagepath.replace(
+                    "_", " "), DIR, recursive=recursive, relpath=relpath)
             if image is not None:
                 context_imagepath_map[imagepath] = image
                 del img_data[i:]
                 img_data.append(imagepath)
-                break;
+                break
         else:
             del img_data[i:]
             img_data.append(imagepath)
-            break;
+            break
 
     if image is None:
         imagepath = os.fsdecode(filepath_parts[-1])
-        image = load_image(imagepath, DIR, recursive=recursive, place_holder=True, relpath=relpath)
+        image = load_image(imagepath, DIR, recursive=recursive,
+                           place_holder=True, relpath=relpath)
         context_imagepath_map[imagepath] = image
 
     return image
@@ -156,7 +160,8 @@ def create_materials(filepath, relpath,
         map_options = {}
 
         # Absolute path - c:\.. etc would work here
-        image = obj_image_load(img_data, context_imagepath_map, line, DIR, use_image_search, relpath)
+        image = obj_image_load(
+            img_data, context_imagepath_map, line, DIR, use_image_search, relpath)
 
         curr_token = []
         for token in img_data[:-1]:
@@ -185,28 +190,34 @@ def create_materials(filepath, relpath,
 
         # Adds textures for materials (rendering)
         if type == 'Kd':
-            _generic_tex_set(mat_wrap.base_color_texture, image, 'UV', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.base_color_texture,
+                             image, 'UV', map_offset, map_scale)
 
         elif type == 'Ka':
             # XXX Not supported?
             print("WARNING, currently unsupported ambient texture, skipped.")
 
         elif type == 'Ks':
-            _generic_tex_set(mat_wrap.specular_texture, image, 'UV', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.specular_texture, image,
+                             'UV', map_offset, map_scale)
 
         elif type == 'Ke':
-            _generic_tex_set(mat_wrap.emission_color_texture, image, 'UV', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.emission_color_texture,
+                             image, 'UV', map_offset, map_scale)
             mat_wrap.emission_strength = 1.0
 
         elif type == 'Bump':
             bump_mult = map_options.get(b'-bm')
-            bump_mult = float(bump_mult[0]) if (bump_mult and len(bump_mult[0]) > 1) else 1.0
+            bump_mult = float(bump_mult[0]) if (
+                bump_mult and len(bump_mult[0]) > 1) else 1.0
             mat_wrap.normalmap_strength_set(bump_mult)
 
-            _generic_tex_set(mat_wrap.normalmap_texture, image, 'UV', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.normalmap_texture,
+                             image, 'UV', map_offset, map_scale)
 
         elif type == 'D':
-            _generic_tex_set(mat_wrap.alpha_texture, image, 'UV', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.alpha_texture, image,
+                             'UV', map_offset, map_scale)
 
         elif type == 'disp':
             # XXX Not supported?
@@ -220,7 +231,8 @@ def create_materials(filepath, relpath,
                 print("WARNING, unsupported reflection type '%s', defaulting to 'sphere'"
                       "" % ' '.join(i.decode() for i in map_type))
 
-            _generic_tex_set(mat_wrap.base_color_texture, image, 'Reflection', map_offset, map_scale)
+            _generic_tex_set(mat_wrap.base_color_texture, image,
+                             'Reflection', map_offset, map_scale)
             mat_wrap.base_color_texture.projection = 'SPHERE'
 
         else:
@@ -284,9 +296,11 @@ def create_materials(filepath, relpath,
 
     # Create new materials
     for name in unique_materials:  # .keys()
-        ma_name = "Default OBJ" if name is None else name.decode('utf-8', "replace")
+        ma_name = "Default OBJ" if name is None else name.decode(
+            'utf-8', "replace")
         ma = unique_materials[name] = bpy.data.materials.new(ma_name)
-        ma_wrap = node_shader_utils.PrincipledBSDFWrapper(ma, is_readonly=False)
+        ma_wrap = node_shader_utils.PrincipledBSDFWrapper(
+            ma, is_readonly=False)
         nodal_material_wrap_map[ma] = ma_wrap
         ma_wrap.use_nodes = True
 
@@ -322,7 +336,8 @@ def create_materials(filepath, relpath,
                                       do_highlight, do_reflection, do_transparency, do_glass)
 
                     context_material_name = line_value(line_split)
-                    context_material = unique_materials.get(context_material_name)
+                    context_material = unique_materials.get(
+                        context_material_name)
                     if context_material is not None:
                         context_mat_wrap = nodal_material_wrap_map[context_material]
                     context_material_vars.clear()
@@ -332,7 +347,6 @@ def create_materials(filepath, relpath,
                     do_reflection = False
                     do_transparency = False
                     do_glass = False
-
 
                 elif context_material:
                     def _get_colors(line_split):
@@ -347,7 +361,7 @@ def create_materials(filepath, relpath,
 
                     # we need to make a material to assign properties to it.
                     if line_id == b'ka':
-                        refl =  sum(_get_colors(line_split)) / 3.0
+                        refl = sum(_get_colors(line_split)) / 3.0
                         context_mat_wrap.metallic = refl
                         context_material_vars.add("metallic")
                     elif line_id == b'kd':
@@ -358,7 +372,8 @@ def create_materials(filepath, relpath,
                     elif line_id == b'ke':
                         # We cannot set context_material.emit right now, we need final diffuse color as well for this.
                         # XXX Unsupported currently
-                        context_mat_wrap.emission_color = _get_colors(line_split)
+                        context_mat_wrap.emission_color = _get_colors(
+                            line_split)
                         context_mat_wrap.emission_strength = 1.0
                     elif line_id == b'ns':
                         # XXX Totally empirical conversion, trying to adapt it
@@ -366,17 +381,20 @@ def create_materials(filepath, relpath,
                         val = max(0.0, min(900.0, float_func(line_split[1])))
                         context_mat_wrap.roughness = 1.0 - (sqrt(val) / 30)
                         context_material_vars.add("roughness")
-                    elif line_id == b'ni':  # Refraction index (between 0.001 and 10).
+                    # Refraction index (between 0.001 and 10).
+                    elif line_id == b'ni':
                         context_mat_wrap.ior = float_func(line_split[1])
                         context_material_vars.add("ior")
                     elif line_id == b'd':  # dissolve (transparency)
                         context_mat_wrap.alpha = float_func(line_split[1])
                         context_material_vars.add("alpha")
                     elif line_id == b'tr':  # translucency
-                        print("WARNING, currently unsupported 'tr' translucency option, skipped.")
+                        print(
+                            "WARNING, currently unsupported 'tr' translucency option, skipped.")
                     elif line_id == b'tf':
                         # rgb, filter color, blender has no support for this.
-                        print("WARNING, currently unsupported 'tf' filter color option, skipped.")
+                        print(
+                            "WARNING, currently unsupported 'tf' filter color option, skipped.")
                     elif line_id == b'illum':
                         # Some MTL files incorrectly use a float for this value, see T60135.
                         illum = any_number_as_int(line_split[1])
@@ -449,7 +467,8 @@ def create_materials(filepath, relpath,
                         if img_data:
                             load_material_image(context_material, context_mat_wrap,
                                                 context_material_name, img_data, line, 'Ke')
-                    elif line_id in {b'map_bump', b'bump'}:  # 'bump' is incorrect but some files use it.
+                    # 'bump' is incorrect but some files use it.
+                    elif line_id in {b'map_bump', b'bump'}:
                         img_data = line.split()[1:]
                         if img_data:
                             load_material_image(context_material, context_mat_wrap,
@@ -487,24 +506,23 @@ def face_is_edge(face):
     return len(face_vert_nor_indices) == 1 or len(face_vert_loc_indices) == 2
 
 
-def split_mesh(verts_loc, faces, unique_materials, filepath, SPLIT_OB_OR_GROUP):
+def split_mesh(verts_loc, faces, unique_materials, name, SPLIT_OB_OR_GROUP):
     """
     Takes vert_loc and faces, and separates into multiple sets of
     (verts_loc, faces, unique_materials, dataname)
     """
 
-    filename = os.path.splitext((os.path.basename(filepath)))[0]
-
     if not SPLIT_OB_OR_GROUP or not faces:
         use_verts_nor = any(f[1] for f in faces)
         use_verts_tex = any(f[2] for f in faces)
         # use the filename for the object name since we aren't chopping up the mesh.
-        return [(verts_loc, faces, unique_materials, filename, use_verts_nor, use_verts_tex)]
+        return [(verts_loc, faces, unique_materials, name, use_verts_nor, use_verts_tex)]
 
     def key_to_name(key):
         # if the key is a tuple, join it to make a string
         if not key:
-            return filename  # assume its a string. make sure this is true if the splitting code is changed
+            # assume its a string. make sure this is true if the splitting code is changed
+            return name
         elif isinstance(key, bytes):
             return key.decode('utf-8', 'replace')
         else:
@@ -544,10 +562,13 @@ def split_mesh(verts_loc, faces, unique_materials, filepath, SPLIT_OB_OR_GROUP):
             map_index = vert_remap.get(vert_idx)
             if map_index is None:
                 map_index = len(verts_split)
-                vert_remap[vert_idx] = map_index  # set the new remapped index so we only add once and can reference next time.
-                verts_split.append(verts_loc[vert_idx])  # add the vert to the local verts
+                # set the new remapped index so we only add once and can reference next time.
+                vert_remap[vert_idx] = map_index
+                # add the vert to the local verts
+                verts_split.append(verts_loc[vert_idx])
 
-            face_vert_loc_indices[loop_idx] = map_index  # remap to the local index
+            # remap to the local index
+            face_vert_loc_indices[loop_idx] = map_index
 
             if context_material not in unique_materials_split:
                 unique_materials_split[context_material] = unique_materials[context_material]
@@ -560,8 +581,7 @@ def split_mesh(verts_loc, faces, unique_materials, filepath, SPLIT_OB_OR_GROUP):
             in face_split_dict.items()]
 
 
-def create_mesh(new_objects,
-                use_edges,
+def create_mesh(use_edges,
                 verts_loc,
                 verts_nor,
                 verts_tex,
@@ -570,7 +590,7 @@ def create_mesh(new_objects,
                 unique_smooth_groups,
                 vertex_groups,
                 dataname,
-                ):
+                ) -> Mesh:
     """
     Takes all the data gathered and generates a mesh, adding the new object to new_objects
     deals with ngons, sharp edges and assigning materials
@@ -578,10 +598,12 @@ def create_mesh(new_objects,
 
     if unique_smooth_groups:
         sharp_edges = set()
-        smooth_group_users = {context_smooth_group: {} for context_smooth_group in unique_smooth_groups.keys()}
+        smooth_group_users = {context_smooth_group: {}
+                              for context_smooth_group in unique_smooth_groups.keys()}
         context_smooth_group_old = -1
 
-    fgon_edges = set()  # Used for storing fgon keys when we need to tessellate/untessellate them (ngons with hole).
+    # Used for storing fgon keys when we need to tessellate/untessellate them (ngons with hole).
+    fgon_edges = set()
     edges = []
     tot_loops = 0
 
@@ -622,7 +644,8 @@ def create_mesh(new_objects,
 
                 prev_vidx = face_vert_loc_indices[-1]
                 for vidx in face_vert_loc_indices:
-                    edge_key = (prev_vidx, vidx) if (prev_vidx < vidx) else (vidx, prev_vidx)
+                    edge_key = (prev_vidx, vidx) if (
+                        prev_vidx < vidx) else (vidx, prev_vidx)
                     prev_vidx = vidx
                     edge_dict[edge_key] = edge_dict.get(edge_key, 0) + 1
 
@@ -631,26 +654,27 @@ def create_mesh(new_objects,
                 # ignore triangles with invalid indices
                 if len(face_vert_loc_indices) > 3:
                     from bpy_extras.mesh_utils import ngon_tessellate
-                    ngon_face_indices = ngon_tessellate(verts_loc, face_vert_loc_indices, debug_print=bpy.app.debug)
+                    ngon_face_indices = ngon_tessellate(
+                        verts_loc, face_vert_loc_indices, debug_print=bpy.app.debug)
                     faces.extend([([face_vert_loc_indices[ngon[0]],
                                     face_vert_loc_indices[ngon[1]],
                                     face_vert_loc_indices[ngon[2]],
                                     ],
-                                [face_vert_nor_indices[ngon[0]],
+                                   [face_vert_nor_indices[ngon[0]],
                                     face_vert_nor_indices[ngon[1]],
                                     face_vert_nor_indices[ngon[2]],
                                     ] if face_vert_nor_indices else [],
-                                [face_vert_tex_indices[ngon[0]],
+                                   [face_vert_tex_indices[ngon[0]],
                                     face_vert_tex_indices[ngon[1]],
                                     face_vert_tex_indices[ngon[2]],
                                     ] if face_vert_tex_indices else [],
-                                context_material,
-                                context_smooth_group,
-                                context_object_key,
-                                [],
-                                )
-                                for ngon in ngon_face_indices]
-                                )
+                                   context_material,
+                                   context_smooth_group,
+                                   context_object_key,
+                                   [],
+                                   )
+                                  for ngon in ngon_face_indices]
+                                 )
                     tot_loops += 3 * len(ngon_face_indices)
 
                     # edges to make ngons
@@ -662,7 +686,8 @@ def create_mesh(new_objects,
                                 vidx = face_vert_loc_indices[ngidx]
                                 if vidx == prev_vidx:
                                     continue  # broken OBJ... Just skip.
-                                edge_key = (prev_vidx, vidx) if (prev_vidx < vidx) else (vidx, prev_vidx)
+                                edge_key = (prev_vidx, vidx) if (
+                                    prev_vidx < vidx) else (vidx, prev_vidx)
                                 prev_vidx = vidx
                                 if edge_key in edge_users:
                                     fgon_edges.add(edge_key)
@@ -681,7 +706,8 @@ def create_mesh(new_objects,
                     sharp_edges.add(key)
 
     # map the material names to an index
-    material_mapping = {name: i for i, name in enumerate(unique_materials)}  # enumerate over unique_materials keys()
+    # enumerate over unique_materials keys()
+    material_mapping = {name: i for i, name in enumerate(unique_materials)}
 
     materials = [None] * len(unique_materials)
 
@@ -701,7 +727,8 @@ def create_mesh(new_objects,
     # verts_loc is a list of (x, y, z) tuples
     me.vertices.foreach_set("co", unpack_list(verts_loc))
 
-    loops_vert_idx = tuple(vidx for (face_vert_loc_indices, _, _, _, _, _, _) in faces for vidx in face_vert_loc_indices)
+    loops_vert_idx = tuple(vidx for (face_vert_loc_indices, _,
+                           _, _, _, _, _) in faces for vidx in face_vert_loc_indices)
     faces_loop_start = []
     lidx = 0
     for f in faces:
@@ -709,16 +736,19 @@ def create_mesh(new_objects,
         nbr_vidx = len(face_vert_loc_indices)
         faces_loop_start.append(lidx)
         lidx += nbr_vidx
-    faces_loop_total = tuple(len(face_vert_loc_indices) for (face_vert_loc_indices, _, _, _, _, _, _) in faces)
+    faces_loop_total = tuple(len(face_vert_loc_indices)
+                             for (face_vert_loc_indices, _, _, _, _, _, _) in faces)
 
     me.loops.foreach_set("vertex_index", loops_vert_idx)
     me.polygons.foreach_set("loop_start", faces_loop_start)
     me.polygons.foreach_set("loop_total", faces_loop_total)
 
-    faces_ma_index = tuple(material_mapping[context_material] for (_, _, _, context_material, _, _, _) in faces)
+    faces_ma_index = tuple(material_mapping[context_material] for (
+        _, _, _, context_material, _, _, _) in faces)
     me.polygons.foreach_set("material_index", faces_ma_index)
 
-    faces_use_smooth = tuple(bool(context_smooth_group) for (_, _, _, _, context_smooth_group, _, _) in faces)
+    faces_use_smooth = tuple(bool(context_smooth_group)
+                             for (_, _, _, _, context_smooth_group, _, _) in faces)
     me.polygons.foreach_set("use_smooth", faces_use_smooth)
 
     if verts_nor and me.loops:
@@ -726,8 +756,8 @@ def create_mesh(new_objects,
         #       we can only set custom lnors *after* calling it.
         me.create_normals_split()
         loops_nor = tuple(no for (_, face_vert_nor_indices, _, _, _, _, _) in faces
-                             for face_noidx in face_vert_nor_indices
-                             for no in verts_nor[face_noidx])
+                          for face_noidx in face_vert_nor_indices
+                          for no in verts_nor[face_noidx])
         me.loops.foreach_set("normal", loops_nor)
 
     if verts_tex and me.polygons:
@@ -735,8 +765,8 @@ def create_mesh(new_objects,
         verts_tex = [uv if len(uv) == 2 else uv + [0.0] for uv in verts_tex]
         me.uv_layers.new(do_init=False)
         loops_uv = tuple(uv for (_, _, face_vert_tex_indices, _, _, _, _) in faces
-                            for face_uvidx in face_vert_tex_indices
-                            for uv in verts_tex[face_uvidx])
+                         for face_uvidx in face_vert_tex_indices
+                         for uv in verts_tex[face_uvidx])
         me.uv_layers[0].data.foreach_set("uv", loops_uv)
 
     use_edges = use_edges and bool(edges)
@@ -745,7 +775,8 @@ def create_mesh(new_objects,
         # edges should be a list of (a, b) tuples
         me.edges.foreach_set("vertices", unpack_list(edges))
 
-    me.validate(clean_customdata=False)  # *Very* important to not remove lnors here!
+    # *Very* important to not remove lnors here!
+    me.validate(clean_customdata=False)
     me.update(calc_edges=use_edges, calc_edges_loose=use_edges)
 
     # Un-tessellate as much as possible, in case we had to triangulate some ngons...
@@ -755,7 +786,8 @@ def create_mesh(new_objects,
         bm.from_mesh(me)
         verts = bm.verts[:]
         get = bm.edges.get
-        edges = [get((verts[vidx1], verts[vidx2])) for vidx1, vidx2 in fgon_edges]
+        edges = [get((verts[vidx1], verts[vidx2]))
+                 for vidx1, vidx2 in fgon_edges]
         try:
             bmesh.ops.dissolve_edges(bm, edges=edges, use_verts=False)
         except:
@@ -782,15 +814,7 @@ def create_mesh(new_objects,
         me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
         me.use_auto_smooth = True
 
-    ob = bpy.data.objects.new(me.name, me)
-    new_objects.append(ob)
-
-    # Create the vertex groups. No need to have the flag passed here since we test for the
-    # content of the vertex_groups. If the user selects to NOT have vertex groups saved then
-    # the following test will never run
-    for group_name, group_indices in vertex_groups.items():
-        group = ob.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
-        group.add(group_indices, 1.0, 'REPLACE')
+    return me
 
 
 def create_nurbs(context_nurbs, vert_loc, new_objects):
@@ -823,7 +847,8 @@ def create_nurbs(context_nurbs, vert_loc, new_objects):
 
     nu = cu.splines.new('NURBS')
     nu.points.add(len(curv_idx) - 1)  # a point is added to start with
-    nu.points.foreach_set("co", [co_axis for vt_idx in curv_idx for co_axis in (vert_loc[vt_idx] + [1.0])])
+    nu.points.foreach_set(
+        "co", [co_axis for vt_idx in curv_idx for co_axis in (vert_loc[vt_idx] + [1.0])])
 
     nu.order_u = deg[0] + 1
 
@@ -871,28 +896,26 @@ def strip_slash(line_split):
         if len(line_split[-1]) == 1:
             line_split.pop()  # remove the \ item
         else:
-            line_split[-1] = line_split[-1][:-1]  # remove the \ from the end last number
+            # remove the \ from the end last number
+            line_split[-1] = line_split[-1][:-1]
         return True
     return False
 
 
-def get_float_func(filepath):
+def get_float_func(file: IO[bytes]):
     """
     find the float function for this obj file
     - whether to replace commas or not
     """
-    file = open(filepath, 'rb')
-    for line in file:  # .readlines():
+    file.seek(0)
+    for line in file.readlines():  # .readlines():
         line = line.lstrip()
         if line.startswith(b'v'):  # vn vt v
             if b',' in line:
-                file.close()
                 return lambda f: float(f.replace(b',', b'.'))
             elif b'.' in line:
-                file.close()
                 return float
 
-    file.close()
     # in case all vert values were ints
     return float
 
@@ -903,19 +926,20 @@ def any_number_as_int(svalue):
     return int(float(svalue))
 
 
-def load(context,
-         filepath,
-         *,
-         global_clamp_size=0.0,
-         use_smooth_groups=True,
-         use_edges=True,
-         use_split_objects=True,
-         use_split_groups=False,
-         use_image_search=True,
-         use_groups_as_vgroups=False,
-         relpath=None,
-         global_matrix=None
-         ):
+def load(context: Context,
+        file: IO[bytes],
+        *,
+        global_clamp_size=0.0,
+        use_smooth_groups=True,
+        use_edges=True,
+        use_split_objects=True,
+        use_split_groups=False,
+        use_image_search=True,
+        use_groups_as_vgroups=False,
+        relpath=None,
+        global_matrix=None,
+        name: str="block"
+        ):
     """
     Called by the user interface or another script.
     load_obj(path) - should give acceptable results.
@@ -954,372 +978,387 @@ def load(context,
             context_material,
             context_smooth_group,
             context_object_key,
-            [],  # If non-empty, that face is a Blender-invalid ngon (holes...), need a mutable object for that...
+            # If non-empty, that face is a Blender-invalid ngon (holes...), need a mutable object for that...
+            [],
         )
 
     new_objects: list[Object] = []  # put new objects here
 
-    with ProgressReport(context.window_manager) as progress:
-        progress.enter_substeps(1, "Importing OBJ %r..." % filepath)
+    if global_matrix is None:
+        global_matrix = mathutils.Matrix()
 
-        if global_matrix is None:
-            global_matrix = mathutils.Matrix()
+    if use_split_objects or use_split_groups:
+        use_groups_as_vgroups = False
 
-        if use_split_objects or use_split_groups:
-            use_groups_as_vgroups = False
+    verts_loc = []
+    verts_nor = []
+    verts_tex = []
+    faces = []  # tuples of the faces
+    material_libs = set()  # filenames to material libs this OBJ uses
+    vertex_groups = {}  # when use_groups_as_vgroups is true
 
-        verts_loc = []
-        verts_nor = []
-        verts_tex = []
-        faces = []  # tuples of the faces
-        material_libs = set()  # filenames to material libs this OBJ uses
-        vertex_groups = {}  # when use_groups_as_vgroups is true
+    # Get the string to float conversion func for this file- is 'float' for almost all files.
+    float_func = get_float_func(file)
 
-        # Get the string to float conversion func for this file- is 'float' for almost all files.
-        float_func = get_float_func(filepath)
+    # Context variables
+    context_material = None
+    context_smooth_group = None
+    context_object_key = None
+    context_object_obpart = None
+    context_vgroup = None
 
-        # Context variables
-        context_material = None
-        context_smooth_group = None
-        context_object_key = None
-        context_object_obpart = None
-        context_vgroup = None
+    objects_names = set()
 
-        objects_names = set()
+    # Nurbs
+    context_nurbs = {}
+    nurbs = []
+    context_parm = b''  # used by nurbs too but could be used elsewhere
 
-        # Nurbs
-        context_nurbs = {}
-        nurbs = []
-        context_parm = b''  # used by nurbs too but could be used elsewhere
+    # Until we can use sets
+    use_default_material = False
+    unique_materials = {}
+    unique_smooth_groups = {}
+    # unique_obects= {} - no use for this variable since the objects are stored in the face.
 
-        # Until we can use sets
-        use_default_material = False
-        unique_materials = {}
-        unique_smooth_groups = {}
-        # unique_obects= {} - no use for this variable since the objects are stored in the face.
+    # when there are faces that end with \
+    # it means they are multiline-
+    # since we use xreadline we cant skip to the next line
+    # so we need to know whether
+    context_multi_line = b''
 
-        # when there are faces that end with \
-        # it means they are multiline-
-        # since we use xreadline we cant skip to the next line
-        # so we need to know whether
-        context_multi_line = b''
+    # Per-face handling data.
+    face_vert_loc_indices = None
+    face_vert_nor_indices = None
+    face_vert_tex_indices = None
+    verts_loc_len = verts_nor_len = verts_tex_len = 0
+    face_items_usage = set()
+    face_invalid_blenpoly = None
+    prev_vidx = None
+    face = None
+    vec = []
 
-        # Per-face handling data.
-        face_vert_loc_indices = None
-        face_vert_nor_indices = None
-        face_vert_tex_indices = None
-        verts_loc_len = verts_nor_len = verts_tex_len = 0
-        face_items_usage = set()
-        face_invalid_blenpoly = None
-        prev_vidx = None
-        face = None
-        vec = []
+    quick_vert_failures = 0
+    skip_quick_vert = False
 
-        quick_vert_failures = 0
-        skip_quick_vert = False
+    file.seek(0)
+    for line in file:
+        line_split = line.split()
 
-        progress.enter_substeps(3, "Parsing OBJ file...")
-        with open(filepath, 'rb') as f:
-            for line in f:
-                line_split = line.split()
+        if not line_split:
+            continue
 
-                if not line_split:
-                    continue
+        line_start = line_split[0]  # we compare with this a _lot_
 
-                line_start = line_split[0]  # we compare with this a _lot_
+        if len(line_split) == 1 and not context_multi_line and line_start != b'end':
+            print("WARNING, skipping malformatted line: %s" %
+                    line.decode('UTF-8', 'replace').rstrip())
+            continue
 
-                if len(line_split) == 1 and not context_multi_line and line_start != b'end':
-                    print("WARNING, skipping malformatted line: %s" % line.decode('UTF-8', 'replace').rstrip())
-                    continue
+        # Handling vertex data are pretty similar, factorize that.
+        # Also, most OBJ files store all those on a single line, so try fast parsing for that first,
+        # and only fallback to full multi-line parsing when needed, this gives significant speed-up
+        # (~40% on affected code).
+        if line_start == b'v':
+            vdata, vdata_len, do_quick_vert = verts_loc, 3, not skip_quick_vert
+        elif line_start == b'vn':
+            vdata, vdata_len, do_quick_vert = verts_nor, 3, not skip_quick_vert
+        elif line_start == b'vt':
+            vdata, vdata_len, do_quick_vert = verts_tex, 2, not skip_quick_vert
+        elif context_multi_line == b'v':
+            vdata, vdata_len, do_quick_vert = verts_loc, 3, False
+        elif context_multi_line == b'vn':
+            vdata, vdata_len, do_quick_vert = verts_nor, 3, False
+        elif context_multi_line == b'vt':
+            vdata, vdata_len, do_quick_vert = verts_tex, 2, False
+        else:
+            vdata_len = 0
 
-                # Handling vertex data are pretty similar, factorize that.
-                # Also, most OBJ files store all those on a single line, so try fast parsing for that first,
-                # and only fallback to full multi-line parsing when needed, this gives significant speed-up
-                # (~40% on affected code).
-                if line_start == b'v':
-                    vdata, vdata_len, do_quick_vert = verts_loc, 3, not skip_quick_vert
-                elif line_start == b'vn':
-                    vdata, vdata_len, do_quick_vert = verts_nor, 3, not skip_quick_vert
-                elif line_start == b'vt':
-                    vdata, vdata_len, do_quick_vert = verts_tex, 2, not skip_quick_vert
-                elif context_multi_line == b'v':
-                    vdata, vdata_len, do_quick_vert = verts_loc, 3, False
-                elif context_multi_line == b'vn':
-                    vdata, vdata_len, do_quick_vert = verts_nor, 3, False
-                elif context_multi_line == b'vt':
-                    vdata, vdata_len, do_quick_vert = verts_tex, 2, False
+        if vdata_len:
+            if do_quick_vert:
+                try:
+                    vdata.append(
+                        list(map(float_func, line_split[1:vdata_len + 1])))
+                except:
+                    do_quick_vert = False
+                    # In case we get too many failures on quick parsing, force fallback to full multi-line one.
+                    # Exception handling can become costly...
+                    quick_vert_failures += 1
+                    if quick_vert_failures > 10000:
+                        skip_quick_vert = True
+            if not do_quick_vert:
+                context_multi_line = handle_vec(line_start, context_multi_line, line_split,
+                                                context_multi_line or line_start,
+                                                vdata, vec, vdata_len)
+
+        elif line_start == b'f' or context_multi_line == b'f':
+            if not context_multi_line:
+                line_split = line_split[1:]
+                # Instantiate a face
+                face = create_face(
+                    context_material, context_smooth_group, context_object_key)
+                (face_vert_loc_indices, face_vert_nor_indices, face_vert_tex_indices,
+                    _1, _2, _3, face_invalid_blenpoly) = face
+                faces.append(face)
+                face_items_usage.clear()
+                verts_loc_len = len(verts_loc)
+                verts_nor_len = len(verts_nor)
+                verts_tex_len = len(verts_tex)
+                if context_material is None:
+                    use_default_material = True
+            # Else, use face_vert_loc_indices and face_vert_tex_indices previously defined and used the obj_face
+
+            context_multi_line = b'f' if strip_slash(
+                line_split) else b''
+
+            for v in line_split:
+                obj_vert = v.split(b'/')
+                # Note that we assume here we cannot get OBJ invalid 0 index...
+                idx = int(obj_vert[0])
+                vert_loc_index = (
+                    idx + verts_loc_len) if (idx < 1) else idx - 1
+                # Add the vertex to the current group
+                # *warning*, this wont work for files that have groups defined around verts
+                if use_groups_as_vgroups and context_vgroup:
+                    vertex_groups[context_vgroup].append(
+                        vert_loc_index)
+                # This a first round to quick-detect ngons that *may* use a same edge more than once.
+                # Potential candidate will be re-checked once we have done parsing the whole face.
+                if not face_invalid_blenpoly:
+                    # If we use more than once a same vertex, invalid ngon is suspected.
+                    if vert_loc_index in face_items_usage:
+                        face_invalid_blenpoly.append(True)
+                    else:
+                        face_items_usage.add(vert_loc_index)
+                face_vert_loc_indices.append(vert_loc_index)
+
+                # formatting for faces with normals and textures is
+                # loc_index/tex_index/nor_index
+                if len(obj_vert) > 1 and obj_vert[1] and obj_vert[1] != b'0':
+                    idx = int(obj_vert[1])
+                    face_vert_tex_indices.append(
+                        (idx + verts_tex_len) if (idx < 1) else idx - 1)
                 else:
-                    vdata_len = 0
+                    face_vert_tex_indices.append(0)
 
-                if vdata_len:
-                    if do_quick_vert:
-                        try:
-                            vdata.append(list(map(float_func, line_split[1:vdata_len + 1])))
-                        except:
-                            do_quick_vert = False
-                            # In case we get too many failures on quick parsing, force fallback to full multi-line one.
-                            # Exception handling can become costly...
-                            quick_vert_failures += 1
-                            if quick_vert_failures > 10000:
-                                skip_quick_vert = True
-                    if not do_quick_vert:
-                        context_multi_line = handle_vec(line_start, context_multi_line, line_split,
-                                                        context_multi_line or line_start,
-                                                        vdata, vec, vdata_len)
+                if len(obj_vert) > 2 and obj_vert[2] and obj_vert[2] != b'0':
+                    idx = int(obj_vert[2])
+                    face_vert_nor_indices.append(
+                        (idx + verts_nor_len) if (idx < 1) else idx - 1)
+                else:
+                    face_vert_nor_indices.append(0)
 
-                elif line_start == b'f' or context_multi_line == b'f':
-                    if not context_multi_line:
-                        line_split = line_split[1:]
-                        # Instantiate a face
-                        face = create_face(context_material, context_smooth_group, context_object_key)
-                        (face_vert_loc_indices, face_vert_nor_indices, face_vert_tex_indices,
-                         _1, _2, _3, face_invalid_blenpoly) = face
-                        faces.append(face)
-                        face_items_usage.clear()
-                        verts_loc_len = len(verts_loc)
-                        verts_nor_len = len(verts_nor)
-                        verts_tex_len = len(verts_tex)
-                        if context_material is None:
-                            use_default_material = True
-                    # Else, use face_vert_loc_indices and face_vert_tex_indices previously defined and used the obj_face
+            if not context_multi_line:
+                # Means we have finished a face, we have to do final check if ngon is suspected to be blender-invalid...
+                if face_invalid_blenpoly:
+                    face_invalid_blenpoly.clear()
+                    face_items_usage.clear()
+                    prev_vidx = face_vert_loc_indices[-1]
+                    for vidx in face_vert_loc_indices:
+                        edge_key = (prev_vidx, vidx) if (
+                            prev_vidx < vidx) else (vidx, prev_vidx)
+                        if edge_key in face_items_usage:
+                            face_invalid_blenpoly.append(True)
+                            break
+                        face_items_usage.add(edge_key)
+                        prev_vidx = vidx
 
-                    context_multi_line = b'f' if strip_slash(line_split) else b''
+        elif use_edges and (line_start == b'l' or context_multi_line == b'l'):
+            # very similar to the face load function above with some parts removed
+            if not context_multi_line:
+                line_split = line_split[1:]
+                # Instantiate a face
+                face = create_face(
+                    context_material, context_smooth_group, context_object_key)
+                face_vert_loc_indices = face[0]
+                # XXX A bit hackish, we use special 'value' of face_vert_nor_indices (a single True item) to tag this
+                #     as a polyline, and not a regular face...
+                face[1][:] = [True]
+                faces.append(face)
+                if context_material is None:
+                    use_default_material = True
+            # Else, use face_vert_loc_indices previously defined and used the obj_face
 
-                    for v in line_split:
-                        obj_vert = v.split(b'/')
-                        idx = int(obj_vert[0])  # Note that we assume here we cannot get OBJ invalid 0 index...
-                        vert_loc_index = (idx + verts_loc_len) if (idx < 1) else idx - 1
-                        # Add the vertex to the current group
-                        # *warning*, this wont work for files that have groups defined around verts
-                        if use_groups_as_vgroups and context_vgroup:
-                            vertex_groups[context_vgroup].append(vert_loc_index)
-                        # This a first round to quick-detect ngons that *may* use a same edge more than once.
-                        # Potential candidate will be re-checked once we have done parsing the whole face.
-                        if not face_invalid_blenpoly:
-                            # If we use more than once a same vertex, invalid ngon is suspected.
-                            if vert_loc_index in face_items_usage:
-                                face_invalid_blenpoly.append(True)
-                            else:
-                                face_items_usage.add(vert_loc_index)
-                        face_vert_loc_indices.append(vert_loc_index)
+            context_multi_line = b'l' if strip_slash(
+                line_split) else b''
 
-                        # formatting for faces with normals and textures is
-                        # loc_index/tex_index/nor_index
-                        if len(obj_vert) > 1 and obj_vert[1] and obj_vert[1] != b'0':
-                            idx = int(obj_vert[1])
-                            face_vert_tex_indices.append((idx + verts_tex_len) if (idx < 1) else idx - 1)
-                        else:
-                            face_vert_tex_indices.append(0)
+            for v in line_split:
+                obj_vert = v.split(b'/')
+                idx = int(obj_vert[0]) - 1
+                face_vert_loc_indices.append(
+                    (idx + len(verts_loc) + 1) if (idx < 0) else idx)
 
-                        if len(obj_vert) > 2 and obj_vert[2] and obj_vert[2] != b'0':
-                            idx = int(obj_vert[2])
-                            face_vert_nor_indices.append((idx + verts_nor_len) if (idx < 1) else idx - 1)
-                        else:
-                            face_vert_nor_indices.append(0)
+        elif line_start == b's':
+            if use_smooth_groups:
+                context_smooth_group = line_value(line_split)
+                if context_smooth_group == b'off':
+                    context_smooth_group = None
+                elif context_smooth_group:  # is not None
+                    unique_smooth_groups[context_smooth_group] = None
 
-                    if not context_multi_line:
-                        # Means we have finished a face, we have to do final check if ngon is suspected to be blender-invalid...
-                        if face_invalid_blenpoly:
-                            face_invalid_blenpoly.clear()
-                            face_items_usage.clear()
-                            prev_vidx = face_vert_loc_indices[-1]
-                            for vidx in face_vert_loc_indices:
-                                edge_key = (prev_vidx, vidx) if (prev_vidx < vidx) else (vidx, prev_vidx)
-                                if edge_key in face_items_usage:
-                                    face_invalid_blenpoly.append(True)
-                                    break
-                                face_items_usage.add(edge_key)
-                                prev_vidx = vidx
+        elif line_start == b'o':
+            if use_split_objects:
+                context_object_key = unique_name(
+                    objects_names, line_value(line_split))
+                context_object_obpart = context_object_key
+                # unique_objects[context_object_key]= None
 
-                elif use_edges and (line_start == b'l' or context_multi_line == b'l'):
-                    # very similar to the face load function above with some parts removed
-                    if not context_multi_line:
-                        line_split = line_split[1:]
-                        # Instantiate a face
-                        face = create_face(context_material, context_smooth_group, context_object_key)
-                        face_vert_loc_indices = face[0]
-                        # XXX A bit hackish, we use special 'value' of face_vert_nor_indices (a single True item) to tag this
-                        #     as a polyline, and not a regular face...
-                        face[1][:] = [True]
-                        faces.append(face)
-                        if context_material is None:
-                            use_default_material = True
-                    # Else, use face_vert_loc_indices previously defined and used the obj_face
+        elif line_start == b'g':
+            if use_split_groups:
+                grppart = line_value(line_split)
+                context_object_key = (
+                    context_object_obpart, grppart) if context_object_obpart else grppart
+                # print 'context_object_key', context_object_key
+                # unique_objects[context_object_key]= None
+            elif use_groups_as_vgroups:
+                context_vgroup = line_value(line.split())
+                if context_vgroup and context_vgroup != b'(null)':
+                    vertex_groups.setdefault(context_vgroup, [])
+                else:
+                    context_vgroup = None  # dont assign a vgroup
 
-                    context_multi_line = b'l' if strip_slash(line_split) else b''
+        elif line_start == b'usemtl':
+            context_material = line_value(line.split())
+            unique_materials[context_material] = None
+        elif line_start == b'mtllib':  # usemap or usemat
+            # can have multiple mtllib filenames per line, mtllib can appear more than once,
+            # so make sure only occurrence of material exists
+            material_libs |= {os.fsdecode(f) for f in filenames_group_by_ext(line.lstrip()[7:].strip(), b'.mtl')
+                                }
 
-                    for v in line_split:
-                        obj_vert = v.split(b'/')
-                        idx = int(obj_vert[0]) - 1
-                        face_vert_loc_indices.append((idx + len(verts_loc) + 1) if (idx < 0) else idx)
+            # Nurbs support
+        elif line_start == b'cstype':
+            context_nurbs[b'cstype'] = line_value(
+                line.split())  # 'rat bspline' / 'bspline'
+        elif line_start == b'curv' or context_multi_line == b'curv':
+            curv_idx = context_nurbs[b'curv_idx'] = context_nurbs.get(
+                b'curv_idx', [])  # in case were multiline
 
-                elif line_start == b's':
-                    if use_smooth_groups:
-                        context_smooth_group = line_value(line_split)
-                        if context_smooth_group == b'off':
-                            context_smooth_group = None
-                        elif context_smooth_group:  # is not None
-                            unique_smooth_groups[context_smooth_group] = None
+            if not context_multi_line:
+                context_nurbs[b'curv_range'] = float_func(
+                    line_split[1]), float_func(line_split[2])
+                line_split[0:3] = []  # remove first 3 items
 
-                elif line_start == b'o':
-                    if use_split_objects:
-                        context_object_key = unique_name(objects_names, line_value(line_split))
-                        context_object_obpart = context_object_key
-                        # unique_objects[context_object_key]= None
+            if strip_slash(line_split):
+                context_multi_line = b'curv'
+            else:
+                context_multi_line = b''
 
-                elif line_start == b'g':
-                    if use_split_groups:
-                        grppart = line_value(line_split)
-                        context_object_key = (context_object_obpart, grppart) if context_object_obpart else grppart
-                        # print 'context_object_key', context_object_key
-                        # unique_objects[context_object_key]= None
-                    elif use_groups_as_vgroups:
-                        context_vgroup = line_value(line.split())
-                        if context_vgroup and context_vgroup != b'(null)':
-                            vertex_groups.setdefault(context_vgroup, [])
-                        else:
-                            context_vgroup = None  # dont assign a vgroup
+            for i in line_split:
+                vert_loc_index = int(i) - 1
 
-                elif line_start == b'usemtl':
-                    context_material = line_value(line.split())
-                    unique_materials[context_material] = None
-                elif line_start == b'mtllib':  # usemap or usemat
-                    # can have multiple mtllib filenames per line, mtllib can appear more than once,
-                    # so make sure only occurrence of material exists
-                    material_libs |= {os.fsdecode(f) for f in filenames_group_by_ext(line.lstrip()[7:].strip(), b'.mtl')
-                    }
+                if vert_loc_index < 0:
+                    vert_loc_index = len(
+                        verts_loc) + vert_loc_index + 1
 
-                    # Nurbs support
-                elif line_start == b'cstype':
-                    context_nurbs[b'cstype'] = line_value(line.split())  # 'rat bspline' / 'bspline'
-                elif line_start == b'curv' or context_multi_line == b'curv':
-                    curv_idx = context_nurbs[b'curv_idx'] = context_nurbs.get(b'curv_idx', [])  # in case were multiline
+                curv_idx.append(vert_loc_index)
 
-                    if not context_multi_line:
-                        context_nurbs[b'curv_range'] = float_func(line_split[1]), float_func(line_split[2])
-                        line_split[0:3] = []  # remove first 3 items
+        elif line_start == b'parm' or context_multi_line == b'parm':
+            if context_multi_line:
+                context_multi_line = b''
+            else:
+                context_parm = line_split[1]
+                line_split[0:2] = []  # remove first 2
 
-                    if strip_slash(line_split):
-                        context_multi_line = b'curv'
-                    else:
-                        context_multi_line = b''
+            if strip_slash(line_split):
+                context_multi_line = b'parm'
+            else:
+                context_multi_line = b''
 
-                    for i in line_split:
-                        vert_loc_index = int(i) - 1
+            if context_parm.lower() == b'u':
+                context_nurbs.setdefault(b'parm_u', []).extend(
+                    [float_func(f) for f in line_split])
+            elif context_parm.lower() == b'v':  # surfaces not supported yet
+                context_nurbs.setdefault(b'parm_v', []).extend(
+                    [float_func(f) for f in line_split])
+            # else: # may want to support other parm's ?
 
-                        if vert_loc_index < 0:
-                            vert_loc_index = len(verts_loc) + vert_loc_index + 1
+        elif line_start == b'deg':
+            context_nurbs[b'deg'] = [int(i) for i in line.split()[1:]]
+        elif line_start == b'end':
+            # Add the nurbs curve
+            if context_object_key:
+                context_nurbs[b'name'] = context_object_key
+            nurbs.append(context_nurbs)
+            context_nurbs = {}
+            context_parm = b''
 
-                        curv_idx.append(vert_loc_index)
-
-                elif line_start == b'parm' or context_multi_line == b'parm':
-                    if context_multi_line:
-                        context_multi_line = b''
-                    else:
-                        context_parm = line_split[1]
-                        line_split[0:2] = []  # remove first 2
-
-                    if strip_slash(line_split):
-                        context_multi_line = b'parm'
-                    else:
-                        context_multi_line = b''
-
-                    if context_parm.lower() == b'u':
-                        context_nurbs.setdefault(b'parm_u', []).extend([float_func(f) for f in line_split])
-                    elif context_parm.lower() == b'v':  # surfaces not supported yet
-                        context_nurbs.setdefault(b'parm_v', []).extend([float_func(f) for f in line_split])
-                    # else: # may want to support other parm's ?
-
-                elif line_start == b'deg':
-                    context_nurbs[b'deg'] = [int(i) for i in line.split()[1:]]
-                elif line_start == b'end':
-                    # Add the nurbs curve
-                    if context_object_key:
-                        context_nurbs[b'name'] = context_object_key
-                    nurbs.append(context_nurbs)
-                    context_nurbs = {}
-                    context_parm = b''
-
-                ''' # How to use usemap? deprecated?
-                elif line_start == b'usema': # usemap or usemat
-                    context_image= line_value(line_split)
-                '''
-
-        progress.step("Done, loading materials and images...")
-
-        if use_default_material:
-            unique_materials[None] = None
-        create_materials(filepath, relpath, material_libs, unique_materials,
-                         use_image_search, float_func)
-
-        progress.step("Done, building geometries (verts:%i faces:%i materials: %i smoothgroups:%i) ..." %
-                      (len(verts_loc), len(faces), len(unique_materials), len(unique_smooth_groups)))
-
-        # deselect all
-        if bpy.ops.object.select_all.poll():
-            bpy.ops.object.select_all(action='DESELECT')
+        ''' # How to use usemap? deprecated?
+        elif line_start == b'usema': # usemap or usemat
+            context_image= line_value(line_split)
+        '''
 
 
-        # Split the mesh by objects/materials, may
-        SPLIT_OB_OR_GROUP = bool(use_split_objects or use_split_groups)
+    if use_default_material:
+        unique_materials[None] = None
+    # create_materials(filepath, relpath, material_libs, unique_materials,
+    #                     use_image_search, float_func)
 
-        for data in split_mesh(verts_loc, faces, unique_materials, filepath, SPLIT_OB_OR_GROUP):
-            verts_loc_split, faces_split, unique_materials_split, dataname, use_vnor, use_vtex = data
-            # Create meshes from the data, warning 'vertex_groups' wont support splitting
-            #~ print(dataname, use_vnor, use_vtex)
-            create_mesh(new_objects,
-                        use_edges,
-                        verts_loc_split,
-                        verts_nor if use_vnor else [],
-                        verts_tex if use_vtex else [],
-                        faces_split,
-                        unique_materials_split,
-                        unique_smooth_groups,
-                        vertex_groups,
-                        dataname,
-                        )
+    # deselect all
+    if bpy.ops.object.select_all.poll():
+        bpy.ops.object.select_all(action='DESELECT')
 
-        # nurbs support
-        for context_nurbs in nurbs:
-            create_nurbs(context_nurbs, verts_loc, new_objects)
+    # Split the mesh by objects/materials, may
+    SPLIT_OB_OR_GROUP = bool(use_split_objects or use_split_groups)
 
-        view_layer = context.view_layer
-        collection = view_layer.active_layer_collection.collection
+    meshes: list[Mesh] = []
 
-        # Create new obj
-        for obj in new_objects:
-            collection.objects.link(obj)
-            obj.select_set(True)
+    for data in split_mesh(verts_loc, faces, unique_materials, name, SPLIT_OB_OR_GROUP):
+        verts_loc_split, faces_split, unique_materials_split, dataname, use_vnor, use_vtex = data
+        # Create meshes from the data, warning 'vertex_groups' wont support splitting
+        #~ print(dataname, use_vnor, use_vtex)
+        mesh = create_mesh(use_edges,
+                    verts_loc_split,
+                    verts_nor if use_vnor else [],
+                    verts_tex if use_vtex else [],
+                    faces_split,
+                    unique_materials_split,
+                    unique_smooth_groups,
+                    vertex_groups,
+                    dataname,
+                    )
+        meshes.append(mesh)
 
-            # we could apply this anywhere before scaling.
-            obj.matrix_world = global_matrix
+    # nurbs support
+    for context_nurbs in nurbs:
+        create_nurbs(context_nurbs, verts_loc, new_objects)
 
-        view_layer.update()
+    # view_layer = context.view_layer
+    # collection = view_layer.active_layer_collection.collection
 
-        axis_min = [1000000000] * 3
-        axis_max = [-1000000000] * 3
+    return meshes
 
-        if global_clamp_size:
-            # Get all object bounds
-            for ob in new_objects:
-                for v in ob.bound_box:
-                    for axis, value in enumerate(v):
-                        if axis_min[axis] > value:
-                            axis_min[axis] = value
-                        if axis_max[axis] < value:
-                            axis_max[axis] = value
+    # Create new obj
+    # for obj in new_objects:
+    #     collection.objects.link(obj)
+    #     obj.select_set(True)
 
-            # Scale objects
-            max_axis = max(axis_max[0] - axis_min[0], axis_max[1] - axis_min[1], axis_max[2] - axis_min[2])
-            scale = 1.0
+    #     # we could apply this anywhere before scaling.
+    #     obj.matrix_world = global_matrix
 
-            while global_clamp_size < max_axis * scale:
-                scale = scale / 10.0
+    # view_layer.update()
 
-            for obj in new_objects:
-                obj.scale = scale, scale, scale
+    # axis_min = [1000000000] * 3
+    # axis_max = [-1000000000] * 3
 
-        progress.leave_substeps("Done.")
-        progress.leave_substeps("Finished importing: %r" % filepath)
+    # if global_clamp_size:
+    #     # Get all object bounds
+    #     for ob in new_objects:
+    #         for v in ob.bound_box:
+    #             for axis, value in enumerate(v):
+    #                 if axis_min[axis] > value:
+    #                     axis_min[axis] = value
+    #                 if axis_max[axis] < value:
+    #                     axis_max[axis] = value
 
-    return new_objects
+    #     # Scale objects
+    #     max_axis = max(
+    #         axis_max[0] - axis_min[0], axis_max[1] - axis_min[1], axis_max[2] - axis_min[2])
+    #     scale = 1.0
+
+    #     while global_clamp_size < max_axis * scale:
+    #         scale = scale / 10.0
+
+    #     for obj in new_objects:
+    #         obj.scale = scale, scale, scale
+
+    # return new_objects

@@ -43,21 +43,30 @@ class VCAPContext:
             return self._import_mesh(model_id)
 
     # This is extremely hacky due to how hard-coded the obj importer is. Should recode that at some point.
-    def _import_mesh(self, model_id: str):        
-        tmpname = self.archive.extract(member=f'mesh/{model_id}.obj', path=tempfile.gettempdir())
-        print("Extracted to "+tmpname)
-        objects: list[Object] = import_obj.load(context=self.context, filepath=tmpname)
-        if (len(objects) > 1):
+    def _import_mesh(self, model_id: str):
+        file = self.archive.open(f'mesh/{model_id}.obj', 'r')
+        print("Importing mesh: "+model_id)
+        meshes = import_obj.load(self.context, file, name=model_id)
+        file.close()
+        if (len(meshes) > 1):
             raise RuntimeError("Only one obj object is allowed per model in VCAP.")
         
-        obj = objects[0]
-        mesh: Mesh = obj.data
-        if not isinstance(mesh, Mesh):
-            raise RuntimeError("Imported object is not a mesh.")
+        return meshes[0]
 
-        self.models[model_id] = mesh
-        bpy.data.objects.remove(obj, do_unlink=True)
-        return mesh
+        # tmpname = self.archive.extract(member=f'mesh/{model_id}.obj', path=tempfile.gettempdir())
+        # print("Extracted to "+tmpname)
+        # objects: list[Object] = import_obj.load(context=self.context, filepath=tmpname)
+        # if (len(objects) > 1):
+        #     raise RuntimeError("Only one obj object is allowed per model in VCAP.")
+        
+        # obj = objects[0]
+        # mesh: Mesh = obj.data
+        # if not isinstance(mesh, Mesh):
+        #     raise RuntimeError("Imported object is not a mesh.")
+
+        # self.models[model_id] = mesh
+        # bpy.data.objects.remove(obj, do_unlink=True)
+        # return mesh
 
 
 def load(file: str, collection: Collection, context: Context):

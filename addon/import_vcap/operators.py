@@ -1,5 +1,6 @@
 from os import path
-from .format import vcap_importer, obj
+
+from .format import vcap_importer, obj, import_obj
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -37,7 +38,18 @@ class ImportTestOperator(Operator, ImportHelper):
 
     def execute(self, context: Context):
         file = self.filepath
-        obj.load(context, open(file, 'rb'), path.basename(file))
+        f = open(file, 'rb')
+        meshes = import_obj.load(context, f, name=path.basename(file))
+        f.close()
+
+        view_layer = context.view_layer
+        collection = view_layer.active_layer_collection.collection
+
+        for mesh in meshes:
+            obj = bpy.data.objects.new(mesh.name, mesh)
+            collection.objects.link(obj)
+
+        # obj.load(context, open(file, 'rb'), path.basename(file))
 
         return {'FINISHED'}
 
