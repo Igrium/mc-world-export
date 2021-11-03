@@ -21,7 +21,7 @@
     "main": [
     ],
     "client": [
-      "org.scaffoldeditor.worldexport.WorldExport"
+      "org.scaffoldeditor.worldexport.WorldExportMod"
     ]
   },
   "mixins": [

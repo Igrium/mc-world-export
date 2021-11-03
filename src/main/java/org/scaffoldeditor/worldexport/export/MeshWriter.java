@@ -17,10 +17,13 @@ import net.minecraft.util.math.Direction;
 public final class MeshWriter {
     private MeshWriter() {}
 
+    public static final String WORLD_MAT = "world";
+    public static final String TRANSPARENT_MAT = "world_transparent";
+
     public static Obj writeBlockMesh(ModelEntry entry, Random random) {
         Obj obj = Objs.create();
         BakedModel model = entry.model;
-
+        obj.setActiveMaterialGroupName(entry.transparent ? TRANSPARENT_MAT : WORLD_MAT);
         for (int d = 0; d < BlockExporter.DIRECTIONS.length; d++) {
             if (!entry.faces[d]) continue;
             Direction direction = BlockExporter.DIRECTIONS[d];
@@ -35,7 +38,7 @@ public final class MeshWriter {
                 addFace(quad, obj);
             }
         }
-        
+
         return obj;
     }
 

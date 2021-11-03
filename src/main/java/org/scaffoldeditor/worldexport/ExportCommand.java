@@ -76,7 +76,7 @@ public final class ExportCommand {
 
                 BlockState block = context.getSource().getWorld().getBlockState(context.getSource().getPlayer().getBlockPos().subtract(new Vec3i(0, 1, 0)));
                 BlockRenderManager dispatcher = MinecraftClient.getInstance().getBlockRenderManager();
-                ModelEntry entry = new ModelEntry(dispatcher.getModel(block), new boolean[] { true, true, true, true, true, true });
+                ModelEntry entry = new ModelEntry(dispatcher.getModel(block), new boolean[] { true, true, true, true, true, true }, !block.isOpaque());
                 
                 Obj model = MeshWriter.writeBlockMesh(entry, new Random());
 

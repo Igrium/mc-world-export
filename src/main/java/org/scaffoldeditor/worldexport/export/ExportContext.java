@@ -20,15 +20,18 @@ public class ExportContext {
          */
         public final boolean[] faces;
 
+        public final boolean transparent;
+
         /**
          * Create a model entry.
          * @param model The baked model to use.
          * @param faces A 6-element array dictating which faces are visible,
          * in the order NORTH, SOUTH, EAST, WEST, UP, DOWN
          */
-        public ModelEntry(BakedModel model, boolean[] faces) {
+        public ModelEntry(BakedModel model, boolean[] faces, boolean transparent) {
             this.model = model;
             this.faces = faces;
+            this.transparent = transparent;
         }
 
         @Override

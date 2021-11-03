@@ -88,8 +88,9 @@ public final class BlockExporter {
                         faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
                     }
 
-                    ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces);
+                    ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque());
                     String id = context.getID(entry, BlockModels.getModelId(state).toString());
+                    
 
                     // We don't want threads overwriting each other in the palette
                     int index;

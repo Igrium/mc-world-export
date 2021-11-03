@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.export.BlockExporter;
 import org.scaffoldeditor.worldexport.export.ExportContext;
+import org.scaffoldeditor.worldexport.export.Material;
 import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.TextureExtractor;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
@@ -81,6 +82,7 @@ public final class Exporter {
             ObjWriter.write(mesh, out);
             out.closeEntry();
         }
+        writeMats(out);
         writeAtlas(atlasFuture, out);
         out.close();
     }
@@ -110,5 +112,27 @@ public final class Exporter {
         out.closeEntry();
 
         LogManager.getLogger().info("Transfered data from {}", atlasTemp);
+    }
+
+    private static void writeMats(ZipOutputStream out) throws IOException {
+        Material opaque = new Material();
+        opaque.color = new Material.Field("world");
+        opaque.roughness = new Material.Field(.7);
+        opaque.useVertexColors = true;
+        
+        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
+        opaque.serialize(out);
+        out.closeEntry();
+
+        Material transparent = new Material();
+        transparent.color = new Material.Field("world");
+        transparent.roughness = new Material.Field(.7);
+        transparent.transparent = true;
+        transparent.useVertexColors = true;
+
+        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
+        transparent.serialize(out);
+        out.closeEntry();
+
     }
 }

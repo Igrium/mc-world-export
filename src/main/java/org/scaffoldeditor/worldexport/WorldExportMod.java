@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import net.fabricmc.api.ClientModInitializer;
 
-public class WorldExport implements ClientModInitializer {
+public class WorldExportMod implements ClientModInitializer {
 
     public static final Logger LOGGER = LogManager.getLogger("worldexport");
 
