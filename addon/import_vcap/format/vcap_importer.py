@@ -165,7 +165,7 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, progressFunction: Cal
     frame = world.get_frame(0)
     sections: TAG_List = frame['sections']
     for i in range(0, len(sections)):
-        print(f'Parsing section {i + 1} / {len(sections)}')
+        # print(f'Parsing section {i + 1} / {len(sections)}')
         readSection(sections[i], vcontext)
         if progressFunction:
             progressFunction((i + 1) / len(sections))
