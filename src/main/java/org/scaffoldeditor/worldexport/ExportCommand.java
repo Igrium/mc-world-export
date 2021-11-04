@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -43,6 +44,7 @@ public final class ExportCommand {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("export").build();
 
         LiteralCommandNode<FabricClientCommandSource> world = ClientCommandManager.literal("world")
+            .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0, 16))
             .then(ClientCommandManager.argument("name", StringArgumentType.word())
             .executes(context -> {
                 try {
@@ -50,10 +52,13 @@ public final class ExportCommand {
                     if (!exportFolder.toFile().isDirectory()) {
                         exportFolder.toFile().mkdir();
                     }
+                    ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
+                    int radius = context.getArgument("radius", Integer.class);
 
                     File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".dat").toFile();
                     FileOutputStream os = new FileOutputStream(targetFile);
-                    BlockExporter.writeStill(client.world, new ChunkPos(-2, -2), new ChunkPos(2, 2), new ExportContext(), os);
+                    BlockExporter.writeStill(client.world, new ChunkPos(playerPos.x - radius, playerPos.z - radius),
+                                                new ChunkPos(playerPos.x + radius, playerPos.z + radius), new ExportContext(), os);
                     os.close();
                     context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
                 } catch (IOException e) {
@@ -62,7 +67,7 @@ public final class ExportCommand {
                 }
 
                 return 0;
-            })).build();
+            }))).build();
         root.addChild(world);
         
         LiteralCommandNode<FabricClientCommandSource> mesh = ClientCommandManager.literal("mesh")
@@ -129,6 +134,7 @@ public final class ExportCommand {
 
         LiteralCommandNode<FabricClientCommandSource> full = ClientCommandManager.literal("full")
             .then(ClientCommandManager.argument("name", StringArgumentType.word())
+            .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0, 16))
             .executes(context -> {
                 new Thread(() -> {
                     Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
@@ -136,9 +142,13 @@ public final class ExportCommand {
                         exportFolder.toFile().mkdir();
                     }
                     File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
+                    ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
+                    int radius = context.getArgument("radius", Integer.class);
+
                     try {
                         FileOutputStream os = new FileOutputStream(targetFile);
-                        Exporter.Export(context.getSource().getWorld(), new ChunkPos(-2, -2), new ChunkPos(2, 2), os);
+                        Exporter.Export(context.getSource().getWorld(), new ChunkPos(playerPos.x - radius, playerPos.z - radius),
+                        new ChunkPos(playerPos.x + radius, playerPos.z + radius), os);
                         os.close();
                     } catch (IOException | ExecutionException | TimeoutException e) {
                         LogManager.getLogger().error(e);
@@ -148,7 +158,7 @@ public final class ExportCommand {
                     context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
                 }).start();     
                 return 0;
-            })).build();
+            }))).build();
         root.addChild(full);
 
         ClientCommandManager.DISPATCHER.getRoot().addChild(root);

@@ -142,6 +142,9 @@ def load(file: str, collection: Collection, context: Context):
         
         wm.progress_update(4 + (i / num_materials))
 
+    # Clean up
+    for mesh in vcontext.models.values():
+        context.blend_data.meshes.remove(mesh)
 
     wm.progress_end()
 
@@ -188,6 +191,6 @@ def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext)
     mesh = vcontext.models[model_id]
     if (len(mesh.vertices) == 0): return
 
-    util.add_mesh(vcontext.target, mesh, Matrix.Translation(Vector(pos)))
+    util.add_mesh(vcontext.target, mesh, Matrix.Translation(pos))
 
     
