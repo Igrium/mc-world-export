@@ -22,13 +22,7 @@
 # Contributors: Campbell Barton, Jiri Hnidek, Paolo Ciccone
 
 """
-This script imports a Wavefront OBJ files to Blender.
-
-Usage:
-Run this script from "File->Import" menu and then load the desired OBJ file.
-Note, This loads mesh objects and materials only, nurbs and curves are not supported.
-
-http://wiki.blender.org/index.php/Scripts/Manual/Import/wavefront_obj
+This is a modified version of Blender's native OBJ import that is optimized for vcap files.
 """
 
 import array
