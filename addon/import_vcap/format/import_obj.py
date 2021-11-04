@@ -932,7 +932,8 @@ def load(context: Context,
         use_groups_as_vgroups=False,
         relpath=None,
         global_matrix=None,
-        name: str="block"
+        name: str="block",
+        unique_materials={}
         ):
     """
     Called by the user interface or another script.
@@ -1010,7 +1011,6 @@ def load(context: Context,
 
     # Until we can use sets
     use_default_material = False
-    unique_materials = {}
     unique_smooth_groups = {}
     # unique_obects= {} - no use for this variable since the objects are stored in the face.
 
@@ -1319,7 +1319,7 @@ def load(context: Context,
     # view_layer = context.view_layer
     # collection = view_layer.active_layer_collection.collection
 
-    return meshes
+    return (meshes, unique_materials)
 
     # Create new obj
     # for obj in new_objects:

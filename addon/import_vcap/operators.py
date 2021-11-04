@@ -1,6 +1,6 @@
 from os import path
 
-from .format import vcap_importer, obj, import_obj
+from .format import vcap_importer, import_obj
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper

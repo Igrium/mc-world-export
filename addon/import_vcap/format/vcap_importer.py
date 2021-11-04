@@ -12,7 +12,7 @@ from mathutils import Matrix, Vector
 
 from .. import amulet_nbt
 from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String
-from . import import_obj, util
+from . import import_obj, util, materials
 from .world import VCAPWorld
 
 
@@ -39,7 +39,7 @@ class VCAPContext:
         self.context = context
         self.name = name
         self.models = {}
-        self.materials = {}
+        self.materials = {}        
 
         self.collection = bpy.data.collections.new('vcap_import')
         collection.children.link(self.collection)
@@ -47,6 +47,14 @@ class VCAPContext:
         self.target = bmesh.new()
     
     def get_mesh(self, model_id: str):
+        """Ensure we have a mesh installed.
+
+        Args:
+            model_id (str): Mesh's ID string
+
+        Returns:
+            [Mesh]: The loaded mesh
+        """
         if (model_id in self.models):
             return self.models[model_id]
         else:
@@ -54,12 +62,13 @@ class VCAPContext:
 
     def _import_mesh(self, model_id: str):
         file = self.archive.open(f'mesh/{model_id}.obj', 'r')
-        meshes = import_obj.load(self.context, file, name=model_id)
+        (meshes, mats) = import_obj.load(self.context, file, name=model_id, unique_materials=self.materials)
         file.close()
         if (len(meshes) > 1):
             raise RuntimeError("Only one obj object is allowed per model in VCAP.")
         
         self.models[model_id] = meshes[0]
+        self.materials = mats # Likely won't do anything
         return meshes[0]
 
         # tmpname = self.archive.extract(member=f'mesh/{model_id}.obj', path=tempfile.gettempdir())
@@ -86,25 +95,28 @@ def load(file: str, collection: Collection, context: Context):
         collection (Collection): Collection to add to.
         context (bpy.context): Blender context.
     """
+    # Init
     wm = context.window_manager
-    wm.progress_begin(0, 3)
+    wm.progress_begin(0, 4)
 
     archive = ZipFile(file, 'r')
-    world_dat = archive.open('world.dat')
-
     for obj in context.view_layer.objects.selected:
         obj.select_set(False)
     
     vcontext = VCAPContext(archive, collection, context, os.path.basename(file))
     wm.progress_update(1)
+
+    # Meshes
     loadMeshes(archive, vcontext)
     wm.progress_update(2)
+
+    # Blocks
+    world_dat = archive.open('world.dat')
     readWorld(world_dat, vcontext, lambda progress: wm.progress_update(progress + 2))
     world_dat.close()
-
     wm.progress_update(3)
 
-    # Finalize
+    # Object
     bmesh.ops.remove_doubles(vcontext.target, verts=vcontext.target.verts, dist=.0001)
     outMesh = bpy.data.meshes.new(vcontext.name)
     vcontext.target.to_mesh(outMesh)
@@ -112,6 +124,24 @@ def load(file: str, collection: Collection, context: Context):
     obj = bpy.data.objects.new(vcontext.name, outMesh)
     collection.objects.link(obj)
     obj.rotation_euler = (math.radians(90), 0, 0)
+    wm.progress_update(4)
+
+    # Materials
+    num_materials = len(vcontext.materials)
+    print(vcontext.materials)
+    for i in range(0, num_materials):
+        mat_id = list(vcontext.materials)[i].decode('ascii')
+        filename = f'mat/{mat_id}.json'
+        print("Reading material: "+filename)
+
+        f = archive.open(filename)
+        mat = materials.read(f, mat_id)
+        f.close()
+
+        obj.data.materials.append(mat)
+        
+        wm.progress_update(4 + (i / num_materials))
+
 
     wm.progress_end()
 
