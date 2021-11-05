@@ -3,9 +3,22 @@ import numbers
 from typing import IO
 
 import bpy
-from bpy.types import Material, Node
+from bpy.types import Node
+from .context import VCAPContext
+from . import util
 
-def read(file: IO, name: str):
+def load_texture(tex_id: str, context: VCAPContext, is_data=False):
+    if tex_id in context.textures:
+        return context.textures[tex_id]
+
+    filename = f'tex/{tex_id}.png'
+    file = context.archive.open(filename)
+
+    image = util.import_image(file, tex_id, is_data=is_data)
+    context.textures[tex_id] = image
+    return image
+
+def read(file: IO, name: str, context: VCAPContext):
     """Read a vcap material entry.
 
     Args:
@@ -16,22 +29,25 @@ def read(file: IO, name: str):
         [type]: [description]
     """
     obj = json.load(file)
-    return parse(obj, name)
+    return parse(obj, name, context)
 
-def parse(obj, name: str):
+def parse(obj, name: str, context: VCAPContext):
     """Parse a vcap material entry.
 
     Args:
         obj ([type]): Unserialized json.
         name (str): Material name.
     """
-    def parse_field(value, target: Node, index: int):
+    def parse_field(value, target: Node, index: int, is_data: False):
         if isinstance(value, numbers.Number):
             target.inputs[index].default_value = value
         elif isinstance(value, str):
             tex = mat.node_tree.nodes.new('ShaderNodeTexImage')
             mat.node_tree.links.new(tex.outputs[0], target.inputs[index])
-            # TODO: Add texture
+
+            tex.image = load_texture(value, context, is_data)
+            tex.interpolation = 'Closest'
+
         elif isinstance(value, list):
             target.inputs[index].default_value = (value[0], value[1], value[2])
         else:
@@ -68,20 +84,22 @@ def parse(obj, name: str):
                 mat.node_tree.links.new(tex.outputs[0], principled_node.inputs[0])
 
             mat.node_tree.links.new(tex.outputs[1], principled_node.inputs[19]) # Alpha
-            # TODO: Add texture
+            tex.image = load_texture(color, context, False)
+            tex.interpolation = 'Closest'
         else:
             parse_field(color, principled_node, 0)
     
     if 'roughness' in obj:
-        parse_field(obj['roughness'], principled_node, 7)
+        parse_field(obj['roughness'], principled_node, 7, True)
     if 'metallic' in obj:
-        parse_field(obj['metallic'], principled_node, 4)
-    if 'normal' in obj:
+        parse_field(obj['metallic'], principled_node, 4, True)
+    if 'normal' in obj and isinstance(obj['normal'], str):
         normal = mat.node_tree.nodes.new('ShaderNodeNormalMap')
         mat.node_tree.links.new(normal.outputs[0], principled_node.inputs[20])
 
         tex = mat.node_tree.nodes.new('ShaderNodeTexImage')
         mat.node_tree.links.new(tex.outputs[0], normal.inputs[1])
-        # TODO: Add texture
-    
+        tex.image = load_texture(obj['normal'], context, True)
+        tex.interpolation = 'Closest'
     return mat
+    
