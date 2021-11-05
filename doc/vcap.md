@@ -1,16 +1,11 @@
 # .VCAP Specification
-The general purpose of vcap (voxel capture) files is to represent voxel worlds in which there can be different types of
-voxels, each with a different mesh, in a format that is void of any external dependencies. It was designed with the purpose
-of exporting Minecraft worlds, and realtime changes to said worlds, into pieces of 3D software like Blender, although it is
-applicable to other applications as well.
+The general purpose of VCap (voxel capture) files is to represent voxel worlds in which there can be different types of voxels, each with a different mesh, in a format that is void of any external dependencies. It was designed with the purpose of exporting Minecraft worlds, and realtime changes to said worlds, into pieces of 3D software like Blender, although it is applicable to other applications as well.
 
 ## High Level Format
-VCAP files are essentially renamed zip files. Changing the file extension from `.vcap` to `.zip`.
-The rest of this specification will assume we are looking inside the zip package as if it were a folder.
+VCap files are essentially renamed zip files. Changing the file extension from `.vcap` to `.zip`. The rest of this specification will assume we are looking inside the zip package as if it were a folder.
 
 ## The World
-The world, arguably the most dense element of the format, is stored in an uncompressed [NBT](https://wiki.vg/NBT)
-format within `world.dat`. It follows the following scheme
+The world, arguably the most dense element of the format, is stored in an uncompressed [NBT](https://wiki.vg/NBT) format within `world.dat`. It follows the following scheme
 
 - root - TAG_COMPOUND
     - frames - TAG_LIST: A list of "frames," or updates to the world. Currently, only one frame
@@ -23,30 +18,50 @@ format within `world.dat`. It follows the following scheme
                     - x: TAG_INT The x position of this section in section coordinates.
                     - y: TAG_INT The y position of this section in section coordinates.
                     - z: TAG_INT The z position of this seciton in section coordinates.
-                    - palette: TAG_LIST: A list of the different voxel types in this chunk, where each entry
-                    is a simple string tag indicating a model ID.
-                    - blocks: TAG_BYTE_ARRAY: The actual block data within the chunk. Each byte represents
-                    a different block, making the array 4096 bytes in length. Blocks are
-                    sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is
-                    `(Y×length + Z)×width + X`. Read as signed numbers, the values in the bytes corriate to the index
-                    in the palette which the intended model ID resides.
+                    - palette: TAG_LIST: A list of the different voxel types in this chunk, where each entry is a simple string tag indicating a model ID.
+                    - blocks: TAG_BYTE_ARRAY: The actual block data within the chunk. Each byte represents a different block, making the array 4096 bytes in length. Blocks are sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is `(Y * 16 + Z) * 16 + X`. Read as signed numbers, the values in the bytes corriate to the index in the palette which the intended model ID resides.
 
-This format is modeled losely off of Minecraft [schematic](https://minecraft.fandom.com/wiki/Schematic_file_format) files,
-modified to fit the requirements for vcap.
+This format is modeled losely off of Minecraft [schematic](https://minecraft.fandom.com/wiki/Schematic_file_format) files, modified to fit the requirements for VCap.
 
 ## Meshes
-One of the strengths of vcap is that is entirely self-contained. Wheras other formats require an external library of textures
-and meshes in order to render them, vcap files contain all the assets needed out of the box, occlusion data and all.
+One of the strengths of VCap is that is entirely self-contained. Wheras other formats require an external library of textures and meshes in order to render them, VCap files contain all the assets needed out of the box, occlusion data and all.
 
-Within the `mesh` folder of the archive is a series of `.obj` files containing the mesh data. Each model ID gets it's own file,
-with the simple naming scheme of `[model ID].obj`. It is expected that these models have their occlusion optimizations pre-applied,
-meaning that each each variant of a block will have a seperate model ID. In other words, while a dirt block may use the same ID 
-regardless of where it's placed normally, a free-floating dirt block and a block of dirt in the ground will use different model IDs here,
+Within the `mesh` folder of the archive is a series of `.obj` files containing the mesh data. Each model ID gets it's own file, with the simple naming scheme of `[model_id].obj`. It is expected that these models have their occlusion optimizations pre-applied, meaning that each each variant of a block will have a seperate model ID. In other words, while a dirt block may use the same ID regardless of where it's placed normally, a free-floating dirt block and a block of dirt in the ground will use different model IDs here,
 and therefore have seperate palette entries.
 
-See the [OBJ file](https://en.wikipedia.org/wiki/Wavefront_.obj_file) specification for details about the content within the mesh files.
+See the [OBJ file](https://en.wikipedia.org/wiki/Wavefront_.obj_file) specification for details about the content within the mesh files themselves.
 
-## Textures
-The final packed assets are textured, and these are fairly straightforward. Within the `tex` folder is an arbitrary amount of 
-PNG files containing the textures the meshes rely on. Multiple meshes may reference the same texture, and this texture should not
-be duplicated when that happens.
+## Textures and Materials
+When parsing obj files, a `usemtl` line is often encountered. Unlike traditional obj files however, this does not reference an external `mtl` file.
+Instead, it refers to a material definition within the archive.
+
+Within the `mat` folder is a series of Json files, each named `[material_id].json`, which describe the materials found in the world. Within each file is a single Json object with a set of *fields*. Each field controls an aspect of the material, and is represented by an object key followed by one of the following Json types:
+* `number`: A value that acts as a grayscale scalar across the entire image.
+* `array`: A three-number array that, like `number`, acts across the entire image. The difference is that this can represent RGB and XYZ values.
+* `string`: A string that references a packed texture. Textures are loaded using a color space determined by the field in which they are used.
+
+All textures can be found as PNG files within the `tex` folder, using the name that the material refers to them with (`[tex_id].png`). It's common for multiple materials to reference the same texture, and texture data should not be duplicated when this happens.
+
+The fields themselves follow standard PBR conventions:
+* `color`: The base albedo map.
+* `roughness`: The material's roughness / reflectivity, where black is fully reflective and white is fully matte. (default: `.5`)
+* `metallic`: A value between 0 and 1 determining the material's metalness. [Read about PBR metalness here.](https://www.chaosgroup.com/blog/understanding-metalness) (default: `0`)
+* `normal`: The material's normal map. (default: neutral)
+
+There are also additional two boolean values that provide material metadata:
+* `transparent`: Whether this material should be rendered with transparent shading (alpha hashed). (default: `false`)
+* `useVertexColors`: If enabled, the shader will multiply the texture with the block's corresponding color from the world data. Typically implemented using vertex colors. (default: `false`) 
+
+All fields are optional, and the exclusion of one will lead to its default value being used.
+
+
+### Example material:
+```json
+{
+  "color": "world",
+  "roughness": 0.7,
+  "metallic": 0,
+  "transparent": true,
+  "useVertexColors": true
+}
+```

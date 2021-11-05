@@ -19,6 +19,8 @@ public final class MeshWriter {
 
     public static final String WORLD_MAT = "world";
     public static final String TRANSPARENT_MAT = "world_transparent";
+    public static final String TINTED_MAT = "world_tinted";
+    public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
 
     public static Obj writeBlockMesh(ModelEntry entry, Random random) {
         Obj obj = Objs.create();
@@ -29,13 +31,13 @@ public final class MeshWriter {
             Direction direction = BlockExporter.DIRECTIONS[d];
             List<BakedQuad> quads = model.getQuads(null, direction, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj);
+                addFace(quad, obj, entry.transparent);
             }
         }
         {   // Quads that aren't assigned to a direction.   
             List<BakedQuad> quads = model.getQuads(null, null, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj);
+                addFace(quad, obj, entry.transparent);
             }
         }
 
@@ -47,7 +49,22 @@ public final class MeshWriter {
      * @param quad Quad to add.
      * @param obj Mesh to add to.
      */
-    public static void addFace(BakedQuad quad, Obj obj) {
+    public static void addFace(BakedQuad quad, Obj obj, boolean transparent) {
+
+        if (transparent) {
+            if (quad.hasColor()) {
+                obj.setActiveMaterialGroupName(TRANSPARENT_TINTED_MAT);
+            } else {
+                obj.setActiveMaterialGroupName(TRANSPARENT_MAT);
+            }
+        } else {
+            if (quad.hasColor()) {
+                obj.setActiveMaterialGroupName(TINTED_MAT);
+            } else {
+                obj.setActiveMaterialGroupName(WORLD_MAT);
+            }
+        }
+
         int[] vertData = quad.getVertexData();
 
         int len = vertData.length / 8;

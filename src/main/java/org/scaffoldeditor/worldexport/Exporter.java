@@ -118,7 +118,7 @@ public final class Exporter {
         Material opaque = new Material();
         opaque.color = new Material.Field("world");
         opaque.roughness = new Material.Field(.7);
-        opaque.useVertexColors = true;
+        opaque.useVertexColors = false;
         
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
         opaque.serialize(out);
@@ -128,10 +128,29 @@ public final class Exporter {
         transparent.color = new Material.Field("world");
         transparent.roughness = new Material.Field(.7);
         transparent.transparent = true;
-        transparent.useVertexColors = true;
+        transparent.useVertexColors = false;
 
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
         transparent.serialize(out);
+        out.closeEntry();
+
+        Material opaque_tinted = new Material();
+        opaque_tinted.color = new Material.Field("world");
+        opaque_tinted.roughness = new Material.Field(.7);
+        opaque_tinted.useVertexColors = true;
+
+        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
+        opaque_tinted.serialize(out);
+        out.closeEntry();
+
+        Material transparent_tinted = new Material();
+        transparent_tinted.color = new Material.Field("world");
+        transparent_tinted.roughness = new Material.Field(.7);
+        transparent_tinted.transparent = true;
+        transparent_tinted.useVertexColors = true;
+
+        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_TINTED_MAT+".json"));
+        transparent_tinted.serialize(out);
         out.closeEntry();
 
     }
