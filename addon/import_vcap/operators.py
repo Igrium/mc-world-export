@@ -107,12 +107,12 @@ def menu_func_import2(self, context):
 def register():
     bpy.utils.register_class(ImportVcap)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
-    bpy.utils.register_class(ImportTestOperator)
-    bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
+    # bpy.utils.register_class(ImportTestOperator)
+    # bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportVcap)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-    bpy.utils.unregister_class(ImportTestOperator)
-    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
+    # bpy.utils.unregister_class(ImportTestOperator)
+    # bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)

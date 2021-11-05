@@ -1211,8 +1211,9 @@ def load(context: Context,
                     context_vgroup = None  # dont assign a vgroup
 
         elif line_start == b'usemtl':
-            context_material = line_value(line.split())
-            unique_materials[context_material] = None
+            context_material = line_value(line.split()).decode('ascii')
+            if not context_material in unique_materials:
+                unique_materials[context_material] = None
         elif line_start == b'mtllib':  # usemap or usemat
             # can have multiple mtllib filenames per line, mtllib can appear more than once,
             # so make sure only occurrence of material exists
@@ -1282,8 +1283,8 @@ def load(context: Context,
         '''
 
 
-    if use_default_material:
-        unique_materials[None] = None
+    # if use_default_material:
+    #     unique_materials[None] = None
     # create_materials(filepath, relpath, material_libs, unique_materials,
     #                     use_image_search, float_func)
 
