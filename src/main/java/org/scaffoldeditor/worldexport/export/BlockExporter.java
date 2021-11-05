@@ -88,7 +88,7 @@ public final class BlockExporter {
                         faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
                     }
 
-                    ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque());
+                    ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
                     String id = context.getID(entry, BlockModels.getModelId(state).toString());
                     
 

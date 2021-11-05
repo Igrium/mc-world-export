@@ -25,11 +25,10 @@ public final class MeshWriter {
     public static Obj writeBlockMesh(ModelEntry entry, Random random) {
         Obj obj = Objs.create();
         BakedModel model = entry.model;
-        obj.setActiveMaterialGroupName(entry.transparent ? TRANSPARENT_MAT : WORLD_MAT);
         for (int d = 0; d < BlockExporter.DIRECTIONS.length; d++) {
             if (!entry.faces[d]) continue;
             Direction direction = BlockExporter.DIRECTIONS[d];
-            List<BakedQuad> quads = model.getQuads(null, direction, random);
+            List<BakedQuad> quads = model.getQuads(entry.blockState, direction, random);
             for (BakedQuad quad : quads) {
                 addFace(quad, obj, entry.transparent);
             }
@@ -48,6 +47,7 @@ public final class MeshWriter {
      * Add a baked quad to a 3d mesh.
      * @param quad Quad to add.
      * @param obj Mesh to add to.
+     * @param transparent Assign transparent material.
      */
     public static void addFace(BakedQuad quad, Obj obj, boolean transparent) {
 
