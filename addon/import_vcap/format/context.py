@@ -37,6 +37,7 @@ class VCAPContext:
         self.collection = collection
 
         self.target = bmesh.new()
+        self.target.loops.layers.color.new('color')
     
     def get_mesh(self, model_id: str):
         """Ensure we have a mesh installed.

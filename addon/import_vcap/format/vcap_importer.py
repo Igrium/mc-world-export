@@ -3,6 +3,8 @@ import os
 from typing import IO, Callable
 from zipfile import ZipFile
 
+from numpy import ndarray
+
 import bmesh
 import bpy
 from bmesh.types import BMesh
@@ -72,8 +74,8 @@ def load(file: str, collection: Collection, context: Context):
     wm.progress_update(4)
 
     # Clean up
-    for mesh in vcontext.models.values():
-        context.blend_data.meshes.remove(mesh)
+    # for mesh in vcontext.models.values():
+    #     context.blend_data.meshes.remove(mesh)
 
     wm.progress_end()
 
@@ -104,6 +106,14 @@ def readSection(section: TAG_Compound, vcontext: VCAPContext):
     offset: tuple[int, int, int] = (section['x'].value, section['y'].value, section['z'].value)
     blocks: TAG_Byte_Array = section['blocks']
     bblocks = blocks.value
+    
+    use_colors = False
+    if ('colors' in section) and ('color_palette' in section):
+        color_palette_tag: TAG_Byte_Array = section['colorPalette']
+        color_palette = color_palette_tag.value
+        colors_tag: TAG_Byte_Array = section['colors']
+        colors = colors_tag.value
+        use_colors = True
 
     for y in range(0, 16):
         for z in range(0, 16):
@@ -111,13 +121,26 @@ def readSection(section: TAG_Compound, vcontext: VCAPContext):
                 index = bblocks.item((y * 16 + z) * 16 + x)
                 model_id: TAG_String = palette[index]
 
-                place(model_id.value, pos=(offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z), vcontext=vcontext)
+                if use_colors:
+                    i = colors.item((y * 16 + z) * 16 + x)
+                    r = _read_unsigned(color_palette, i, 8) / 255
+                    g = _read_unsigned(color_palette, i + 1, 8) / 255
+                    b = _read_unsigned(color_palette, i + 2, 8) / 255
+                    color = [r, g, b, 1]
+                else:
+                    color = [1, 1, 1, 1]
+                    
+                place(model_id.value, pos=(offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z), vcontext=vcontext, color=color)
 
+def _read_unsigned(array: ndarray, index: int, bit_depth: int=8):
+    item = array.item(index)
+    if (item < 0):
+        return item + 2**bit_depth
+    else:
+        return item
 
-def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext):
-    # if not (model_id in vcontext.models):
-    #     raise RuntimeError(f'Model {model_id} does not have a mesh!')
+def place(model_id: str, pos: tuple[float, float, float], vcontext: VCAPContext, color: list[float]=[1, 1, 1, 1]):
     mesh = vcontext.models[model_id]
     if (len(mesh.vertices) == 0): return
 
-    util.add_mesh(vcontext.target, mesh, Matrix.Translation(pos))
+    util.add_mesh(vcontext.target, mesh, Matrix.Translation(pos), color)

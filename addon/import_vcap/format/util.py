@@ -1,10 +1,12 @@
 from typing import IO, Sequence
 from bmesh.types import BMesh
 import bpy
-from bpy.types import Image, Mesh
+from bpy.types import Image, Mesh, MeshLoopColor
 from mathutils import Matrix, Vector
 
-def add_mesh(mesh1: BMesh, mesh2: Mesh, matrix: Matrix=Matrix.Identity(4)):
+COLOR_LAYER = "tint"
+
+def add_mesh(mesh1: BMesh, mesh2: Mesh, matrix: Matrix=Matrix.Identity(4), color: list[float]=[1,1,1,1]):
     """Add the contents of a mesh into another mesh.
 
     Args:
@@ -12,6 +14,14 @@ def add_mesh(mesh1: BMesh, mesh2: Mesh, matrix: Matrix=Matrix.Identity(4)):
         mesh2 (Mesh): The mesh to add.
         offset (Sequence[float, float, float]): Offset vector
     """
+    if not COLOR_LAYER in mesh2.vertex_colors:
+        mesh2.vertex_colors.new(name=COLOR_LAYER)
+    
+    vcolors = mesh2.vertex_colors[COLOR_LAYER]
+    for key in mesh2.loops.keys():
+        col = vcolors.data[key]
+        col.color = color.copy()
+
     mesh2.transform(matrix)
     mesh1.from_mesh(mesh2)
     mesh2.transform(matrix.inverted())

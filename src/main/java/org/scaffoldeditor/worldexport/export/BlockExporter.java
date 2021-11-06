@@ -71,8 +71,12 @@ public final class BlockExporter {
         tag.putInt("x", sectionX);
         tag.putInt("y", sectionY);
         tag.putInt("z", sectionZ);
+
         List<String> palette = new ArrayList<>();
         byte[] blocks = new byte[16 * 16 * 16];
+
+        List<Byte> colorPalette = new ArrayList<>();
+        byte[] colors = new byte[16 * 16 * 16];
 
         IntStream.range(0, 16).parallel().forEach(y -> {
             IntStream.range(0, 16).parallel().forEach(z -> {
@@ -90,10 +94,15 @@ public final class BlockExporter {
 
                     ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
                     String id = context.getID(entry, BlockModels.getModelId(state).toString());
-                    
+                    int color = client.getBlockColors().getColor(state, world, worldPos, 0);
+
+                    byte r = (byte)(color >> 16 & 255);
+                    byte g = (byte)(color >> 8 & 255);
+                    byte b = (byte)(color & 255);
 
                     // We don't want threads overwriting each other in the palette
                     int index;
+                    int colorIndex = -1;
                     synchronized(palette) {
                         index = palette.indexOf(id);
                         if (index < 0) {
@@ -101,8 +110,24 @@ public final class BlockExporter {
                             palette.add(id);
                         }
                     }
-                    
+                    synchronized(colorPalette) {
+                        // Look for color in color palette
+                        for (int i = 0; i < colorPalette.size(); i += 3) {
+                            if (colorPalette.get(i).equals(r) && colorPalette.get(i + 1).equals(g) && colorPalette.get(i + 2).equals(b)) {
+                                colorIndex = i;
+                                break;
+                            }
+                        }
+                        if (colorIndex < 0) {
+                            colorIndex = colorPalette.size();
+                            colorPalette.add(r);
+                            colorPalette.add(g);
+                            colorPalette.add(b);
+                        }
+                    }
+
                     blocks[(y * 16 + z) * 16 + x] = (byte) index;
+                    colors[(y * 16 + z) * 16 + x] = (byte) colorIndex;
                 });
             });
         });
@@ -112,6 +137,12 @@ public final class BlockExporter {
 
         NbtByteArray blockTag = new NbtByteArray(blocks);
         tag.put("blocks", blockTag);
+
+        NbtByteArray colorPaletteTag = new NbtByteArray(colorPalette);
+        tag.put("colorPalette", colorPaletteTag);
+
+        NbtByteArray colorsTag = new NbtByteArray(colors);
+        tag.put("colors", colorsTag);
 
         return tag;
     }
