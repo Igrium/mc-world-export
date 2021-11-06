@@ -18,9 +18,10 @@ def add_mesh(mesh1: BMesh, mesh2: Mesh, matrix: Matrix=Matrix.Identity(4), color
         mesh2.vertex_colors.new(name=COLOR_LAYER)
     
     vcolors = mesh2.vertex_colors[COLOR_LAYER]
-    for key in mesh2.loops.keys():
-        col = vcolors.data[key]
-        col.color = color.copy()
+    i = 0
+    for poly in mesh2.polygons.values():
+        for idx in poly.loop_indices:
+            vcolors.data[idx].color = (color[0], color[1], color[2], color[3])
 
     mesh2.transform(matrix)
     mesh1.from_mesh(mesh2)

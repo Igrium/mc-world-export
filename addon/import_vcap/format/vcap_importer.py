@@ -74,8 +74,8 @@ def load(file: str, collection: Collection, context: Context):
     wm.progress_update(4)
 
     # Clean up
-    # for mesh in vcontext.models.values():
-    #     context.blend_data.meshes.remove(mesh)
+    for mesh in vcontext.models.values():
+        context.blend_data.meshes.remove(mesh)
 
     wm.progress_end()
 
@@ -108,7 +108,7 @@ def readSection(section: TAG_Compound, vcontext: VCAPContext):
     bblocks = blocks.value
     
     use_colors = False
-    if ('colors' in section) and ('color_palette' in section):
+    if ('colors' in section) and ('colorPalette' in section):
         color_palette_tag: TAG_Byte_Array = section['colorPalette']
         color_palette = color_palette_tag.value
         colors_tag: TAG_Byte_Array = section['colors']

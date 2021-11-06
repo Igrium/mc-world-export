@@ -101,5 +101,8 @@ def parse(obj, name: str, context: VCAPContext):
         mat.node_tree.links.new(tex.outputs[0], normal.inputs[1])
         tex.image = load_texture(obj['normal'], context, True)
         tex.interpolation = 'Closest'
+    
+    if transparent:
+        mat.blend_method = 'HASHED'
     return mat
     

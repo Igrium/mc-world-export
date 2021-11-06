@@ -109,8 +109,7 @@ public final class BlockExporter {
                             index = palette.size();
                             palette.add(id);
                         }
-                    }
-                    synchronized(colorPalette) {
+
                         // Look for color in color palette
                         for (int i = 0; i < colorPalette.size(); i += 3) {
                             if (colorPalette.get(i).equals(r) && colorPalette.get(i + 1).equals(g) && colorPalette.get(i + 2).equals(b)) {
