@@ -62,3 +62,11 @@ class VCAPContext:
         self.models[model_id] = meshes[0]
         self.materials = mats # Likely won't do anything
         return meshes[0]
+
+class VCAPSettings:
+    use_vertex_colors: bool
+    merge_verts: bool
+
+    def __init__(self, use_vertex_colors=True, merge_verts=True):
+        self.use_vertex_colors = use_vertex_colors
+        self.merge_verts = merge_verts

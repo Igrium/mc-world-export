@@ -4,22 +4,21 @@ from typing import IO, Callable
 from zipfile import ZipFile
 
 from numpy import ndarray
-from addon.import_vcap.amulet_nbt.amulet_nbt_py.nbt_types.array import TAG_Int_Array
 
 import bmesh
 import bpy
 from bmesh.types import BMesh
 from bpy.types import Collection, Context, Image, Material, Mesh, Object
 from bpy_extras.wm_utils.progress_report import ProgressReport
-from .context import VCAPContext
+from .context import VCAPContext, VCAPSettings
 from mathutils import Matrix, Vector
 
 from .. import amulet_nbt
-from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String
+from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String, TAG_Int_Array
 from . import util, materials
 from .world import VCAPWorld
 
-def load(file: str, collection: Collection, context: Context):
+def load(file: str, collection: Collection, context: Context, settings: VCAPSettings=VCAPSettings()):
     """Import a vcap file.
 
     Args:
@@ -29,7 +28,7 @@ def load(file: str, collection: Collection, context: Context):
     """
     # Init
     wm = context.window_manager
-    wm.progress_begin(0, 4)
+    wm.progress_begin(0, 5)
 
     archive = ZipFile(file, 'r')
     for obj in context.view_layer.objects.selected:
@@ -55,12 +54,13 @@ def load(file: str, collection: Collection, context: Context):
 
     # Blocks
     world_dat = archive.open('world.dat')
-    readWorld(world_dat, vcontext, lambda progress: wm.progress_update(progress + 2))
+    readWorld(world_dat, vcontext, settings, lambda progress: wm.progress_update(progress + 2))
     world_dat.close()
     wm.progress_update(3)
 
     # Object
-    bmesh.ops.remove_doubles(vcontext.target, verts=vcontext.target.verts, dist=.0001)
+    if (settings.merge_verts):
+        bmesh.ops.remove_doubles(vcontext.target, verts=vcontext.target.verts, dist=.0001)
     outMesh = bpy.data.meshes.new(vcontext.name)
     vcontext.target.to_mesh(outMesh)
 
@@ -86,7 +86,7 @@ def loadMeshes(archive: ZipFile, context: VCAPContext):
             model_id = os.path.splitext(os.path.basename(file.filename))[0]
             context.get_mesh(model_id)
 
-def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, progressFunction: Callable[[float], None] = None):
+def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSettings, progressFunction: Callable[[float], None] = None):
     nbt: amulet_nbt.NBTFile = amulet_nbt.load(world_dat.read(), compressed=False)
     world = VCAPWorld(nbt.value)
     print("Loading world...")
@@ -98,18 +98,18 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, progressFunction: Cal
     sections: TAG_List = frame['sections']
     for i in range(0, len(sections)):
         # print(f'Parsing section {i + 1} / {len(sections)}')
-        readSection(sections[i], vcontext)
+        readSection(sections[i], vcontext, settings)
         if progressFunction:
             progressFunction((i + 1) / len(sections))
 
-def readSection(section: TAG_Compound, vcontext: VCAPContext):
+def readSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
     palette: TAG_List = section['palette']
     offset: tuple[int, int, int] = (section['x'].value, section['y'].value, section['z'].value)
     blocks: TAG_Int_Array = section['blocks']
     bblocks = blocks.value
     
     use_colors = False
-    if ('colors' in section) and ('colorPalette' in section):
+    if settings.use_vertex_colors and ('colors' in section) and ('colorPalette' in section):
         color_palette_tag: TAG_Byte_Array = section['colorPalette']
         color_palette = color_palette_tag.value
         colors_tag: TAG_Byte_Array = section['colors']

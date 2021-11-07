@@ -1,5 +1,7 @@
 from os import path
 
+from .format.context import VCAPSettings
+
 from .format import vcap_importer, import_obj
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
@@ -70,25 +72,22 @@ class ImportVcap(Operator, ImportHelper):
 
     # List of operator properties, the attributes will be assigned
     # to the class instance from the operator settings before calling.
-    use_setting: BoolProperty(
-        name="Example Boolean",
-        description="Example Tooltip",
+    use_vertex_colors: BoolProperty(
+        name="Use Block Colors",
+        description="Whether to load the block colors from the file.",
         default=True,
     )
 
-    type: EnumProperty(
-        name="Example Enum",
-        description="Choose between two items",
-        items=(
-            ('OPT_A', "First Option", "Description one"),
-            ('OPT_B', "Second Option", "Description two"),
-        ),
-        default='OPT_A',
+    merge_verts: BoolProperty(
+        name="Merge Vertices",
+        description="Whether to merge by distance after the import is complete.",
+        default=True,
     )
 
     def execute(self, context: Context):
         vcap_importer.load(
-            self.filepath, context.view_layer.active_layer_collection.collection, context)
+            self.filepath, context.view_layer.active_layer_collection.collection, context,
+            VCAPSettings(use_vertex_colors=self.use_vertex_colors, merge_verts=self.merge_verts))
         return {'FINISHED'}
 
 
