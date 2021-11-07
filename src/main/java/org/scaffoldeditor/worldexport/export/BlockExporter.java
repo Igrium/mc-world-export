@@ -16,6 +16,7 @@ import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
@@ -73,7 +74,7 @@ public final class BlockExporter {
         tag.putInt("z", sectionZ);
 
         List<String> palette = new ArrayList<>();
-        byte[] blocks = new byte[16 * 16 * 16];
+        int[] blocks = new int[16 * 16 * 16];
 
         List<Byte> colorPalette = new ArrayList<>();
         byte[] colors = new byte[16 * 16 * 16];
@@ -125,7 +126,7 @@ public final class BlockExporter {
                         }
                     }
 
-                    blocks[(y * 16 + z) * 16 + x] = (byte) index;
+                    blocks[(y * 16 + z) * 16 + x] = index;
                     colors[(y * 16 + z) * 16 + x] = (byte) colorIndex;
                 });
             });
@@ -134,7 +135,7 @@ public final class BlockExporter {
         for (String entry : palette) paletteTag.add(NbtString.of(entry));
         tag.put("palette", paletteTag);
 
-        NbtByteArray blockTag = new NbtByteArray(blocks);
+        NbtIntArray blockTag = new NbtIntArray(blocks);
         tag.put("blocks", blockTag);
 
         NbtByteArray colorPaletteTag = new NbtByteArray(colorPalette);

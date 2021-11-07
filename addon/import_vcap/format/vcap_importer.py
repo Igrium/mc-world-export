@@ -4,6 +4,7 @@ from typing import IO, Callable
 from zipfile import ZipFile
 
 from numpy import ndarray
+from addon.import_vcap.amulet_nbt.amulet_nbt_py.nbt_types.array import TAG_Int_Array
 
 import bmesh
 import bpy
@@ -104,7 +105,7 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, progressFunction: Cal
 def readSection(section: TAG_Compound, vcontext: VCAPContext):
     palette: TAG_List = section['palette']
     offset: tuple[int, int, int] = (section['x'].value, section['y'].value, section['z'].value)
-    blocks: TAG_Byte_Array = section['blocks']
+    blocks: TAG_Int_Array = section['blocks']
     bblocks = blocks.value
     
     use_colors = False
