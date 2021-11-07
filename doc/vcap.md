@@ -8,19 +8,21 @@ VCap files are essentially renamed zip files. Changing the file extension from `
 The world, arguably the most dense element of the format, is stored in an uncompressed [NBT](https://wiki.vg/NBT) format within `world.dat`. It follows the following scheme
 
 - root - TAG_COMPOUND
-    - frames - TAG_LIST: A list of "frames," or updates to the world. Currently, only one frame
+    - `frames` - TAG_LIST: A list of "frames," or updates to the world. Currently, only one frame
     is supported. This tag is just for future-proofing.
         - (a frame): TAG_COMPOUND
-            - type: TAG_BYTE: The type of frame this is. Currently, only Intracoded frames are supported.
-            - time: TAG_DOUBLE: The time, in seconds, since the begninning of the capture that this frame activates.
-            - sections: TAG_LIST A set of three-dimensional, 16x16x16 "chunks" containing voxel data.
+            - `type`: TAG_BYTE: The type of frame this is. Currently, only Intracoded frames are supported.
+            - `time`: TAG_DOUBLE: The time, in seconds, since the begninning of the capture that this frame activates.
+            - `sections`: TAG_LIST A set of three-dimensional, 16x16x16 "chunks" containing voxel data.
                 - (a section): TAG_COMPOUND
-                    - x: TAG_INT The x position of this section in section coordinates.
-                    - y: TAG_INT The y position of this section in section coordinates.
-                    - z: TAG_INT The z position of this seciton in section coordinates.
-                    - palette: TAG_LIST: A list of the different voxel types in this chunk, where each entry is a simple string tag indicating a model ID.
-                    - blocks: TAG_BYTE_ARRAY: The actual block data within the chunk. Each byte represents a different block, making the array 4096 bytes in length. Blocks are sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is `(Y * 16 + Z) * 16 + X`. Read as signed numbers, the values in the bytes corriate to the index in the palette which the intended model ID resides.
-
+                    - `x`: TAG_INT The x position of this section in section coordinates.
+                    - `y`: TAG_INT The y position of this section in section coordinates.
+                    - `z`: TAG_INT The z position of this seciton in section coordinates.
+                    - `palette`: TAG_LIST: A list of the different voxel types in this chunk, where each entry is a simple string tag indicating a model ID.
+                    - `blocks`: TAG_BYTE_ARRAY: The actual block data within the chunk. Each byte represents a different block, making the array 4096 bytes in length. Blocks are sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is `(Y * 16 + Z) * 16 + X`. Read as signed numbers, the values in the bytes corriate to the index in the palette which the intended model ID resides.
+                    - `colorPalette`: TAG_BYTE_ARRAY An array of the different color values contained within this chunk (biome colors, etc.). The array is broken into sets of three bytes, each representing a different color entry, thus making the size of this array 3 * the number of colors in the section. The three bytes in each set represent the red, green, and blue values of the color, in that order. It's worth noting that, although the NBT format specifies that all values are signed, these bytes are an exception to this rule, giving each channel the unsigned range of `0-255`. The values returned by most NBT libraries will require conversion.
+                    - `colors`: TAG_BYTE_ARRAY The actual color data of the chunk. Like the block data, these bytes each reference an index of the `colorPalette` array, following the same arrangement pattern as the block data. Due to the fact that the color palette is broken into sets of three, only indices that are multiples are permitted.
+                    
 This format is modeled losely off of Minecraft [schematic](https://minecraft.fandom.com/wiki/Schematic_file_format) files, modified to fit the requirements for VCap.
 
 ## Meshes
