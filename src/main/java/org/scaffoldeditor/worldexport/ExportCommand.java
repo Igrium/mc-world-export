@@ -83,7 +83,7 @@ public final class ExportCommand {
                 BlockRenderManager dispatcher = MinecraftClient.getInstance().getBlockRenderManager();
                 ModelEntry entry = new ModelEntry(dispatcher.getModel(block), new boolean[] { true, true, true, true, true, true }, !block.isOpaque(), block);
                 
-                Obj model = MeshWriter.writeBlockMesh(entry, new Random());
+                Obj model = MeshWriter.writeBlockMesh(entry, new Random()).mesh;
 
                 try {
                     FileOutputStream os = new FileOutputStream(targetFile);

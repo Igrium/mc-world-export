@@ -4,6 +4,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -13,6 +14,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.export.BlockExporter;
@@ -20,7 +24,9 @@ import org.scaffoldeditor.worldexport.export.ExportContext;
 import org.scaffoldeditor.worldexport.export.Material;
 import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.TextureExtractor;
+import org.scaffoldeditor.worldexport.export.VcapMeta;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -71,19 +77,41 @@ public final class Exporter {
         out.closeEntry();
 
         Random random = new Random();
+        int numLayers = 0;
         for (ModelEntry model : context.models.keySet()) {
             String id = context.models.get(model);
             LOGGER.info("Writing mesh: "+id);
 
-            Obj mesh = MeshWriter.writeBlockMesh(model, random);
+            MeshInfo info = MeshWriter.writeBlockMesh(model, random);
+            Obj mesh = info.mesh;
+
+            if (info.numLayers > numLayers) {
+                numLayers = info.numLayers;
+            }
 
             ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
             out.putNextEntry(modelEntry);
             ObjWriter.write(mesh, out);
             out.closeEntry();
         }
+        
         writeMats(out);
         writeAtlas(atlasFuture, out);
+
+        // Meta
+        VcapMeta meta = new VcapMeta(numLayers);
+        {
+            Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .create();
+        
+            out.putNextEntry(new ZipEntry("meta.json"));
+            PrintWriter writer = new PrintWriter(out);
+            writer.print(gson.toJson(meta));
+            writer.flush();
+            out.closeEntry();
+        }
+
         out.close();
     }
 
