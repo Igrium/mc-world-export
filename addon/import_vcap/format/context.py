@@ -4,7 +4,7 @@ import bmesh
 from bmesh.types import BMesh
 from bpy.types import Collection, Context, Image, Material, Mesh, Object
 
-from . import import_obj
+from . import import_obj, import_mesh
 
 class VCAPContext:
     archive: ZipFile
@@ -54,14 +54,16 @@ class VCAPContext:
 
     def _import_mesh(self, model_id: str):
         file = self.archive.open(f'mesh/{model_id}.obj', 'r')
-        (meshes, mats) = import_obj.load(self.context, file, name=model_id, unique_materials=self.materials, use_split_objects=False)
+        mesh = import_mesh.load(self, model_id, file)
         file.close()
-        if (len(meshes) > 1):
-            raise RuntimeError("Only one obj object is allowed per model in VCAP.")
+
+        self.models[model_id] = mesh
+        # if (len(meshes) > 1):
+        #     raise RuntimeError("Only one obj object is allowed per model in VCAP.")
         
-        self.models[model_id] = meshes[0]
-        self.materials = mats # Likely won't do anything
-        return meshes[0]
+        # self.models[model_id] = meshes[0]
+        # self.materials = mats # Likely won't do anything
+        return mesh
 
 class VCAPSettings:
     use_vertex_colors: bool

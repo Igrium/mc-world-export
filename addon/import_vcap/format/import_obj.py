@@ -570,7 +570,7 @@ def split_mesh(verts_loc, faces, unique_materials, name, SPLIT_OB_OR_GROUP):
         faces_split.append(face)
 
     # remove one of the items and reorder
-    return [(verts_split, faces_split, unique_materials_split, key_to_name(key), bool(use_vnor), bool(use_vtex))
+    return [(verts_split, faces_split, unique_materials, key_to_name(key), bool(use_vnor), bool(use_vtex))
             for key, (verts_split, faces_split, unique_materials_split, _, use_vnor, use_vtex)
             in face_split_dict.items()]
 
