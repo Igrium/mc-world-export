@@ -3,7 +3,7 @@ import numbers
 from typing import IO
 
 import bpy
-from bpy.types import Node
+from bpy.types import Material, Node
 from .context import VCAPContext
 from . import util
 
@@ -105,4 +105,29 @@ def parse(obj, name: str, context: VCAPContext):
     if transparent:
         mat.blend_method = 'HASHED'
     return mat
+
+def create_composite_material(name: str, *mats: Material):
+    """Create a face layer composite material.
+
+    Args:
+        name (str): The name to give the material.
+        args ([Material...]): The materials to create the composite from.
+
+    Returns:
+        Material: The material.
+    """
+    if len(mats) == 1:
+        return mats[0]
     
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+
+    nodes = mat.node_tree.nodes
+    # nodes.clear()
+
+    return mat
+
+    # for layer in args:
+    #     layer_out = layer.node_tree.nodes.get('Material Output')
+    #     base_node = layer_out.inputs[0].links[0].from_node
+    #     layer.node_tree.nodes[0].cop

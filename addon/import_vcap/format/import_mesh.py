@@ -2,10 +2,11 @@ from typing import IO, List
 
 import bmesh
 from bmesh.types import BMFace, BMLayerCollection, BMLoop, BMVert
-from . import import_obj
+from .context import VCAPContext
+from . import import_obj, materials
 
 
-def load(context, name: str, file: IO[bytes]):
+def load(context: VCAPContext, name: str, file: IO[bytes]):
     (meshes, mats) = import_obj.load(context.context, file, name=name, unique_materials=context.materials, use_split_objects=False, use_split_groups=True)
     context.materials = mats # Likely won't do anything.
 
@@ -39,10 +40,17 @@ def load(context, name: str, file: IO[bytes]):
             for oldLoop in doubles:
                 oldLoop[layer_uv].uv = doubles[oldLoop][uv_lay].uv
 
+            for face1 in doubleFaces:
+                face2 = doubleFaces[face1]
+                mat1: str = _get_nth_key(context.materials, face1.material_index)
+                mat2: str = _get_nth_key(context.materials, face2.material_index)
+
+                gen_comp_mat(context, mat1, mat2)
+                face1.material_index = len(context.materials) - 1
+
             bmesh.ops.delete(bm, geom=list(doubleFaces.values()), context='FACES')
             context.context.blend_data.meshes.remove(meshes[i])
-
-
+            
         bm.to_mesh(meshes[0])
         bm.free()
 
@@ -71,6 +79,18 @@ def find_double_loops(input: list[BMLoop], comparator: list[BMLoop]):
                 out[loop] = tester
     
     return out
+
+def gen_comp_mat(context: VCAPContext, *names: str):
+    name = 'comp'
+    for string in names:
+        name = name+'.'+string
+    
+    if name in context.materials:
+        return context.materials[name]
+    
+    mat = materials.create_composite_material(name)
+    context.materials[name] = mat
+    return mat
                 
 def _are_faces_equal(face1: BMFace, face2: BMFace):
     for vert in face1.verts:
@@ -87,4 +107,10 @@ def _are_faces_equal(face1: BMFace, face2: BMFace):
     
     return True
         
-
+def _get_nth_key(dictionary, n=0):
+    if n < 0:
+        n += len(dictionary)
+    for i, key in enumerate(dictionary.keys()):
+        if i == n:
+            return key
+    raise IndexError("dictionary index out of range") 

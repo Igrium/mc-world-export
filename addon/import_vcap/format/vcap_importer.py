@@ -15,7 +15,7 @@ from mathutils import Matrix, Vector
 
 from .. import amulet_nbt
 from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String, TAG_Int_Array
-from . import util, materials
+from . import util, materials, import_mesh
 from .world import VCAPWorld
 
 def load(file: str, collection: Collection, context: Context, settings: VCAPSettings=VCAPSettings()):
@@ -84,7 +84,10 @@ def loadMeshes(archive: ZipFile, context: VCAPContext):
     for file in archive.filelist:
         if file.filename.startswith('mesh/'):
             model_id = os.path.splitext(os.path.basename(file.filename))[0]
-            context.get_mesh(model_id)
+
+            loaded_file = context.archive.open(file)
+            context.models[model_id] = import_mesh.load(context, model_id, loaded_file)
+            loaded_file.close()
 
 def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSettings, progressFunction: Callable[[float], None] = None):
     nbt: amulet_nbt.NBTFile = amulet_nbt.load(world_dat.read(), compressed=False)
