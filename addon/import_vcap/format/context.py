@@ -16,12 +16,13 @@ class VCAPContext:
     context: Context
     """Current Blender context.
     """
-    
+
     name: str
     """The name of the file.
     """
 
     materials: dict[str, Material] = {}
+    raw_materials: dict[str, any] = {}
     models: dict[str, Mesh] = {}
 
     textures: dict[str, Image]
@@ -43,6 +44,7 @@ class VCAPContext:
         self.name = name
         self.models = {}
         self.materials = {}
+        self.raw_materials = {}
         self.textures = {}
 
         self.collection = collection

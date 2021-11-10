@@ -1,3 +1,4 @@
+import json
 import math
 import os
 from typing import IO, Callable
@@ -44,8 +45,10 @@ def load(file: str, collection: Collection, context: Context, settings: VCAPSett
             print("Reading material: "+mat_id)
             
             f = archive.open(entry)
-            mat = materials.read(f, mat_id, vcontext)
+            obj = json.load(f)
+            mat = materials.parse(obj, mat_id, vcontext)
             vcontext.materials[mat_id] = mat
+            vcontext.raw_materials[mat_id] = obj
             f.close()   
     print(vcontext.materials)
     # Meshes

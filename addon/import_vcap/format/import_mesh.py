@@ -18,7 +18,7 @@ def load(context: VCAPContext, name: str, file: IO[bytes]):
         uvs: BMLayerCollection = bm.loops.layers.uv
         uv_lay = uvs.active
         for i in range(1, len(meshes)):
-            layer_uv = uvs.new(f'flayer_{str(i)}')
+            layer_uv = uvs.new(get_flayer_uv(i))
 
             oldFaces: list[BMFace] = []
             for face in bm.faces:
@@ -88,10 +88,13 @@ def gen_comp_mat(context: VCAPContext, *names: str):
     if name in context.materials:
         return context.materials[name]
     
-    mat = materials.create_composite_material(name)
+    mat = materials.create_composite_material(name, context, *names)
     context.materials[name] = mat
     return mat
-                
+
+def get_flayer_uv(layer: int):
+    return f'flayer_{str(layer)}'
+
 def _are_faces_equal(face1: BMFace, face2: BMFace):
     for vert in face1.verts:
         vert: BMVert
