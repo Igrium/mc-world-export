@@ -1,8 +1,26 @@
 # .VCAP Specification
-The general purpose of VCap (voxel capture) files is to represent voxel worlds in which there can be different types of voxels, each with a different mesh, in a format that is void of any external dependencies. It was designed with the purpose of exporting Minecraft worlds, and realtime changes to said worlds, into pieces of 3D software like Blender, although it is applicable to other applications as well.
+The general purpose of Vcap (voxel capture) files is to represent voxel worlds in which there can be different types of voxels, each with a different mesh, in a format that is void of any external dependencies. It was designed with the purpose of exporting Minecraft worlds, and realtime changes to said worlds, into pieces of 3D software like Blender, although it is applicable to other applications as well.
 
 ## High Level Format
 VCap files are essentially renamed zip files. Changing the file extension from `.vcap` to `.zip`. The rest of this specification will assume we are looking inside the zip package as if it were a folder.
+
+## Metadata
+The first file to look at within the archive is `meta.json`. This JSON file contains the following metadata about the Vcap:
+- `version` - *string*: The vcap version. This specification is for version `0.1.0`.
+- `encoder` - *string*: The program used to write this file. Used for debugging.
+- `faceLayer` - *list*: The names of the face layers in this file, where higher indices are rendered on top of lower indices. More details about face layers to follow.
+
+Example:
+```json
+{
+  "version": "0.1.0",
+  "encoder": "Minecraft World Exporter",
+  "faceLayers": [
+    "flayer0",
+    "flayer1"
+  ]
+}
+```
 
 ## The World
 The world, arguably the most dense element of the format, is stored in an uncompressed [NBT](https://wiki.vg/NBT) format within `world.dat`. It follows the following scheme
@@ -32,6 +50,11 @@ Within the `mesh` folder of the archive is a series of `.obj` files containing t
 and therefore have seperate palette entries.
 
 See the [OBJ file](https://en.wikipedia.org/wiki/Wavefront_.obj_file) specification for details about the content within the mesh files themselves.
+
+## Face Layers
+Some implementations of mesh-based voxel rendering (Minecraft in particular) assume that some faces are rendered after others, and therefore no z-fighting can take place. Because of this, some blocks (such as Minecraft grass blocks) will not render properly in a traditional rendering engine. From the need to fix this issue, face layers were born.
+
+The OBJ specification allows for different "face groups" within a file. If a face group exists that matches the name for a face layer from `meta.json`, the faces in that group are guaranteed to render in the proper order compared to other face groups. (Note: this may be implemented at a shader level rather than a geometry level.) If a mesh has no groups assigned, the bottom face layer is assumed to be used.
 
 ## Textures and Materials
 When parsing obj files, a `usemtl` line is often encountered. Unlike traditional obj files however, this does not reference an external `mtl` file.
