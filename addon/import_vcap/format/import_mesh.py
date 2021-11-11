@@ -15,6 +15,8 @@ def load(context: VCAPContext, name: str, file: IO[bytes]):
         bm = bmesh.new()
         bm.from_mesh(meshes[0])
 
+        base_mats: dict[BMFace, str] = {} # Keep track of the original materials for each face.
+
         uvs: BMLayerCollection = bm.loops.layers.uv
         uv_lay = uvs.active
         for i in range(1, len(meshes)):
@@ -42,13 +44,23 @@ def load(context: VCAPContext, name: str, file: IO[bytes]):
 
             for face1 in doubleFaces:
                 face2 = doubleFaces[face1]
-                mat1: str = _get_nth_key(context.materials, face1.material_index)
+                if (face1 in base_mats):
+                    mat1 = base_mats[face1]
+                else:
+                    mat1: str = _get_nth_key(context.materials, face1.material_index)
+                    base_mats[face1] = mat1
                 mat2: str = _get_nth_key(context.materials, face2.material_index)
 
-                gen_comp_mat(context, mat1, mat2)
+                if (mat1 != mat2):
+                    gen_comp_mat(context, mat1, mat2)
                 face1.material_index = len(context.materials) - 1
 
-            bmesh.ops.delete(bm, geom=list(doubleFaces.values()), context='FACES')
+            to_remove = []
+            for face in doubleFaces.values():
+                if not (face in to_remove):
+                    to_remove.append(face)
+            bmesh.ops.delete(bm, geom=to_remove, context='FACES')
+            # bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=.001)
             context.context.blend_data.meshes.remove(meshes[i])
             
         bm.to_mesh(meshes[0])
@@ -80,15 +92,13 @@ def find_double_loops(input: list[BMLoop], comparator: list[BMLoop]):
     
     return out
 
-def gen_comp_mat(context: VCAPContext, *names: str):
-    name = 'comp'
-    for string in names:
-        name = name+'.'+string
+def gen_comp_mat(context: VCAPContext, mat1: str, mat2: str):
+    name = f'comp_{mat1}.{mat2}'
     
     if name in context.materials:
         return context.materials[name]
     
-    mat = materials.create_composite_material(name, context, *names)
+    mat = materials.create_composite_material(name, context, mat1, mat2)
     context.materials[name] = mat
     return mat
 

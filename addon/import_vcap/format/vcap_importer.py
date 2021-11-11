@@ -48,7 +48,6 @@ def load(file: str, collection: Collection, context: Context, settings: VCAPSett
             obj = json.load(f)
             mat = materials.parse(obj, mat_id, vcontext)
             vcontext.materials[mat_id] = mat
-            vcontext.raw_materials[mat_id] = obj
             f.close()   
     print(vcontext.materials)
     # Meshes

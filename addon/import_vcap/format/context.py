@@ -2,7 +2,7 @@ from zipfile import ZipFile
 
 import bmesh
 from bmesh.types import BMesh
-from bpy.types import Collection, Context, Image, Material, Mesh, Object
+from bpy.types import Collection, Context, Image, Material, Mesh, NodeTree, Object
 
 class VCAPContext:
     archive: ZipFile
@@ -22,7 +22,7 @@ class VCAPContext:
     """
 
     materials: dict[str, Material] = {}
-    raw_materials: dict[str, any] = {}
+    material_groups: dict[str, NodeTree] = {}
     models: dict[str, Mesh] = {}
 
     textures: dict[str, Image]
@@ -44,7 +44,7 @@ class VCAPContext:
         self.name = name
         self.models = {}
         self.materials = {}
-        self.raw_materials = {}
+        self.material_groups = {}
         self.textures = {}
 
         self.collection = collection
