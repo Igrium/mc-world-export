@@ -52,7 +52,7 @@ public final class MeshWriter {
             }
         }
         {   // Quads that aren't assigned to a direction.   
-            List<BakedQuad> quads = model.getQuads(null, null, random);
+            List<BakedQuad> quads = model.getQuads(entry.blockState, null, random);
             for (BakedQuad quad : quads) {
                 addFace(quad, obj, entry.transparent, fLayers);
             }

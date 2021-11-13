@@ -63,11 +63,8 @@ public class ExportContext {
     
     }
 
-    private static Pattern lastIntPattern = Pattern.compile("[^0-9]+([0-9]+)$");
-
-
     /**
-     * The model entries in the cache and their IDs
+     * The model entries in the cache and their IDs.
      */
     public final Map<ModelEntry, String> models = new HashMap<>();
 
@@ -93,6 +90,8 @@ public class ExportContext {
     public String getID(ModelEntry entry) {
         return getID(entry, null);
     }
+
+    private static Pattern lastIntPattern = Pattern.compile("[^0-9]+([0-9]+)$");
 
     private String iterateName(String name) {
         Matcher matcher = lastIntPattern.matcher(name);

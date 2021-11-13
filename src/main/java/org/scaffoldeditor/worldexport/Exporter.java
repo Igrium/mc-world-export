@@ -85,9 +85,7 @@ public final class Exporter {
             MeshInfo info = MeshWriter.writeBlockMesh(model, random);
             Obj mesh = info.mesh;
 
-            if (info.numLayers > numLayers) {
-                numLayers = info.numLayers;
-            }
+            numLayers = Math.max(info.numLayers, numLayers);
 
             ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
             out.putNextEntry(modelEntry);
