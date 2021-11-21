@@ -14,6 +14,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.block.BlockRenderManager;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.nbt.NbtByteArray;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIntArray;
@@ -84,17 +85,25 @@ public final class BlockExporter {
                 IntStream.range(0, 16).parallel().forEach(x -> {
                     BlockState state = section.getContainer().get(x, y, z);
                     BlockPos worldPos = new BlockPos(sectionX * 16 + x, sectionY * 16 + y, sectionZ * 16 + z);
-                    BlockPos.Mutable mutable = worldPos.mutableCopy();
-                    boolean[] faces = new boolean[6];
+                    String id;
 
-                    for (int i = 0; i < DIRECTIONS.length; i++) {
-                        Direction direction = DIRECTIONS[i];
-                        mutable.set(worldPos, direction);
-                        faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
+                    FluidState fluid = state.getFluidState();
+                    if (!fluid.isEmpty()) {
+                        id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
+                    } else {
+                        BlockPos.Mutable mutable = worldPos.mutableCopy();
+                        boolean[] faces = new boolean[6];
+    
+                        for (int i = 0; i < DIRECTIONS.length; i++) {
+                            Direction direction = DIRECTIONS[i];
+                            mutable.set(worldPos, direction);
+                            faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
+                        }
+    
+                        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
+                        id = context.getID(entry, BlockModels.getModelId(state).toString());
                     }
-
-                    ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-                    String id = context.getID(entry, BlockModels.getModelId(state).toString());
+                    
                     int color = client.getBlockColors().getColor(state, world, worldPos, 0);
 
                     byte r = (byte)(color >> 16 & 255);

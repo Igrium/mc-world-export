@@ -135,7 +135,7 @@ public final class MeshWriter {
             layer.add(vertices);
         }
 
-        obj.setActiveGroupNames(Arrays.asList(new String[]{genGroupName(layerIndex)}));
+        obj.setActiveGroupNames(Arrays.asList(genGroupName(layerIndex)));
         obj.addFace(indices, indices, null);
 
         return layerIndex;

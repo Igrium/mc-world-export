@@ -92,6 +92,18 @@ public final class Exporter {
             ObjWriter.write(mesh, out);
             out.closeEntry();
         }
+
+        for (int i = 0; i < context.fluidMeshes.size(); i++) {
+            String id = context.getFluidID(i);
+            Obj mesh = context.fluidMeshes.get(i);
+            LOGGER.info("Writing fluid mesh: "+id);
+
+
+            ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
+            out.putNextEntry(modelEntry);
+            ObjWriter.write(mesh, out);
+            out.closeEntry();
+        }
         
         writeMats(out);
         writeAtlas(atlasFuture, out);

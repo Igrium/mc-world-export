@@ -1,7 +1,9 @@
 package org.scaffoldeditor.worldexport.export;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -9,6 +11,7 @@ import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 
+import de.javagl.obj.Obj;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.util.Identifier;
@@ -68,6 +71,8 @@ public class ExportContext {
      */
     public final Map<ModelEntry, String> models = new HashMap<>();
 
+    public final List<Obj> fluidMeshes = new ArrayList<>();
+
     /**
      * Generate the ID of a model entry. Returns the current ID if it already exists.
      * @param entry Entry to generate the ID for.
@@ -85,6 +90,15 @@ public class ExportContext {
             models.put(entry, id);
         }
         return id;
+    }
+
+    /**
+     * Get the ID of a fluid mesh.
+     * @param index Index of the fluid mesh.
+     * @return Fluid mesh ID.
+     */
+    public String getFluidID(int index) {
+        return "fluid."+index;
     }
 
     public String getID(ModelEntry entry) {
