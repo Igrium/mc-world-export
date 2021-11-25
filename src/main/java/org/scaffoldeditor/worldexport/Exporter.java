@@ -87,23 +87,15 @@ public final class Exporter {
 
             numLayers = Math.max(info.numLayers, numLayers);
 
-            ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
-            out.putNextEntry(modelEntry);
-            ObjWriter.write(mesh, out);
-            out.closeEntry();
+            writeMesh(mesh, id, out);
         }
-
-        for (int i = 0; i < context.fluidMeshes.size(); i++) {
-            String id = context.getFluidID(i);
-            Obj mesh = context.fluidMeshes.get(i);
+        for (String id : context.fluidMeshes.keySet()) {
             LOGGER.info("Writing fluid mesh: "+id);
-
-
-            ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
-            out.putNextEntry(modelEntry);
-            ObjWriter.write(mesh, out);
-            out.closeEntry();
+            writeMesh(context.fluidMeshes.get(id), id, out);
         }
+
+        // Fluid meshes assume empty mesh is written.
+        writeMesh(MeshWriter.empty().mesh, MeshWriter.EMPTY_MESH, out);
         
         writeMats(out);
         writeAtlas(atlasFuture, out);
@@ -123,6 +115,13 @@ public final class Exporter {
         }
 
         out.close();
+    }
+
+    private static void writeMesh(Obj mesh, String id, ZipOutputStream out) throws IOException {
+        ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
+        out.putNextEntry(modelEntry);
+        ObjWriter.write(mesh, out);
+        out.closeEntry();
     }
 
     private static NbtCompound writeFrame(NbtList sections, FrameType type, double time) {

@@ -1,9 +1,7 @@
 package org.scaffoldeditor.worldexport.export;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -71,7 +69,10 @@ public class ExportContext {
      */
     public final Map<ModelEntry, String> models = new HashMap<>();
 
-    public final List<Obj> fluidMeshes = new ArrayList<>();
+    /**
+     * The fluid meshes in the export context.
+     */
+    public final Map<String, Obj> fluidMeshes = new HashMap<>();
 
     /**
      * Generate the ID of a model entry. Returns the current ID if it already exists.
@@ -90,15 +91,6 @@ public class ExportContext {
             models.put(entry, id);
         }
         return id;
-    }
-
-    /**
-     * Get the ID of a fluid mesh.
-     * @param index Index of the fluid mesh.
-     * @return Fluid mesh ID.
-     */
-    public String getFluidID(int index) {
-        return "fluid."+index;
     }
 
     public String getID(ModelEntry entry) {

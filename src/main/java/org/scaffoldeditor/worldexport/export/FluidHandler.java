@@ -1,5 +1,7 @@
 package org.scaffoldeditor.worldexport.export;
 
+import java.util.Map;
+
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.client.MinecraftClient;
@@ -32,8 +34,29 @@ public final class FluidHandler {
 
         client.getBlockRenderManager().renderFluid(worldPos, world, consumer, fluidState);
         
-        int index = context.fluidMeshes.size();
-        context.fluidMeshes.add(mesh);
-        return context.getFluidID(index);
+        return addFluidMeshToContext(context, mesh);
+    }
+
+    public static String addFluidMeshToContext(ExportContext context, Obj mesh) {
+        if (mesh.getNumVertices() == 0) {
+            return MeshWriter.EMPTY_MESH;
+        }
+        Map<String, Obj> fluidMeshes = context.fluidMeshes;
+
+        // for (String id : fluidMeshes.keySet()) {
+        //     if (MeshWriter.objEquals(mesh, fluidMeshes.get(id))) return id;
+        // }
+
+        String name = genFluidMeshName(context);
+        fluidMeshes.put(name, mesh);
+        return name;
+    }
+
+    private static String genFluidMeshName(ExportContext context) {
+        int index = 0;
+        while (context.fluidMeshes.keySet().contains("fluid."+index)) {
+            index++;
+        }
+        return "fluid."+index;
     }
 }

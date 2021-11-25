@@ -13,7 +13,9 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
 
+import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
+import de.javagl.obj.ObjFace;
 import de.javagl.obj.Objs;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
@@ -27,6 +29,7 @@ public final class MeshWriter {
     public static final String TRANSPARENT_MAT = "world_transparent";
     public static final String TINTED_MAT = "world_tinted";
     public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
+    public static final String EMPTY_MESH = "empty";
 
     public static class MeshInfo {
         public final Obj mesh;
@@ -37,6 +40,11 @@ public final class MeshWriter {
             this.numLayers = numLayers;
         }
     }
+
+    public static MeshInfo empty() {
+        return new MeshInfo(Objs.create(), 1);
+    }
+    
 
     public static MeshInfo writeBlockMesh(ModelEntry entry, Random random) {
         Obj obj = Objs.create();
@@ -150,5 +158,72 @@ public final class MeshWriter {
     
     public static String genGroupName(int index) {
         return "fLayer"+index;
+    }
+
+    /**
+     * Determine whether two meshes are equivilent.
+     * 
+     * Note: Only checks if verts are the same for now.
+     * @param first The first mesh.
+     * @param second The second mesh.
+     * @return Whether they are equivilent.
+     */
+    public static boolean objEquals(Obj first, Obj second) {
+        if (first.getNumVertices() != second.getNumVertices()) return false;
+        if (first.getNumFaces() != second.getNumFaces()) return false;
+        if (first.getNumNormals() != second.getNumNormals()) return false;
+
+        Set<ObjFace> used = new HashSet<>();
+
+        for (int i = 0; i < first.getNumFaces(); i++) {
+            ObjFace secondFace = findFace(first, second, i, used);
+            if (secondFace == null) return false;
+            used.add(secondFace);
+        }
+
+        return true;
+    }
+
+    private static ObjFace findFace(Obj first, Obj second, int index, Collection<ObjFace> exclude) {
+        ObjFace firstFace = first.getFace(index);
+        for (int i = 0; i < second.getNumFaces(); i++) {
+            ObjFace secondFace = second.getFace(i);
+            if (exclude.contains(secondFace)) continue;
+            if (faceEquals(firstFace, secondFace, first, second)) return secondFace;
+        }
+        return null;
+    }
+
+    private static boolean faceEquals(ObjFace first, ObjFace second,
+        Obj firstObj, Obj secondObj) {
+        if (first.getNumVertices() != second.getNumVertices()) return false;
+        for (int i = 0; i < first.getNumVertices(); i++) {
+            if (!tupleEquals(firstObj.getVertex(first.getVertexIndex(i)),
+                secondObj.getVertex(second.getVertexIndex(i)))) {
+                return false;
+            }
+            if (!tupleEquals(firstObj.getNormal(first.getNormalIndex(i)),
+                secondObj.getNormal(second.getNormalIndex(i)))) {
+                return false;
+            }
+            if (!tupleEquals(firstObj.getTexCoord(first.getTexCoordIndex(i)),
+                secondObj.getTexCoord(second.getTexCoordIndex(i)))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+ 
+    private static boolean tupleEquals(FloatTuple first, FloatTuple second) {
+        try {
+            return (first.getDimensions() == second.getDimensions())
+            && (first.getW() == second.getW())
+            && (first.getX() == second.getX())
+            && (first.getY() == second.getY())
+            && (first.getZ() == second.getZ());
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return true; // If we hit the end of the tuple, all prior checks worked.
+        }
     }
 }

@@ -80,9 +80,9 @@ public final class BlockExporter {
         List<Byte> colorPalette = new ArrayList<>();
         byte[] colors = new byte[16 * 16 * 16];
 
-        IntStream.range(0, 16).parallel().forEach(y -> {
-            IntStream.range(0, 16).parallel().forEach(z -> {
-                IntStream.range(0, 16).parallel().forEach(x -> {
+        IntStream.range(0, 16).forEach(y -> {
+            IntStream.range(0, 16).forEach(z -> {
+                IntStream.range(0, 16).forEach(x -> {
                     BlockState state = section.getContainer().get(x, y, z);
                     BlockPos worldPos = new BlockPos(sectionX * 16 + x, sectionY * 16 + y, sectionZ * 16 + z);
                     String id;

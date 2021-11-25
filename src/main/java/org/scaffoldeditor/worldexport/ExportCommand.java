@@ -126,7 +126,7 @@ public final class ExportCommand {
                         return;
                     }
                     context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
-                }).start();
+                }, "World Export").start();
                 
                 return 0;
             })).build();
