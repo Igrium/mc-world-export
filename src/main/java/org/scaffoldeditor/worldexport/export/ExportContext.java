@@ -15,6 +15,9 @@ import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
+/**
+ * Contains various values passed around throughout the export process.
+ */
 public class ExportContext {
     public static class ModelEntry {
         /**
