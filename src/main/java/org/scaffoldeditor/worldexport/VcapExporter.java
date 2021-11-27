@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -22,21 +23,25 @@ import com.google.gson.GsonBuilder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.scaffoldeditor.worldexport.export.BlockExporter;
 import org.scaffoldeditor.worldexport.export.ExportContext;
+import org.scaffoldeditor.worldexport.export.Frame;
 import org.scaffoldeditor.worldexport.export.Material;
 import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.TextureExtractor;
 import org.scaffoldeditor.worldexport.export.VcapMeta;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.export.Frame.IFrame;
+import org.scaffoldeditor.worldexport.export.Frame.PFrame;
 import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.WorldAccess;
 
@@ -45,13 +50,12 @@ import net.minecraft.world.WorldAccess;
  * represents one file being exported.
  */
 public class VcapExporter {
-    public static final byte INTRACODED_TYPE = 0;
     private static Logger LOGGER = LogManager.getLogger();
 
     public final WorldAccess world;
     public final ChunkPos minChunk;
     public final ChunkPos maxChunk;
-    public final List<NbtCompound> frames = new ArrayList<>();
+    public final List<Frame> frames = new ArrayList<>();
     public final ExportContext context;
 
     /**
@@ -109,7 +113,7 @@ public class VcapExporter {
         // WORLD
         LOGGER.info("Compiling frames...");
         NbtList frames = new NbtList();
-        frames.addAll(this.frames);
+        this.frames.forEach(frame -> frames.add(frame.getFrameData()));
         NbtCompound worldData = new NbtCompound();
         worldData.put("frames", frames);
 
@@ -236,15 +240,15 @@ public class VcapExporter {
      * 
      * @param time Time stamp of the frame, in seconds since the beginning
      *             of the animation.
-     * @return Frame data.
+     * @return The frame.
      */
-    public NbtCompound captureIFrame(double time) {
-        NbtCompound frame = new NbtCompound();
-        frame.put("sections", BlockExporter.exportStill(world, minChunk, maxChunk, context));
-        frame.putByte("type", INTRACODED_TYPE);
-        frame.putDouble("time", time);
+    public IFrame captureIFrame(double time) {
+        IFrame iFrame = IFrame.capture(world, minChunk, maxChunk, context, time);
+        frames.add(iFrame);
+        return iFrame;
+    }
 
-        frames.add(frame);
-        return frame;
+    public PFrame capturePFrame(double time, Map<BlockPos, BlockState> blocks) {
+        return null;
     }
 }
