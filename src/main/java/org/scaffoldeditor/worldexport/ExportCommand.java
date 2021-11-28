@@ -62,7 +62,7 @@ public final class ExportCommand {
     private static Set<BiConsumer<BlockPos, BlockState>> worldListeners = new HashSet<>();
 
     public static void register() {
-        LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("export").build();
+        LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
         ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
             worldListeners.forEach(listener -> listener.accept(pos, state));
@@ -70,11 +70,10 @@ public final class ExportCommand {
         });
 
         LiteralCommandNode<FabricClientCommandSource> start = ClientCommandManager.literal("start")
-            .then(ClientCommandManager.argument("name", StringArgumentType.word())
             .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0))
             .executes(context -> {
                 if (currentExport != null) {
-                    throw new CommandException(new LiteralText("A Vcap capture is already in process. Use 'export save' to stop it."));
+                    throw new CommandException(new LiteralText("A Vcap capture is already in process. Use 'vcap save [name]' to stop it."));
                 }
                 ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
                 int radius = context.getArgument("radius", Integer.class);
@@ -91,20 +90,66 @@ public final class ExportCommand {
 
                 context.getSource().sendFeedback(new LiteralText("Started Vcap capture..."));
                 return 0;
-            }))).build();
+            })).build();
         root.addChild(start);
 
         LiteralCommandNode<FabricClientCommandSource> frame = ClientCommandManager.literal("frame")
             .executes(context -> {
                 if (currentExport == null) {
-                    throw new CommandException(new LiteralText("No Vcap recording active! Start one with 'export start'"));
+                    throw new CommandException(new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
                 }
-                context.getSource().sendFeedback(new LiteralText(currentExport.updates.toString()));
-
+                currentExport.exporter.capturePFrame(
+                        (new Date().getTime() - currentExport.startTime.getTime()) / 1000d, currentExport.updates);
+                currentExport.updates.clear();
+                context.getSource().sendFeedback(new LiteralText("Captured predicted frame."));
                 return 0;
             }).build();
         
         root.addChild(frame);
+
+        LiteralCommandNode<FabricClientCommandSource> save = ClientCommandManager.literal("save")
+            .then(ClientCommandManager.argument("name", StringArgumentType.word())
+            .executes(context -> {
+                if (currentExport == null) {
+                    throw new CommandException(new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                }
+
+                Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
+                if (!exportFolder.toFile().isDirectory()) {
+                    exportFolder.toFile().mkdir();
+                }
+
+                context.getSource().sendFeedback(new LiteralText("Please wait..."));
+                File targetFile =
+                        exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
+
+                try {
+                    FileOutputStream os = new FileOutputStream(targetFile);
+                    currentExport.exporter.saveAsync(os).whenComplete((val, e) -> {
+                        if (e != null) {
+                            context.getSource().sendError(new LiteralText("Failed to save vcap. "+e.getMessage()));
+                            LogManager.getLogger().error("Failed to save vcap.", e);
+                        } else {
+                            context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
+                            currentExport = null;
+                        }
+                    });
+                } catch (FileNotFoundException e) {
+                    throw new CommandException(new LiteralText("Unable to load file: "+e.getLocalizedMessage()));
+                }
+                return 0;
+            })).build();
+        root.addChild(save);
+
+        LiteralCommandNode<FabricClientCommandSource> abandon = ClientCommandManager.literal("abandon")
+                .executes(context -> {
+                    if (currentExport == null) {
+                        throw new CommandException(new LiteralText("No Vcap recording active!"));
+                    }
+                    currentExport = null;
+                    return 0;
+                }).build();
+        root.addChild(abandon);
 
         LiteralCommandNode<FabricClientCommandSource> atlas = ClientCommandManager.literal("atlas")
             .then(ClientCommandManager.argument("name", StringArgumentType.word())

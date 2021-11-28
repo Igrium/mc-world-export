@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -12,6 +13,7 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.WorldAccess;
 
@@ -55,11 +57,55 @@ public interface Frame {
         public final Frame previous;
         public final double timestamp;
 
+        /**
+         * Capture a predicted frame.
+         * 
+         * @param world     World to capture.
+         * @param blocks    A set of blocks to include data for in the frame.
+         *                  All ajacent blocks will be queried, and if they are found to
+         *                  have changed, they are also included in the frame.
+         * @param timestamp Time stamp of the frame, in seconds since the beginning
+         *                  of the animation.
+         * @param previous  The previous frame in the file.
+         * @param context   The export context.
+         * @return The captured frame.
+         */
+        public static PFrame capture(WorldAccess world,
+                Set<BlockPos> blocks,
+                double timestamp,
+                Frame previous,
+                ExportContext context) {
+
+            Map<BlockPos, String> updates = new HashMap<>();        
+            for (BlockPos pos : blocks) {
+                updates.put(pos, BlockExporter.exportBlock(world, pos, context));
+                // Check adjacent blocks.
+                for (Direction dir : Direction.values()) {
+                    BlockPos adjacent = pos.offset(dir);
+                    if (updates.containsKey(adjacent)) continue;
+
+                    String old;
+                    try {
+                        old = previous.modelAt(adjacent);
+                    } catch (IndexOutOfBoundsException e) {
+                        continue;
+                    }
+                    String updated = BlockExporter.exportBlock(world, adjacent, context);
+
+                    if (!old.equals(updated)) {
+                        updates.put(adjacent, updated);
+                    }
+                }
+            }
+            return new PFrame(updates, previous, timestamp);
+        }
+
         public PFrame(Map<BlockPos, String> updated, Frame previous, double timestamp) {
             this.data = updated;
             this.timestamp = timestamp;
             this.previous = previous;
         }
+        
 
         @Override
         public byte getFrameType() {

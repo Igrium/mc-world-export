@@ -7,32 +7,37 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.export.ExportContext;
-import org.scaffoldeditor.worldexport.export.Frame;
-import org.scaffoldeditor.worldexport.export.Material;
-import org.scaffoldeditor.worldexport.export.MeshWriter;
-import org.scaffoldeditor.worldexport.export.TextureExtractor;
-import org.scaffoldeditor.worldexport.export.VcapMeta;
 import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.export.Frame;
 import org.scaffoldeditor.worldexport.export.Frame.IFrame;
 import org.scaffoldeditor.worldexport.export.Frame.PFrame;
+import org.scaffoldeditor.worldexport.export.Material;
+import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
+import org.scaffoldeditor.worldexport.export.TextureExtractor;
+import org.scaffoldeditor.worldexport.export.VcapMeta;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -248,7 +253,56 @@ public class VcapExporter {
         return iFrame;
     }
 
-    public PFrame capturePFrame(double time, Map<BlockPos, BlockState> blocks) {
-        return null;
+    /**
+     * Capture a predicted frame and add it to the file.
+     * 
+     * @param time   Timestamp of the frame, in seconds since the beginning of the
+     *               animation.
+     * @param blocks A set of blocks to include data for in the frame.
+     *               All ajacent blocks will be queried, and if they are found to
+     *               have changed, they are also included in the frame.
+     * @return The captured frame.
+     */
+    public PFrame capturePFrame(double time, Set<BlockPos> blocks) {
+        PFrame pFrame = PFrame.capture(world, blocks, time, frames.get(frames.size() - 1), context);
+        frames.add(pFrame);
+        return pFrame;
+    }
+
+    private Date captureStartTime;
+    private Set<BlockPos> updateCache = new HashSet<>();
+    private BiConsumer<BlockPos, BlockState> listener = new BiConsumer<BlockPos,BlockState>() {
+        private boolean isCaptureQueued = false;
+
+        @Override
+        public void accept(BlockPos t, BlockState u) {
+            updateCache.add(t);
+            if (!isCaptureQueued) {
+                RenderSystem.recordRenderCall(() -> {
+                    capturePFrame((new Date().getTime() - captureStartTime.getTime()) / 1000d, updateCache);
+                    updateCache.clear();
+                    isCaptureQueued = false;
+                });
+            }
+            isCaptureQueued = true;
+        }
+    };
+
+    /**
+     * Listen for and record changes to the world.
+     * @param startTime Start time of the animation. Current time if null.
+     */
+    public void listen(@Nullable Date startTime) {
+        if (startTime == null) startTime = new Date();
+
+        if (captureStartTime == null) {
+            captureStartTime = startTime;
+        }
+
+        WorldExportMod.getInstance().onBlockUpdated(listener);
+    }
+
+    public void stopListen() {
+        WorldExportMod.getInstance().removeOnBlockUpdated(listener);
     }
 }
