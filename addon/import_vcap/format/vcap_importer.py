@@ -17,7 +17,7 @@ from mathutils import Matrix, Vector
 from .. import amulet_nbt
 from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String, TAG_Int_Array
 from . import util, materials, import_mesh
-from .world import VCAPWorld
+from .world import VcapFrame, load_frame
 
 def load(file: str, collection: Collection, context: Context, settings: VCAPSettings=VCAPSettings()):
     """Import a vcap file.
@@ -93,19 +93,40 @@ def loadMeshes(archive: ZipFile, context: VCAPContext):
 
 def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSettings, progressFunction: Callable[[float], None] = None):
     nbt: amulet_nbt.NBTFile = amulet_nbt.load(world_dat.read(), compressed=False)
-    world = VCAPWorld(nbt.value)
     print("Loading world...")
+    nbt_frames: TAG_List = nbt.get('frames')
+    frames: list[VcapFrame] = []
+    for i in range(0, len(nbt_frames)):
+        frames.append(load_frame(nbt_frames[i], i))
+    
+    overrides: list[set[tuple[int, int, int]]] = []
+    for i in reversed(range(0, len(frames))):
+        frame = frames[i]
+        frame.overrides.extend(overrides)
+        overrides.insert(0, frame.get_declared_override())
+    
+    for frame in frames:
+        meshes: list[Mesh] = frame.get_meshes(vcontext, settings)
 
-    if progressFunction:
-        progressFunction(0)
+        for mesh in meshes:
+            obj = bpy.data.objects.new(mesh.name, mesh)
+            vcontext.collection.objects.link(obj)
+            obj.rotation_euler = (math.radians(90), 0, 0)
+    
+            for mat in vcontext.materials.values():
+                obj.data.materials.append(mat)
 
-    frame = world.get_frame(0)
-    sections: TAG_List = frame['sections']
-    for i in range(0, len(sections)):
-        # print(f'Parsing section {i + 1} / {len(sections)}')
-        readIntracodedSection(sections[i], vcontext, settings)
-        if progressFunction:
-            progressFunction((i + 1) / len(sections))
+
+    # if progressFunction:
+    #     progressFunction(0)
+
+    # frame = world.get_frame(0)
+    # sections: TAG_List = frame['sections']
+    # for i in range(0, len(sections)):
+    #     # print(f'Parsing section {i + 1} / {len(sections)}')
+    #     readIntracodedSection(sections[i], vcontext, settings)
+    #     if progressFunction:
+    #         progressFunction((i + 1) / len(sections))
 
 def readIntracodedSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
     palette: TAG_List = section['palette']
