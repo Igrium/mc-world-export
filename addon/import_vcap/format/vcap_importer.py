@@ -103,11 +103,11 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     sections: TAG_List = frame['sections']
     for i in range(0, len(sections)):
         # print(f'Parsing section {i + 1} / {len(sections)}')
-        readSection(sections[i], vcontext, settings)
+        readIntracodedSection(sections[i], vcontext, settings)
         if progressFunction:
             progressFunction((i + 1) / len(sections))
 
-def readSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
+def readIntracodedSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
     palette: TAG_List = section['palette']
     offset: tuple[int, int, int] = (section['x'].value, section['y'].value, section['z'].value)
     blocks: TAG_Int_Array = section['blocks']
