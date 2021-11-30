@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.nbt.NbtByte;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtInt;
@@ -23,7 +26,6 @@ import net.minecraft.world.WorldAccess;
 public interface Frame {
     public static final byte INTRACODED_TYPE = 0;
     public static final byte PREDICTED_TYPE = 1;
-
     /**
      * Get the type of frame this is.
      * @return <code>0</code> for Intracoded and <code>1</code> for Predicted.
@@ -54,8 +56,12 @@ public interface Frame {
     public static class PFrame implements Frame {
 
         private Map<BlockPos, String> data = new HashMap<>();
+        private Map<BlockPos, BlockState> states = new HashMap<>();
+        private static MinecraftClient client = MinecraftClient.getInstance();
+
         public final Frame previous;
         public final double timestamp;
+        public final WorldAccess world;
 
         /**
          * Capture a predicted frame.
@@ -76,9 +82,11 @@ public interface Frame {
                 Frame previous,
                 ExportContext context) {
 
-            Map<BlockPos, String> updates = new HashMap<>();        
+            Map<BlockPos, String> updates = new HashMap<>();
+            Map<BlockPos, BlockState> states = new HashMap<>();
             for (BlockPos pos : blocks) {
                 updates.put(pos, BlockExporter.exportBlock(world, pos, context));
+                states.put(pos, world.getBlockState(pos));
                 // Check adjacent blocks.
                 for (Direction dir : Direction.values()) {
                     BlockPos adjacent = pos.offset(dir);
@@ -91,19 +99,21 @@ public interface Frame {
                         continue;
                     }
                     String updated = BlockExporter.exportBlock(world, adjacent, context);
-
                     if (!old.equals(updated)) {
                         updates.put(adjacent, updated);
+                        states.put(adjacent, world.getBlockState(adjacent));
                     }
                 }
             }
-            return new PFrame(updates, previous, timestamp);
+            return new PFrame(updates, states, world, previous, timestamp);
         }
 
-        public PFrame(Map<BlockPos, String> updated, Frame previous, double timestamp) {
+        public PFrame(Map<BlockPos, String> updated, Map<BlockPos, BlockState> states, WorldAccess world, Frame previous, double timestamp) {
             this.data = updated;
+            this.states = states;
             this.timestamp = timestamp;
             this.previous = previous;
+            this.world = world;
         }
         
 
@@ -139,6 +149,21 @@ public interface Frame {
                 NbtList posTag = new NbtList();
                 List.of(pos.getX(), pos.getY(), pos.getZ()).forEach(val -> posTag.add(NbtInt.of(val)));
                 entry.put("pos", posTag);
+
+                BlockState state = states.get(pos);
+                if (state == null) {
+                    throw new IllegalStateException("Vcap: Block at "+pos+" is missing a blockstate entry!");
+                }
+
+                int color = client.getBlockColors().getColor(state, world, pos, 0);
+
+                byte r = (byte)(color >> 16 & 255);
+                byte g = (byte)(color >> 8 & 255);
+                byte b = (byte)(color & 255);
+
+                NbtList colorTag = new NbtList();
+                List.of(r, g, b).forEach(val -> colorTag.add(NbtByte.of(val)));
+                entry.put("color", colorTag);
 
                 updates.add(entry);
             }

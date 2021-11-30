@@ -89,8 +89,18 @@ class PFrame(VcapFrame):
                 if position in self.overrides[id]:
                     mesh_index = id
                     break
+            
+            if settings.use_vertex_colors and 'color' in block:
+                color_tag: TAG_List = block['color']
+                r = _make_unsigned(color_tag[0].value) / 255
+                g = _make_unsigned(color_tag[1].value) / 255
+                b = _make_unsigned(color_tag[2].value) / 255
+                color = [r, g, b, 1]
+            else:
+                color = [1, 1, 1, 1]
 
-            util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(position))
+
+            util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(position), color)
 
         final_meshes: dict[Any, Mesh] = {}
         for id in meshes:
@@ -202,3 +212,9 @@ def _read_unsigned(array: ndarray, index: int, bit_depth: int = 8):
         return item + 2**bit_depth
     else:
         return item
+
+def _make_unsigned(val: int, bit_depth: int = 8):
+    if (val < 0):
+        return val + 2**bit_depth
+    else:
+        return val
