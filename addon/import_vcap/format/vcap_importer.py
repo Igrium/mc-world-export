@@ -10,7 +10,7 @@ from numpy import ndarray
 import bmesh
 import bpy
 from bmesh.types import BMesh
-from bpy.types import Collection, Context, Image, Material, Mesh, Object
+from bpy.types import Collection, Context, Image, Material, Mesh, Object, Struct
 from bpy_extras.wm_utils.progress_report import ProgressReport
 from .context import VCAPContext, VCAPSettings
 from mathutils import Matrix, Vector
@@ -102,7 +102,8 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     
     overrides: dict[Any, set[Vector]] = dict()
     blame: dict[Any, TesselatedFrame] = dict()
-    for i in reversed(range(0, len(frames))):
+    loaded_frames: list[TesselatedFrame] = []
+    for i in reversed(range(0, len(frames))): # Go backward because overrides affect past frames.
         frame = frames[i]
         for id in overrides:
             frame.overrides[id] = overrides[id]
@@ -118,9 +119,40 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
             for mat in vcontext.materials.values():
                 obj.data.materials.append(mat)
 
+        final_frame.time = frame.time
         override_id = f'frame{i}'
         overrides[override_id] = frame.get_declared_override()
         blame[override_id] = final_frame
+
+        loaded_frames.append(final_frame)
+    
+    loaded_frames.reverse()
+
+    def add_keyframe(obj: Object, value: bool, frame: float):
+        obj.hide_viewport = not value
+        obj.hide_render = not value
+        obj.keyframe_insert('hide_viewport', frame=frame)
+        obj.keyframe_insert('hide_render', frame=frame)
+
+    def seconds_to_frames(seconds: float):
+        render = vcontext.context.scene.render
+        return seconds * (render.fps / render.fps_base)
+
+    # KEYFRAMES
+    for frame in loaded_frames:
+        for id in frame.objects:
+            obj = frame.objects[id]
+            
+            if frame.time != 0:
+                add_keyframe(obj, False, 0)
+            add_keyframe(obj, True, seconds_to_frames(frame.time))
+            if (id in blame):
+                add_keyframe(obj, False, seconds_to_frames(blame[id].time))
+            
+            for kf in obj.animation_data.action.fcurves[0].keyframe_points:
+                kf.interpolation = 'CONSTANT'
+            
+
 
 
     # if progressFunction:
