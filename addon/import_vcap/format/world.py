@@ -1,4 +1,5 @@
 from abc import abstractmethod, abstractproperty
+from typing import Any
 
 from numpy import ndarray
 import bmesh
@@ -17,34 +18,31 @@ def load_frame(nbt: TAG_Compound, index = 0):
     elif t == 1:
         return PFrame(nbt, index)
     else: raise RuntimeError(f"Unknown frame type: {t}")
-        
+
 
 class VcapFrame:
     @abstractmethod
-    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings) -> list[Mesh]:
+    def get_meshes(self, vcontext: VCAPContext,
+                   settings: VCAPSettings) -> dict[Any, Mesh]:
         """Generate the meshes of this frame.
 
         Returns:
-            list[Mesh]: A list of the meshes.
+            dict[Any, Mesh]: A dictionary containing meshes and the override IDs responsible for them.
+            'base' is the base mesh without overrides.
         """
         raise RuntimeError("Can't call methods on base class")
 
     @abstractmethod
-    def add_override(self, blocks: set[tuple[int, int, int]]):
-        """Add a block override, causing the mesh to fracture at these locations.
+    def get_declared_override(self) -> set[Vector]:
+        raise RuntimeError("Can't call methods on base class")
 
-        Args:
-            blocks (set[tuple[int, int, int]]): A set of all the coordinates which will be overwritten. Should be immutable.
-        """
-        raise RuntimeError("Can't call methods on base class")
-    
-    @abstractmethod
-    def get_declared_override(self) -> set[tuple[int, int, int]]:
-        raise RuntimeError("Can't call methods on base class")
-    
     time: float
-    overrides: list[set[tuple[int, int, int]]]
-    
+    overrides: dict[Any, set[Vector]]
+    """A set of block overrides and their IDs. An override is a set of
+    voxels that, due to the fact that they're subsequently replaced, need
+    to be broken into a seperate mesh.
+    """
+
 
 class PFrame(VcapFrame):
     __nbt__: TAG_Compound
@@ -60,20 +58,17 @@ class PFrame(VcapFrame):
         self.__nbt__ = nbt
         self.index = index
         self.time = nbt['time'].value
-        self.overrides = []
-    
-    def add_override(self, blocks: set[tuple[int, int, int]]):
-        self.overrides.append(blocks)
-    
-    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings) -> list[Mesh]:
+        self.overrides = dict()
+
+    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings):
         blocks: TAG_List = self.__nbt__['blocks']
         palette: TAG_List = self.__nbt__['palette']
 
-        meshes: list[BMesh] = []
-        meshes.append(bmesh.new())  # The first mesh has no override.
-        for i in range(0, len(self.overrides)):
-            meshes.append(bmesh.new())
-        
+        meshes: dict[any, BMesh] = {}
+        meshes['base'] = bmesh.new()
+        for id in self.overrides:
+            meshes[id] = bmesh.new()
+
         block: TAG_Compound
         for block in blocks:
             state: int = block['state'].value
@@ -81,28 +76,32 @@ class PFrame(VcapFrame):
             x = pos[0].value
             y = pos[1].value
             z = pos[2].value
+            position = Vector((x, y, z))
+            position.freeze()
 
             model_id: TAG_String = palette[state]
             block_mesh = vcontext.models[model_id.value]
             if len(block_mesh.vertices) == 0:
                 continue
 
-            mesh_index = 0
-            for i in range(0, len(self.overrides)):
-                if (x, y, z) in self.overrides[i]:
-                    mesh_index = i + 1
+            mesh_index = 'base'
+            for id in self.overrides:
+                if position in self.overrides[id]:
+                    mesh_index = id
                     break
-            
-            util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation((x, y, z)))
 
-        final_meshes = []
-        for mesh in meshes:
+            util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(position))
+
+        final_meshes: dict[Any, Mesh] = {}
+        for id in meshes:
+            mesh = meshes[id]
+            if len(mesh.verts) == 0: continue
             outMesh = bpy.data.meshes.new(f'{vcontext.name}.f{self.index}')
             mesh.to_mesh(outMesh)
-            final_meshes.append(outMesh)
-        
+            final_meshes[id] = outMesh
+
         return final_meshes
-    
+
     def get_declared_override(self) -> set[tuple[int, int, int]]:
         overrides = set()
         blocks: TAG_List = self.__nbt__['blocks']
@@ -112,8 +111,10 @@ class PFrame(VcapFrame):
             x = pos[0].value
             y = pos[1].value
             z = pos[2].value
-            overrides.add((x, y, z))
-        
+            position = Vector((x, y, z))
+            position.freeze()
+            overrides.add(position)
+
         return overrides
 
 
@@ -129,23 +130,19 @@ class IFrame(VcapFrame):
             index (int, optional): Frame number to put in the mesh name. Defaults to 0.
         """
         self.__nbt__ = nbt
-        self.overrides = []
+        self.overrides = dict()
         self.index = index
         self.time = nbt['time'].value
 
-    def add_override(self, blocks: set[tuple[int, int, int]]):
-        self.overrides.append(blocks)
-
     def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings) -> list[Mesh]:
         sections: TAG_List[TAG_Compound] = self.__nbt__['sections']
-        meshes: list[BMesh] = []
-        meshes.append(bmesh.new()) # The first mesh has no override.
-        for i in range(0, len(self.overrides)):
-            meshes.append(bmesh.new())
+        meshes: dict[Any, BMesh] = {}
+        meshes['base'] = bmesh.new() # The first mesh has no override.
+        for id in self.overrides:
+            meshes[id] = bmesh.new()
 
         section: TAG_Compound
         for i in range(0, len(sections)):
-            print(f'IFrame section {i}')
             section = sections[i]
             palette: TAG_List = section['palette']
             offset = (section['x'].value, section['y'].value, section['z'].value)
@@ -176,25 +173,27 @@ class IFrame(VcapFrame):
                         else:
                             color = [1, 1, 1, 1]
 
-                        world_pos = (offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z)
-                        mesh_index = 0
+                        world_pos = Vector((offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z))
+                        world_pos.freeze()
+                        mesh_index = 'base'
 
-                        for i in range(0, len(self.overrides)):
-                            override = self.overrides[i]
-                            if world_pos in override:
-                                mesh_index = i + 1
+                        for id in self.overrides:
+                            if world_pos in self.overrides[id]:
+                                mesh_index = id
                                 break
-                        
+
                         util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(world_pos), color=color)
-        final_meshes = []
-        for mesh in meshes:
+        final_meshes: dict[Any, Mesh] = {}
+        for id in meshes:
+            mesh = meshes[id]
+            if len(mesh.verts) == 0: continue
             outMesh = bpy.data.meshes.new(f'{vcontext.name}.f{self.index}')
             mesh.to_mesh(outMesh)
-            final_meshes.append(outMesh)
-        
+            final_meshes[id] = outMesh
+
         return final_meshes
-    
-    def get_declared_override(self) -> set[tuple[int, int, int]]:
+
+    def get_declared_override(self) -> set[Vector]:
         return set()
 
 def _read_unsigned(array: ndarray, index: int, bit_depth: int = 8):

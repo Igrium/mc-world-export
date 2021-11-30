@@ -1,8 +1,9 @@
 import json
 import math
 import os
-from typing import IO, Callable
+from typing import IO, Any, Callable
 from zipfile import ZipFile
+from .anim import TesselatedFrame
 
 from numpy import ndarray
 
@@ -99,22 +100,27 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     for i in range(0, len(nbt_frames)):
         frames.append(load_frame(nbt_frames[i], i))
     
-    overrides: list[set[tuple[int, int, int]]] = []
+    overrides: dict[Any, set[Vector]] = dict()
+    blame: dict[Any, TesselatedFrame] = dict()
     for i in reversed(range(0, len(frames))):
         frame = frames[i]
-        frame.overrides.extend(overrides)
-        overrides.insert(0, frame.get_declared_override())
-    
-    for frame in frames:
-        meshes: list[Mesh] = frame.get_meshes(vcontext, settings)
-
-        for mesh in meshes:
-            obj = bpy.data.objects.new(mesh.name, mesh)
+        for id in overrides:
+            frame.overrides[id] = overrides[id]
+        print(f"Wrote frame ${i} with {len(overrides)} overrides.")
+        meshes = frame.get_meshes(vcontext, settings)
+        final_frame = TesselatedFrame()
+        for id in meshes:
+            obj = bpy.data.objects.new(meshes[id].name, meshes[id])
+            final_frame.objects[id] = obj
             vcontext.collection.objects.link(obj)
             obj.rotation_euler = (math.radians(90), 0, 0)
-    
+
             for mat in vcontext.materials.values():
                 obj.data.materials.append(mat)
+
+        override_id = f'frame{i}'
+        overrides[override_id] = frame.get_declared_override()
+        blame[override_id] = final_frame
 
 
     # if progressFunction:
