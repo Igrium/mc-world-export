@@ -23,25 +23,42 @@ Example:
 ```
 
 ## The World
-The world, arguably the most dense element of the format, is stored in an uncompressed [NBT](https://wiki.vg/NBT) format within `world.dat`. It follows the following scheme
+The world, arguably the most dense element of the format, is stored using an uncompressed [NBT](https://wiki.vg/NBT) format within `world.dat`. It uses the following scheme:
 
 - root - TAG_COMPOUND
-    - `frames` - TAG_LIST: A list of "frames," or updates to the world. Currently, only one frame
-    is supported. This tag is just for future-proofing.
+    - `frames` - TAG_LIST: A list of "frames," or updates to the world. 
         - (a frame): TAG_COMPOUND
-            - `type`: TAG_BYTE: The type of frame this is. Currently, only Intracoded frames are supported.
+            - `type`: TAG_BYTE: The type of frame this is. `0` for intracoded and `1` for predicted.
             - `time`: TAG_DOUBLE: The time, in seconds, since the begninning of the capture that this frame activates.
-            - `sections`: TAG_LIST A set of three-dimensional, 16x16x16 "chunks" containing voxel data.
-                - (a section): TAG_COMPOUND
-                    - `x`: TAG_INT The x position of this section in section coordinates.
-                    - `y`: TAG_INT The y position of this section in section coordinates.
-                    - `z`: TAG_INT The z position of this seciton in section coordinates.
-                    - `palette`: TAG_LIST: A list of the different voxel types in this chunk, where each entry is a simple string tag indicating a model ID.
-                    - `blocks`: TAG_INT_ARRAY: The actual block data within the chunk. Each integer represents a different block, making the array 4096 bytes in length. Blocks are sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is `(Y * 16 + Z) * 16 + X`. Read as signed numbers, the values corriate to the index in the palette which the intended model ID resides.
-                    - `colorPalette`: TAG_BYTE_ARRAY An array of the different color values contained within this chunk (biome colors, etc.). The array is broken into sets of three bytes, each representing a different color entry, thus making the size of this array 3 * the number of colors in the section. The three bytes in each set represent the red, green, and blue values of the color, in that order. It's worth noting that, although the NBT format specifies that all values are signed, these bytes are an exception to this rule, giving each channel the unsigned range of `0-255`. The values returned by most NBT libraries will require conversion.
-                    - `colors`: TAG_BYTE_ARRAY The actual color data of the chunk. Like the block data, these bytes each reference an index of the `colorPalette` array, following the same arrangement pattern as the block data. Due to the fact that the color palette is broken into sets of three, only indices that are multiples are permitted.
+            
+              The rest of the this varies based on frame type, as described below.
+
+### Intracoded Frames
+These frames are fairly heavy and represent the world data in it's entirety. Should be used sparingly.
+- [All data from universal frame documentation]
+- `sections`: TAG_LIST A set of three-dimensional, 16x16x16 "chunks" containing voxel data.
+    - (a section): TAG_COMPOUND
+        - `x`: TAG_INT The x position of this section in section coordinates.
+        - `y`: TAG_INT The y position of this section in section coordinates.
+        - `z`: TAG_INT The z position of this seciton in section coordinates.
+        - `palette`: TAG_LIST: A list of the different voxel types in this chunk, where each entry is a simple string tag indicating a model ID.
+        - `blocks`: TAG_INT_ARRAY: The actual block data within the chunk. Each integer represents a different block, making the array 4096 bytes in length. Blocks are sorted by height (bottom to top) then length then width—the index of the block at X,Y,Z is `(Y * 16 + Z) * 16 + X`. Read as signed numbers, the values corriate to the index in the palette which the intended model ID resides.
+        - `colorPalette`: TAG_BYTE_ARRAY An array of the different color values contained within this chunk (biome colors, etc.). The array is broken into sets of three bytes, each representing a different color entry, thus making the size of this array 3 * the number of colors in the section. The three bytes in each set represent the red, green, and blue values of the color, in that order. It's worth noting that, although the NBT format specifies that all values are signed, these bytes are an exception to this rule, giving each channel the unsigned range of `0-255`. The values returned by most NBT libraries will require conversion.
+        - `colors`: TAG_BYTE_ARRAY The actual color data of the chunk. Like the block data, these bytes each reference an index of the `colorPalette` array, following the same arrangement pattern as the block data. Due to the fact that the color palette is broken into sets of three, only indices that are multiples are permitted.
 
 This format is modeled losely off of Minecraft [schematic](https://minecraft.fandom.com/wiki/Schematic_file_format) files, modified to fit the requirements for VCap.
+
+### Predicted Frames
+Predicted frames are much lighter than Intracoded frames and are designed to represent changes to a world relative to the previous frame. However, while less data is stored overall, making these frames less expensive, it is stored less efficiently, meaning these should not be used to store entire worlds.
+
+- [All data from universal frame documentation]
+  - `blocks` - TAG_LIST: A list of all updated blocks in this frame.
+    - (a block) - TAG_COMPOUND:
+      - `pos` - TAG_LIST: A three-int list containing the global coordinates of this block.
+      - `state` - TAG_INT: The index within the `pallete` tag with this block's mesh ID.
+      - (optional) `color` - TAG_LIST: A three-byte list denoting the red, green, and blue values of this block's color. It's worth noting that, although the NBT format specifies that all values are signed, these bytes are an exception to this rule, giving each channel the unsigned range of `0-255`. The values returned by most NBT libraries will require conversion.
+  - `palette` - TAG_LIST:
+    - A list of string tags with the mesh IDs within the frame.
 
 ## Meshes
 One of the strengths of VCap is that is entirely self-contained. Wheras other formats require an external library of textures and meshes in order to render them, VCap files contain all the assets needed out of the box, occlusion data and all.
