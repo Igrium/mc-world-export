@@ -1,15 +1,16 @@
 import json
 import math
 import os
-from typing import IO, Callable
+from typing import IO, Any, Callable
 from zipfile import ZipFile
+from .anim import TesselatedFrame
 
 from numpy import ndarray
 
 import bmesh
 import bpy
 from bmesh.types import BMesh
-from bpy.types import Collection, Context, Image, Material, Mesh, Object
+from bpy.types import Collection, Context, Image, Material, Mesh, Object, Struct
 from bpy_extras.wm_utils.progress_report import ProgressReport
 from .context import VCAPContext, VCAPSettings
 from mathutils import Matrix, Vector
@@ -17,7 +18,7 @@ from mathutils import Matrix, Vector
 from .. import amulet_nbt
 from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String, TAG_Int_Array
 from . import util, materials, import_mesh
-from .world import VCAPWorld
+from .world import VcapFrame, load_frame
 
 def load(file: str, collection: Collection, context: Context, settings: VCAPSettings=VCAPSettings()):
     """Import a vcap file.
@@ -93,21 +94,79 @@ def loadMeshes(archive: ZipFile, context: VCAPContext):
 
 def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSettings, progressFunction: Callable[[float], None] = None):
     nbt: amulet_nbt.NBTFile = amulet_nbt.load(world_dat.read(), compressed=False)
-    world = VCAPWorld(nbt.value)
     print("Loading world...")
+    nbt_frames: TAG_List = nbt.get('frames')
+    frames: list[VcapFrame] = []
+    for i in range(0, len(nbt_frames)):
+        frames.append(load_frame(nbt_frames[i], i))
+    
+    overrides: dict[Any, set[Vector]] = dict()
+    blame: dict[Any, TesselatedFrame] = dict()
+    loaded_frames: list[TesselatedFrame] = []
+    for i in reversed(range(0, len(frames))): # Go backward because overrides affect past frames.
+        frame = frames[i]
+        for id in overrides:
+            frame.overrides[id] = overrides[id]
+        print(f"Wrote frame ${i} with {len(overrides)} overrides.")
+        meshes = frame.get_meshes(vcontext, settings)
+        final_frame = TesselatedFrame()
+        for id in meshes:
+            obj = bpy.data.objects.new(meshes[id].name, meshes[id])
+            final_frame.objects[id] = obj
+            vcontext.collection.objects.link(obj)
+            obj.rotation_euler = (math.radians(90), 0, 0)
 
-    if progressFunction:
-        progressFunction(0)
+            for mat in vcontext.materials.values():
+                obj.data.materials.append(mat)
 
-    frame = world.get_frame(0)
-    sections: TAG_List = frame['sections']
-    for i in range(0, len(sections)):
-        # print(f'Parsing section {i + 1} / {len(sections)}')
-        readSection(sections[i], vcontext, settings)
-        if progressFunction:
-            progressFunction((i + 1) / len(sections))
+        final_frame.time = frame.time
+        override_id = f'frame{i}'
+        overrides[override_id] = frame.get_declared_override()
+        blame[override_id] = final_frame
 
-def readSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
+        loaded_frames.append(final_frame)
+    
+    loaded_frames.reverse()
+
+    def add_keyframe(obj: Object, value: bool, frame: float):
+        obj.hide_viewport = not value
+        obj.hide_render = not value
+        obj.keyframe_insert('hide_viewport', frame=frame)
+        obj.keyframe_insert('hide_render', frame=frame)
+
+    def seconds_to_frames(seconds: float):
+        render = vcontext.context.scene.render
+        return seconds * (render.fps / render.fps_base)
+
+    # KEYFRAMES
+    for frame in loaded_frames:
+        for id in frame.objects:
+            obj = frame.objects[id]
+            
+            if frame.time != 0:
+                add_keyframe(obj, False, 0)
+            add_keyframe(obj, True, seconds_to_frames(frame.time))
+            if (id in blame):
+                add_keyframe(obj, False, seconds_to_frames(blame[id].time))
+            
+            for kf in obj.animation_data.action.fcurves[0].keyframe_points:
+                kf.interpolation = 'CONSTANT'
+            
+
+
+
+    # if progressFunction:
+    #     progressFunction(0)
+
+    # frame = world.get_frame(0)
+    # sections: TAG_List = frame['sections']
+    # for i in range(0, len(sections)):
+    #     # print(f'Parsing section {i + 1} / {len(sections)}')
+    #     readIntracodedSection(sections[i], vcontext, settings)
+    #     if progressFunction:
+    #         progressFunction((i + 1) / len(sections))
+
+def readIntracodedSection(section: TAG_Compound, vcontext: VCAPContext, settings: VCAPSettings):
     palette: TAG_List = section['palette']
     offset: tuple[int, int, int] = (section['x'].value, section['y'].value, section['z'].value)
     blocks: TAG_Int_Array = section['blocks']

@@ -1,166 +1,278 @@
 package org.scaffoldeditor.worldexport;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Random;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.export.BlockExporter;
-import org.scaffoldeditor.worldexport.export.ExportContext;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
-import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.TextureExtractor;
 
-import de.javagl.obj.Obj;
-import de.javagl.obj.ObjWriter;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.command.CommandException;
 import net.minecraft.text.LiteralText;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.World;
 
 @Environment(EnvType.CLIENT)
 public final class ExportCommand {
     private ExportCommand() {
     };
 
+    static MinecraftClient client = MinecraftClient.getInstance();
+
+    protected static class ExportContext {
+        public final VcapExporter exporter;
+        public final World world;
+        public Date startTime;
+        public boolean autoCapture = false;
+        private boolean captureQueued = false;
+
+        private Set<BlockPos> updates = new HashSet<>();
+
+        public ExportContext(VcapExporter exporter, World world) {
+            this.exporter = exporter;
+            this.world = world;
+        }
+
+        public void onBlockUpdate(BlockPos pos, BlockState state) {
+            updates.add(pos);
+            if (autoCapture && !captureQueued) {
+                RenderSystem.recordRenderCall(() -> {
+                    captureFrame(); // Seperate render call merges simultaneous updates into one frame.
+                    captureQueued = false;
+                });
+                captureQueued = true;
+            }
+        }
+
+        public void captureFrame() {
+            exporter.capturePFrame(
+                    (new Date().getTime() - startTime.getTime()) / 1000d, updates);
+            updates.clear();
+        }
+
+    }
+
+    protected static ExportContext currentExport;
+    private static Set<BiConsumer<BlockPos, BlockState>> worldListeners = new HashSet<>();
+
     public static void register() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("export").build();
+        LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
-        LiteralCommandNode<FabricClientCommandSource> world = ClientCommandManager.literal("world")
-            .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0, 16))
-            .then(ClientCommandManager.argument("name", StringArgumentType.word())
-            .executes(context -> {
-                try {
-                    Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
-                    if (!exportFolder.toFile().isDirectory()) {
-                        exportFolder.toFile().mkdir();
+        ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
+            worldListeners.forEach(listener -> listener.accept(pos, state));
+            return ActionResult.PASS;
+        });
+
+        LiteralCommandNode<FabricClientCommandSource> start = ClientCommandManager.literal("start")
+                .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0))
+                        .executes(context -> {
+                            if (currentExport != null) {
+                                throw new CommandException(new LiteralText(
+                                        "A Vcap capture is already in process. Use 'vcap save [name]' to stop it."));
+                            }
+                            ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
+                            int radius = context.getArgument("radius", Integer.class);
+                            ClientWorld world = context.getSource().getWorld();
+
+                            VcapExporter exporter = new VcapExporter(context.getSource().getWorld(),
+                                    new ChunkPos(playerPos.x - radius, playerPos.z - radius),
+                                    new ChunkPos(playerPos.x + radius, playerPos.z + radius));
+                            currentExport = new ExportContext(exporter, world);
+
+                            exporter.captureIFrame(0);
+                            currentExport.startTime = new Date();
+                            worldListeners.add(currentExport::onBlockUpdate);
+
+                            context.getSource().sendFeedback(new LiteralText("Started Vcap capture..."));
+                            return 0;
+                        }))
+                .build();
+        root.addChild(start);
+
+        LiteralCommandNode<FabricClientCommandSource> frame = ClientCommandManager.literal("frame")
+                .executes(context -> {
+                    if (currentExport == null) {
+                        throw new CommandException(
+                                new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
                     }
-                    ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
-                    int radius = context.getArgument("radius", Integer.class);
+                    currentExport.captureFrame();
+                    context.getSource().sendFeedback(new LiteralText("Captured predicted frame."));
+                    return 0;
+                }).build();
 
-                    File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".dat").toFile();
-                    FileOutputStream os = new FileOutputStream(targetFile);
-                    BlockExporter.writeStill(client.world, new ChunkPos(playerPos.x - radius, playerPos.z - radius),
-                                                new ChunkPos(playerPos.x + radius, playerPos.z + radius), new ExportContext(), os);
-                    os.close();
-                    context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
-                } catch (IOException e) {
-                    LogManager.getLogger().error(e);
-                    throw new SimpleCommandExceptionType(new LiteralText("Unable to export world. See console for details.")).create();
-                }
+        root.addChild(frame);
 
-                return 0;
-            }))).build();
-        root.addChild(world);
-        
-        LiteralCommandNode<FabricClientCommandSource> mesh = ClientCommandManager.literal("mesh")
-            .then(ClientCommandManager.argument("name", StringArgumentType.word())
-            .executes(context -> {
-                Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
-                if (!exportFolder.toFile().isDirectory()) {
-                    exportFolder.toFile().mkdir();
-                }
-                File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".obj").toFile();
+        LiteralCommandNode<FabricClientCommandSource> listen = ClientCommandManager.literal("listen")
+                .then(ClientCommandManager.argument("shouldListen", BoolArgumentType.bool())
+                        .executes(context -> {
+                            if (currentExport == null) {
+                                throw new CommandException(
+                                        new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                            }
 
-                BlockState block = context.getSource().getWorld().getBlockState(context.getSource().getPlayer().getBlockPos().subtract(new Vec3i(0, 1, 0)));
-                BlockRenderManager dispatcher = MinecraftClient.getInstance().getBlockRenderManager();
-                ModelEntry entry = new ModelEntry(dispatcher.getModel(block), new boolean[] { true, true, true, true, true, true }, !block.isOpaque(), block);
-                
-                Obj model = MeshWriter.writeBlockMesh(entry, new Random()).mesh;
+                            boolean mode = context.getArgument("shouldListen", Boolean.class);
+                            currentExport.autoCapture = mode;
+                            if (mode) {
+                                context.getSource().sendFeedback(new LiteralText("Listening for block updates..."));
+                            } else {
+                                context.getSource()
+                                        .sendFeedback(new LiteralText("Stopped listening for block updates."));
+                            }
+                            return 0;
+                        }))
+                .build();
+        root.addChild(listen);
 
-                try {
-                    FileOutputStream os = new FileOutputStream(targetFile);
-                    ObjWriter.write(model, os);
-                    os.close();
-                } catch (IOException e) {
-                    throw new SimpleCommandExceptionType(new LiteralText("Unable to export mesh. See console for details.")).create();
-                }
+        LiteralCommandNode<FabricClientCommandSource> save = ClientCommandManager.literal("save")
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> {
+                            if (currentExport == null) {
+                                throw new CommandException(
+                                        new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                            }
 
-                context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
-                return 0;
-            })).build();
-        root.addChild(mesh);
+                            Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
+                            if (!exportFolder.toFile().isDirectory()) {
+                                exportFolder.toFile().mkdir();
+                            }
+
+                            context.getSource().sendFeedback(new LiteralText("Please wait..."));
+                            File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap")
+                                    .toFile();
+
+                            try {
+                                FileOutputStream os = new FileOutputStream(targetFile);
+                                currentExport.exporter.saveAsync(os).whenComplete((val, e) -> {
+                                    if (e != null) {
+                                        context.getSource()
+                                                .sendError(new LiteralText("Failed to save vcap. " + e.getMessage()));
+                                        LogManager.getLogger().error("Failed to save vcap.", e);
+                                    } else {
+                                        context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
+                                        currentExport = null;
+                                    }
+                                });
+                            } catch (FileNotFoundException e) {
+                                throw new CommandException(
+                                        new LiteralText("Unable to load file: " + e.getLocalizedMessage()));
+                            }
+                            return 0;
+                        }))
+                .build();
+        root.addChild(save);
+
+        LiteralCommandNode<FabricClientCommandSource> abandon = ClientCommandManager.literal("abandon")
+                .executes(context -> {
+                    if (currentExport == null) {
+                        throw new CommandException(new LiteralText("No Vcap recording active!"));
+                    }
+                    currentExport = null;
+                    return 0;
+                }).build();
+        root.addChild(abandon);
 
         LiteralCommandNode<FabricClientCommandSource> atlas = ClientCommandManager.literal("atlas")
-            .then(ClientCommandManager.argument("name", StringArgumentType.word())
-            .executes(context -> {
-                Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
-                if (!exportFolder.toFile().isDirectory()) {
-                    exportFolder.toFile().mkdir();
-                }
-                File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".png").toFile();
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> {
+                            Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
+                            if (!exportFolder.toFile().isDirectory()) {
+                                exportFolder.toFile().mkdir();
+                            }
+                            File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".png")
+                                    .toFile();
 
-                new Thread(() -> {
-                    NativeImage image;
-                    LogManager.getLogger().info("Obtaining atlas texture...");
-                    try {
-                        image = TextureExtractor.getAtlas().get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        LogManager.getLogger().error(e);
-                        context.getSource().sendError(new LiteralText("Unable to retrieve atlas. "+e.getMessage()));
-                        return;
-                    }
-    
-                    try {
-                        image.writeTo(targetFile);
-                    } catch (IOException e) {
-                        LogManager.getLogger().error(e);
-                        context.getSource().sendError(new LiteralText("Unable to save image. "+e.getMessage()));
-                        return;
-                    }
-                    context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
-                }, "World Export").start();
-                
-                return 0;
-            })).build();
+                            new Thread(() -> {
+                                NativeImage image;
+                                LogManager.getLogger().info("Obtaining atlas texture...");
+                                try {
+                                    image = TextureExtractor.getAtlas().get();
+                                } catch (InterruptedException | ExecutionException e) {
+                                    LogManager.getLogger().error(e);
+                                    context.getSource()
+                                            .sendError(new LiteralText("Unable to retrieve atlas. " + e.getMessage()));
+                                    return;
+                                }
+
+                                try {
+                                    image.writeTo(targetFile);
+                                } catch (IOException e) {
+                                    LogManager.getLogger().error(e);
+                                    context.getSource()
+                                            .sendError(new LiteralText("Unable to save image. " + e.getMessage()));
+                                    return;
+                                }
+                                context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
+                            }, "World Export").start();
+
+                            return 0;
+                        }))
+                .build();
         root.addChild(atlas);
 
         LiteralCommandNode<FabricClientCommandSource> full = ClientCommandManager.literal("full")
-            .then(ClientCommandManager.argument("name", StringArgumentType.word())
-            .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0, 16))
-            .executes(context -> {
-                new Thread(() -> {
-                    Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
-                    if (!exportFolder.toFile().isDirectory()) {
-                        exportFolder.toFile().mkdir();
-                    }
-                    File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
-                    ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
-                    int radius = context.getArgument("radius", Integer.class);
-
-                    try {
-                        FileOutputStream os = new FileOutputStream(targetFile);
-                        Exporter.Export(context.getSource().getWorld(), new ChunkPos(playerPos.x - radius, playerPos.z - radius),
-                        new ChunkPos(playerPos.x + radius, playerPos.z + radius), os);
-                        os.close();
-                    } catch (IOException | ExecutionException | TimeoutException e) {
-                        LogManager.getLogger().error(e);
-                        context.getSource().sendError(new LiteralText("Unable to export world. "+e.getLocalizedMessage()));
-                    }
-    
-                    context.getSource().sendFeedback(new LiteralText("Wrote to "+targetFile));
-                }).start();     
-                return 0;
-            }))).build();
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0, 16))
+                                .executes(context -> {
+                                    exportFull(context);
+                                    return 0;
+                                })))
+                .build();
         root.addChild(full);
-
         ClientCommandManager.DISPATCHER.getRoot().addChild(root);
+    }
+
+    private static void exportFull(CommandContext<FabricClientCommandSource> context) {
+        Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
+        if (!exportFolder.toFile().isDirectory()) {
+            exportFolder.toFile().mkdir();
+        }
+        context.getSource().sendFeedback(new LiteralText("Please wait..."));
+        File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
+        ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
+        int radius = context.getArgument("radius", Integer.class);
+
+        VcapExporter exporter = new VcapExporter(context.getSource().getWorld(),
+                new ChunkPos(playerPos.x - radius, playerPos.z - radius),
+                new ChunkPos(playerPos.x + radius, playerPos.z + radius));
+
+        exporter.captureIFrame(0);
+
+        try {
+            FileOutputStream os = new FileOutputStream(targetFile);
+            exporter.saveAsync(os).whenComplete((val, e) -> {
+                if (e != null) {
+                    context.getSource().sendError(new LiteralText("Failed to save vcap. " + e.getMessage()));
+                    LogManager.getLogger().error("Failed to save vcap.", e);
+                } else {
+                    context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
+                }
+            });
+        } catch (FileNotFoundException e) {
+            throw new CommandException(new LiteralText("Unable to load file: " + e.getLocalizedMessage()));
+        }
     }
 }

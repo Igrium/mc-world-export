@@ -1,7 +1,6 @@
 package org.scaffoldeditor.worldexport.export;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -23,7 +22,7 @@ public final class TextureExtractor {
      * @param atlasID Atlas texture identifier.
      * @return A future that completes once the texture has been retrieved from the GPU.
      */
-    public static Future<NativeImage> getAtlas(Identifier atlasID) {
+    public static CompletableFuture<NativeImage> getAtlas(Identifier atlasID) {
         CompletableFuture<NativeImage> future = new CompletableFuture<>();
         RenderSystem.recordRenderCall(() -> {
             LogManager.getLogger().info("Fetching atlas texture...");
@@ -46,7 +45,7 @@ public final class TextureExtractor {
      * <b>Note:</b> Will not complete untill at least the next frame. Don't hold the game thread while waiting.
      * @return A future that completes once the texture has been retrieved from the GPU.
      */
-    public static Future<NativeImage> getAtlas() {
+    public static CompletableFuture<NativeImage> getAtlas() {
         return getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
     }
 }

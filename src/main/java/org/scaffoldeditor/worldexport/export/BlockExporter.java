@@ -62,12 +62,45 @@ public final class BlockExporter {
 
         return sectionTag;
     }
+    
+    /**
+     * Generate a mesh ID from a block in the world.
+     * @param world World to use.
+     * @param pos Position of the block.
+     * @param context Vcap export context.
+     * @return The mesh ID.
+     */
+    public static String exportBlock(WorldAccess world, BlockPos pos, ExportContext context) {
+        BlockState state = world.getBlockState(pos);
+        String id;
+        FluidState fluid = state.getFluidState();
+        BlockRenderManager dispatcher = client.getBlockRenderManager();
+
+
+        if (!fluid.isEmpty()) {
+            id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
+        } else {
+            BlockPos.Mutable mutable = pos.mutableCopy();
+            boolean[] faces = new boolean[6];
+
+            for (int i = 0; i < DIRECTIONS.length; i++) {
+                Direction direction = DIRECTIONS[i];
+                mutable.set(pos, direction);
+                faces[i] = Block.shouldDrawSide(state, world, pos, direction, mutable);
+            }
+
+            ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
+            id = context.getID(entry, BlockModels.getModelId(state).toString());
+        }
+
+        return id;
+    }
 
     private static NbtCompound writeSection(ChunkSection section, WorldAccess world,
             int sectionX, int sectionY, int sectionZ, ExportContext context) {
 
         BlockRenderManager dispatcher = client.getBlockRenderManager();
-        LogManager.getLogger().info("Exporting section [" + sectionX +", " + sectionY + ", " + sectionZ + "]");
+        LogManager.getLogger().info("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
 
         NbtCompound tag = new NbtCompound();
         tag.putInt("x", sectionX);
