@@ -33,6 +33,7 @@ dependencies {
 	modImplementation "com.replaymod:replaymod-1.17.1:2.6.1"
 	
 	implementation(include('de.javagl:obj:0.3.0'))
+	implementation(include('org.joml:joml:1.10.2'))
 }
 
 processResources {

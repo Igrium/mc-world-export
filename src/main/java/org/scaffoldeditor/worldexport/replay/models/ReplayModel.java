@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replay;
+package org.scaffoldeditor.worldexport.replay.models;
 
 import java.io.IOException;
 import java.io.StringWriter;

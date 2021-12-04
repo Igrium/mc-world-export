@@ -1,10 +1,11 @@
-package org.scaffoldeditor.worldexport.replay;
+package org.scaffoldeditor.worldexport.replay.models;
 
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.scaffoldeditor.worldexport.replay.ReplayModel.BoneTransform;
+import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Identifier;
