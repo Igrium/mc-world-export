@@ -6,7 +6,8 @@
   "mixins": [
   ],
   "client": [
-    "NetworkHandlerMixin"
+    "NetworkHandlerMixin",
+    "AnimalModelAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,8 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
-import java.util.Map;
-
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelManager.ReplayModelGenerator;
 
 import net.minecraft.client.render.entity.PlayerModelPart;
@@ -20,12 +18,21 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
     protected float handSwingProgress = 0;
     protected boolean riding = false;
     protected boolean child = false;
-
+    
     public abstract void animateModel(T entity, float limbAngle, float limbDistance, float tickDelta);
     public abstract void setAngles(T entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+    
+    /**
+     * Extract the pose from the underlying model.
+     * @param entity Target entity.
+     * @param yaw Entity's yaw.
+     * @param tickDelta Tick delta.
+     * @return The generated pose.
+     */
+    protected abstract Pose writePose(T entity, float yaw, float tickDelta);
 
     @Override
-    public Map<String, BoneTransform> getPose(T entity, float y, float tickDelta) {
+    public Pose getPose(T entity, float y, float tickDelta) {
 
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();

@@ -4,16 +4,19 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.joml.Quaterniondc;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vector4f;
 
 /**
  * <p>
@@ -39,7 +42,7 @@ public class ReplayModel {
             this.name = name;
         }
 
-        public Bone(String name, Vec3d start, Vec3d end) {
+        public Bone(String name, Vector3dc start, Vector3dc end) {
             this.name = name;
             this.start = start;
             this.end = end;
@@ -48,11 +51,11 @@ public class ReplayModel {
         /**
          * Head of the bone.
          */
-        public Vec3d start = new Vec3d(0, 0, 0);
+        public Vector3dc start = new Vector3d();
         /**
          * Tail of the bone.
          */
-        public Vec3d end = new Vec3d(0, 0, 0);
+        public Vector3dc end = new Vector3d();
         /**
          * Rotation of the bone along its axis, in radians.
          */
@@ -67,15 +70,23 @@ public class ReplayModel {
     }
 
     public static class BoneTransform {
-        public final Vec3d translation;
-        public final Vector4f rotation;
-        public final Vec3d scale;
+        public final Vector3dc translation;
+        public final Quaterniondc rotation;
+        public final Vector3dc scale;
 
-        public BoneTransform(Vec3d translation, Vector4f rotation, Vec3d scale) {
+        public BoneTransform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
             this.translation = translation;
             this.rotation = rotation;
             this.scale = scale;
         }
+    }
+
+    public static class Pose {
+        public Vector3dc pos;
+        public Quaterniondc rot;
+        public Vector3dc scale;
+
+        public final Map<String, BoneTransform> bones = new HashMap<>();
     }
 
     /**
@@ -128,7 +139,7 @@ public class ReplayModel {
         return element;
     }
 
-    private static String writeVectorString(Vec3d vec) {
-        return vec.x+","+vec.y+","+vec.z;
+    private static String writeVectorString(Vector3dc vec) {
+        return vec.x()+","+vec.y()+","+vec.z();
     }
 }
