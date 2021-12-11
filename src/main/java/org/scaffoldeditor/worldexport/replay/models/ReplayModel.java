@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -42,26 +43,26 @@ public class ReplayModel {
             this.name = name;
         }
 
-        public Bone(String name, Vector3dc start, Vector3dc end) {
+        public Bone(String name, Vector3dc start, Quaterniond rot) {
             this.name = name;
-            this.start = start;
-            this.end = end;
+            this.pos = start;
+            this.rot = rot;
         }
 
         /**
-         * Head of the bone.
+         * Position of the bone.
          */
-        public Vector3dc start = new Vector3d();
+        public Vector3dc pos = new Vector3d();
+        
         /**
-         * Tail of the bone.
+         * Rotation of the bone.
          */
-        public Vector3dc end = new Vector3d();
-        /**
-         * Rotation of the bone along its axis, in radians.
-         */
-        public double rot = 0;
+        public Quaterniondc rot = new Quaterniond();
 
-        public Bone parent;
+        /**
+         * Length of the bone.
+         */
+        public float length = .16f;
 
         /**
          * The children of this bone.
@@ -103,6 +104,9 @@ public class ReplayModel {
         this.mesh = mesh;
     }
 
+    /**
+     * Create a replay model with an empty mesh.
+     */
     public ReplayModel() {
         this.mesh = Objs.create();
     }
@@ -131,8 +135,9 @@ public class ReplayModel {
     public static Element serializeBone(Bone bone, Document dom) {
         Element element = dom.createElement("bone");
         element.setAttribute("name", bone.name);
-        element.setAttribute("start", writeVectorString(bone.start));
-        element.setAttribute("end", writeVectorString(bone.end));
+        element.setAttribute("pos", writeVectorString(bone.pos));
+        element.setAttribute("rot", writeQuatToString(bone.rot));
+        element.setAttribute("len", String.valueOf(bone.length));
         for (Bone child : bone.children) {
             element.appendChild(serializeBone(child, dom));
         }
@@ -141,5 +146,9 @@ public class ReplayModel {
 
     private static String writeVectorString(Vector3dc vec) {
         return vec.x()+","+vec.y()+","+vec.z();
+    }
+
+    private static String writeQuatToString(Quaterniondc quat) {
+        return quat.w()+","+quat.x()+","+quat.y()+","+quat.z();
     }
 }

@@ -96,7 +96,7 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
         this.animateModel(entity, limbAngle, limbDistance, tickDelta);
         this.setAngles(entity, limbAngle, limbDistance, animProgress, headYaw, pitch);
 
-        return null;
+        return writePose(entity, y, tickDelta);
     }
 
     protected boolean isShaking(T entity) {
