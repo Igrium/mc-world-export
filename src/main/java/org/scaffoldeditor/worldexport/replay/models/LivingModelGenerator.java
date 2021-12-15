@@ -1,7 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelManager.ReplayModelGenerator;
 
 import net.minecraft.client.render.entity.PlayerModelPart;
 import net.minecraft.entity.EntityPose;
@@ -13,7 +12,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 
-public abstract class LivingModelGenerator<T extends LivingEntity> implements ReplayModelGenerator<T> {
+public abstract class LivingModelGenerator<T extends LivingEntity> implements ReplayModelAdapter<T> {
     
     protected float handSwingProgress = 0;
     protected boolean riding = false;

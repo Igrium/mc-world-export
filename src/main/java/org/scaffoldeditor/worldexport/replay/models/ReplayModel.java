@@ -119,7 +119,7 @@ public class ReplayModel {
      * @throws IOException
      */
     public static Element serialize(ReplayModel model, Document dom) throws IOException {
-        Element element = dom.createElement("mesh");
+        Element element = dom.createElement("model");
         for (Bone bone : model.bones) {
             element.appendChild(serializeBone(bone, dom));
         }

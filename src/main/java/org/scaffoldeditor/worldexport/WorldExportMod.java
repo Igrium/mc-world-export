@@ -6,6 +6,8 @@ import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModels;
+import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.block.BlockState;
@@ -35,11 +37,14 @@ public class WorldExportMod implements ClientModInitializer {
     public void onInitializeClient() {
         instance = this;
         ExportCommand.register();
+        ReplayTestCommand.register();
 
         ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
             blockUpdateListeners.forEach(listener -> listener.accept(pos, state));
             return ActionResult.PASS;
         });
+
+        ReplayModels.registerDefaults();
     }
     
 }

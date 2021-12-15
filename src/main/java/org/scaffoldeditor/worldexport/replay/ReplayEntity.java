@@ -1,5 +1,94 @@
 package org.scaffoldeditor.worldexport.replay;
 
-public class ReplayEntity {
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
+import net.minecraft.entity.Entity;
+
+/**
+ * Represents an entity in the concept of a replay export.
+ */
+public class ReplayEntity<T extends Entity> {
+    /**
+     * The base entity that this replay entity represents.
+     */
+    public final T entity;
+
+    public final ReplayFile file;
+
+    protected ReplayModel model;
+    protected ReplayModelAdapter<T> modelAdapter;
+
+    protected final List<Pose> frames = new ArrayList<>();
     
+    /**
+     * Construct a replay entity.
+     * @param entity The base entity that this replay entity represents.
+     */
+    public ReplayEntity(T entity, ReplayFile file) {
+        this.entity = entity;
+        this.file = file;
+    }
+
+    public void genAdapter() {
+        this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
+        this.model = modelAdapter.generateModel(entity, file);
+    }
+
+    public ReplayModel getModel() {
+        return model;
+    }
+
+    public ReplayModelAdapter<T> getAdapter() {
+        return modelAdapter;
+    }
+
+    public Pose capture(float tickDelta) {
+        Pose pose = this.modelAdapter.getPose(entity, entity.getYaw(), tickDelta);
+        this.frames.add(pose);
+        return pose;
+    }
+
+    public static Element writeToXML(ReplayEntity<?> entity, Document doc) throws IOException {
+        Element node = doc.createElement("entity");
+        Element modelNode = ReplayModel.serialize(entity.model, doc);
+        node.appendChild(modelNode);
+
+        Element animNode = doc.createElement("anim");
+        StringWriter writer = new StringWriter();
+
+        for (Pose pose : entity.frames) {
+            for (BoneTransform bone : pose.bones.values()) {
+                List<String> vals = new ArrayList<>();
+                vals.add(String.valueOf(bone.rotation.w()));
+                vals.add(String.valueOf(bone.rotation.x()));
+                vals.add(String.valueOf(bone.rotation.y()));
+                vals.add(String.valueOf(bone.rotation.z()));
+
+                vals.add(String.valueOf(bone.translation.x()));
+                vals.add(String.valueOf(bone.translation.y()));
+                vals.add(String.valueOf(bone.translation.z()));
+
+                vals.add(String.valueOf(bone.scale.x()));
+                vals.add(String.valueOf(bone.scale.y()));
+                vals.add(String.valueOf(bone.scale.z()));
+
+                writer.write(String.join(" ", vals));
+                writer.write(';');
+                writer.write(System.lineSeparator());
+            }
+        }
+
+        return node;
+    }
 }
