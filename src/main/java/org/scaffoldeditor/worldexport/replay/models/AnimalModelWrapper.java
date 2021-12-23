@@ -82,7 +82,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             position.sub(bone.pos);
             bone.rot.difference(rotation, rotation);
             
-            pose.bones.put(name, new BoneTransform(position, rotation, scale));
+            pose.bones.put(bone, new BoneTransform(position, rotation, scale));
         });
         return pose;
     }

@@ -1,7 +1,5 @@
 package org.scaffoldeditor.worldexport.replay;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -9,6 +7,7 @@ import java.util.List;
 
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.w3c.dom.Document;
@@ -75,7 +74,14 @@ public class ReplayEntity<T extends Entity> {
         Iterator<Pose> frames = entity.frames.iterator();
         while (frames.hasNext()) {
             Pose pose = frames.next();
-            Iterator<BoneTransform> bones = pose.bones.values().iterator();
+            // Make a list of bone transforms in definition order.
+            List<BoneTransform> transforms = new ArrayList<>();
+            for (Bone bone : entity.model.getBones()) {
+                BoneTransform transform = pose.bones.get(bone);
+                if (transform != null) transforms.add(transform);
+            }
+
+            Iterator<BoneTransform> bones = transforms.iterator();
             while (bones.hasNext()) {
                 BoneTransform bone = bones.next();
                 List<String> vals = new ArrayList<>();

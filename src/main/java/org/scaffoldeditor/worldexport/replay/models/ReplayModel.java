@@ -5,15 +5,16 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import javax.management.RuntimeErrorException;
 
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.scaffoldeditor.worldexport.util.TreeIterator;
+import org.scaffoldeditor.worldexport.util.TreeNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -38,7 +39,7 @@ public class ReplayModel {
     /**
      * A single bone in the armature.
      */
-    public static class Bone {
+    public static class Bone implements TreeNode<Bone> {
         public String name;
 
         public Bone(String name) {
@@ -70,6 +71,16 @@ public class ReplayModel {
          * The children of this bone.
          */
         public final List<Bone> children = new ArrayList<>();
+
+        @Override
+        public Iterator<Bone> getChildren() {
+            return children.iterator();
+        }
+
+        @Override
+        public boolean hasChildren() {
+            return children.size() > 0;
+        }
     }
 
     public static class BoneTransform {
@@ -89,7 +100,7 @@ public class ReplayModel {
         public Quaterniondc rot;
         public Vector3dc scale;
 
-        public final Map<String, BoneTransform> bones = new HashMap<>();
+        public final Map<Bone, BoneTransform> bones = new HashMap<>();
     }
 
     /**
@@ -104,6 +115,16 @@ public class ReplayModel {
 
     public ReplayModel(Obj mesh) {
         this.mesh = mesh;
+    }
+
+    /**
+     * Get an iterable view of all the bones in this model and their children.
+     * 
+     * @return An iterable that iterates over the bones in "definition order" (the
+     *         order in which they are defined in animation frames.)
+     */
+    public Iterable<Bone> getBones() {
+        return () -> new TreeIterator<>(bones.iterator());
     }
 
     /**
