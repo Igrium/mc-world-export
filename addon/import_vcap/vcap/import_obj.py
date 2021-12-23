@@ -564,7 +564,7 @@ def split_mesh(verts_loc, faces, unique_materials, name, SPLIT_OB_OR_GROUP):
             # remap to the local index
             face_vert_loc_indices[loop_idx] = map_index
 
-            if context_material not in unique_materials_split:
+            if context_material not in unique_materials_split and context_material in unique_materials:
                 unique_materials_split[context_material] = unique_materials[context_material]
 
         faces_split.append(face)
@@ -706,7 +706,8 @@ def create_mesh(use_edges,
     materials = [None] * len(unique_materials)
 
     for name, index in material_mapping.items():
-        materials[index] = unique_materials[name]
+        if name in unique_materials:
+            materials[index] = unique_materials[name]
 
     me = bpy.data.meshes.new(dataname)
 
@@ -737,9 +738,10 @@ def create_mesh(use_edges,
     me.polygons.foreach_set("loop_start", faces_loop_start)
     me.polygons.foreach_set("loop_total", faces_loop_total)
 
-    faces_ma_index = tuple(material_mapping[context_material] for (
-        _, _, _, context_material, _, _, _) in faces)
-    me.polygons.foreach_set("material_index", faces_ma_index)
+    if context_material in material_mapping:
+        faces_ma_index = tuple(material_mapping[context_material] for (
+            _, _, _, context_material, _, _, _) in faces)
+        me.polygons.foreach_set("material_index", faces_ma_index)
 
     faces_use_smooth = tuple(bool(context_smooth_group)
                              for (_, _, _, _, context_smooth_group, _, _) in faces)

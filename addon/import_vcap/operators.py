@@ -1,8 +1,9 @@
 from os import path
 
-from .format.context import VCAPSettings
+from .vcap.context import VCAPSettings
 
-from .format import vcap_importer, import_obj
+from .vcap import vcap_importer, import_obj
+from .replay import entity
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -40,9 +41,9 @@ class ImportTestOperator(Operator, ImportHelper):
 
     def execute(self, context: Context):
         file = self.filepath
-        f = open(file, 'rb')
-        meshes = import_obj.load(context, f, name=path.basename(file))
-        f.close()
+
+        with open(file, 'rb') as f:
+            meshes = import_obj.load(context, f, name=path.basename(file))
 
         view_layer = context.view_layer
         collection = view_layer.active_layer_collection.collection
@@ -89,6 +90,26 @@ class ImportVcap(Operator, ImportHelper):
             self.filepath, context.view_layer.active_layer_collection.collection, context,
             VCAPSettings(use_vertex_colors=self.use_vertex_colors, merge_verts=self.merge_verts))
         return {'FINISHED'}
+    
+    
+class ImportEntityOperator(Operator, ImportHelper):
+    bl_idname = "vcap.importentity"
+    bl_label = "Import Replay Entity"
+
+    # ImportHelper mixin class uses this
+    filename_ext = ".txt"
+
+    filter_glob: StringProperty(
+        default="*.xml",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
+
+    def execute(self, context: Context):
+        with open(self.filepath) as file:
+            entity.load_entity(file, context)
+        return {'FINISHED'}
+
 
 
 # Only needed if you want to add into a dynamic menu
@@ -98,20 +119,22 @@ def menu_func_import(self, context):
 
 # Only needed if you want to add into a dynamic menu
 def menu_func_import2(self, context):
-    self.layout.operator(ImportTestOperator.bl_idname,
-                         text="Test OBJ (.obj)")
+    self.layout.operator(ImportEntityOperator.bl_idname,
+                         text="Test Replay Entity (.xml)")
 
 
 
 def register():
     bpy.utils.register_class(ImportVcap)
+    bpy.utils.register_class(ImportEntityOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     # bpy.utils.register_class(ImportTestOperator)
-    # bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportVcap)
+    bpy.utils.unregister_class(ImportEntityOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
     # bpy.utils.unregister_class(ImportTestOperator)
-    # bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
