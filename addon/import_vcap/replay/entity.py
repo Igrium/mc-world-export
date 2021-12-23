@@ -36,6 +36,13 @@ def load_entity(file: IO[str], context: Context):
 
 def parse_armature(model: ET.Element, context: Context, name="entity"):
     armature = bpy.data.armatures.new(name)
+    obj = bpy.data.objects.new(name, armature)
+
+    context.scene.collection.objects.link(obj)
+    context.view_layer.objects.active = obj
+
+    bpy.ops.object.mode_set(mode='EDIT')
+
     edit_bones = armature.edit_bones
     id = 0
     for element in model:
@@ -56,15 +63,23 @@ def parse_armature(model: ET.Element, context: Context, name="entity"):
         bone.head = [0, 0, 0]
         bone.tail = [0, length, 0]
 
-        transform: Matrix = Matrix.Translation((0, 0, 0))
+        if 'pos' in attrib:
+            pos = Vector(map(float, attrib['pos'].split(',')))
+        else:
+            pos = Vector()
         
         if 'rot' in attrib:
-            transform.rotate(Quaternion(map(float, attrib['rot'].split(','))))
-        
-        if 'pos' in attrib:
-            transform *= Matrix.Translation(Vector(map(float, attrib['pos'].split(','))))
+            rot = Quaternion(map(float, attrib['rot'].split(',')))
+        else:
+            rot = Quaternion()
+
+        transformation: Matrix = Matrix.Translation(pos) @ rot.to_matrix().to_4x4()
+
+        bone.transform(transformation)
 
         id += id
 
+    bpy.ops.object.mode_set(mode='OBJECT')
+    obj.rotation_euler[0] = math.radians(90)
     return armature
     ...
