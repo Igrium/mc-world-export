@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.management.RuntimeErrorException;
+
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
@@ -116,15 +118,18 @@ public class ReplayModel {
      * @param model Model to save.
      * @param dom Document to write into.
      * @return Serialized element.
-     * @throws IOException
      */
-    public static Element serialize(ReplayModel model, Document dom) throws IOException {
+    public static Element serialize(ReplayModel model, Document dom) {
         Element element = dom.createElement("model");
         for (Bone bone : model.bones) {
             element.appendChild(serializeBone(bone, dom));
         }
         Writer writer = new StringWriter();
-        ObjWriter.write(model.mesh, writer);
+        try {
+            ObjWriter.write(model.mesh, writer);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         Element meshNode = dom.createElement("mesh");
         meshNode.appendChild(dom.createTextNode(writer.toString()));

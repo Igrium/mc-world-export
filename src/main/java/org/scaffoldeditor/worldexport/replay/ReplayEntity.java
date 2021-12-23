@@ -1,13 +1,14 @@
 package org.scaffoldeditor.worldexport.replay;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.w3c.dom.Document;
@@ -54,12 +55,16 @@ public class ReplayEntity<T extends Entity> {
     }
 
     public Pose capture(float tickDelta) {
+        if (this.modelAdapter == null) {
+            throw new IllegalStateException("Model adapter has not been generated. Generate it with genAdapter()");
+        }
+
         Pose pose = this.modelAdapter.getPose(entity, entity.getYaw(), tickDelta);
         this.frames.add(pose);
         return pose;
     }
 
-    public static Element writeToXML(ReplayEntity<?> entity, Document doc) throws IOException {
+    public static Element writeToXML(ReplayEntity<?> entity, Document doc) {
         Element node = doc.createElement("entity");
         Element modelNode = ReplayModel.serialize(entity.model, doc);
         node.appendChild(modelNode);
@@ -67,27 +72,37 @@ public class ReplayEntity<T extends Entity> {
         Element animNode = doc.createElement("anim");
         StringWriter writer = new StringWriter();
 
-        for (Pose pose : entity.frames) {
-            for (BoneTransform bone : pose.bones.values()) {
+        Iterator<Pose> frames = entity.frames.iterator();
+        while (frames.hasNext()) {
+            Pose pose = frames.next();
+            Iterator<BoneTransform> bones = pose.bones.values().iterator();
+            while (bones.hasNext()) {
+                BoneTransform bone = bones.next();
                 List<String> vals = new ArrayList<>();
+   
                 vals.add(String.valueOf(bone.rotation.w()));
                 vals.add(String.valueOf(bone.rotation.x()));
                 vals.add(String.valueOf(bone.rotation.y()));
                 vals.add(String.valueOf(bone.rotation.z()));
-
+   
                 vals.add(String.valueOf(bone.translation.x()));
                 vals.add(String.valueOf(bone.translation.y()));
                 vals.add(String.valueOf(bone.translation.z()));
-
+   
                 vals.add(String.valueOf(bone.scale.x()));
                 vals.add(String.valueOf(bone.scale.y()));
                 vals.add(String.valueOf(bone.scale.z()));
-
-                writer.write(String.join(" ", vals));
-                writer.write(';');
-                writer.write(System.lineSeparator());
+                
+                writer.append(String.join(" ", vals));
+                writer.append(';');
+   
+                if (bones.hasNext()) writer.append(' ');
             }
+            if (frames.hasNext()) writer.write("\n");
         }
+        writer.flush();
+        animNode.appendChild(doc.createTextNode(writer.toString()));
+        node.appendChild(animNode);
 
         return node;
     }

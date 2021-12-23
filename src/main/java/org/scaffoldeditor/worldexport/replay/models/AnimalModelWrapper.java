@@ -21,7 +21,9 @@ import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Quaternion;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3f;
 
 /**
  * Wraps an {@link AnimalModel} in a replay model generator.
@@ -106,8 +108,10 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         });
 
         ObjVertexConsumer consumer = new ObjVertexConsumer(replayModel.mesh, new Vec3d(0, 0, 0));
-
-        model.render(new MatrixStack(), consumer, 255, 0, 255, 255, 255, 255);
+        
+        MatrixStack renderStack = new MatrixStack();
+        renderStack.multiply(new Quaternion(Vec3f.POSITIVE_X, 180, true));
+        model.render(renderStack, consumer, 255, 0, 255, 255, 255, 255);
 
         return replayModel;
     }
@@ -120,7 +124,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
      *                 said point, in relation to the model root.
      */
     protected void forEachPart(AnimalModel<T> model, ModelPartConsumer consumer) {
-        Matrix4dStack offset = new Matrix4dStack(1);
+        Matrix4dStack offset = new Matrix4dStack(10);
 
         ((AnimalModelAccessor) model).retrieveBodyParts().forEach(part -> {
             forEachPart(part.toString(), part, consumer, offset);
@@ -137,7 +141,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
 
     private void forEachPart(String name, ModelPart part, ModelPartConsumer consumer, Matrix4dStack offset) {
         offset.pushMatrix();
-
+        offset.rotate(Math.PI, 1, 0, 0);
         offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
 
         if (part.pitch != 0)

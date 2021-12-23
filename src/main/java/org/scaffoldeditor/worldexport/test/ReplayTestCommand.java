@@ -1,9 +1,29 @@
 package org.scaffoldeditor.worldexport.test;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+
 import com.mojang.brigadier.tree.LiteralCommandNode;
+
+import org.scaffoldeditor.worldexport.replay.ReplayEntity;
+import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.w3c.dom.Document;
 
 import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.command.CommandException;
 import net.minecraft.entity.Entity;
@@ -11,6 +31,7 @@ import net.minecraft.text.LiteralText;
 
 public final class ReplayTestCommand {
     private ReplayTestCommand() {};
+    private static MinecraftClient client = MinecraftClient.getInstance();
 
     public static void register() {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("replaytest").build();
@@ -36,7 +57,7 @@ public final class ReplayTestCommand {
                         throw new CommandException(new LiteralText("No entity found."));
                     }
 
-
+                    testExport(closest, context.getSource());
 
                     return 0;
                 }).build();
@@ -46,7 +67,40 @@ public final class ReplayTestCommand {
         ClientCommandManager.DISPATCHER.getRoot().addChild(root);
     }
 
-    public static void testExport(Entity ent) {
+    public static void testExport(Entity ent, FabricClientCommandSource source) {
+        ReplayFile file = new ReplayFile(source.getWorld());
+        ReplayEntity<Entity> rEntity = new ReplayEntity<>(ent, file);
+        rEntity.genAdapter();
+        rEntity.capture(0);
+        rEntity.capture(0);
+
+        DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder;
+        try {
+            dBuilder = dFactory.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new CommandException(new LiteralText("Error building XML document: "+e.getMessage()));
+        }
+
+        Document doc = dBuilder.newDocument();
+        doc.appendChild(ReplayEntity.writeToXML(rEntity, doc));
+
+        try {
+            TransformerFactory tFactory = TransformerFactory.newInstance();
+            Transformer transformer = tFactory.newTransformer();
+            DOMSource dSource = new DOMSource(doc);
+
+            File target = client.runDirectory.toPath().resolve("export/ent_test.xml").normalize().toFile();
+
+            OutputStream out = new BufferedOutputStream(new FileOutputStream(target));
+            StreamResult result = new StreamResult(out);
+
+            transformer.transform(dSource, result);
+
+            source.sendFeedback(new LiteralText("Wrote to "+target));
+        } catch (TransformerException | FileNotFoundException e) {
+            throw new CommandException(new LiteralText("Error saving XML: "+e.getMessage()));
+        }
         
     }
 }
