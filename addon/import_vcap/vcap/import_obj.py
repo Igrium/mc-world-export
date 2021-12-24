@@ -738,7 +738,7 @@ def create_mesh(use_edges,
     me.polygons.foreach_set("loop_start", faces_loop_start)
     me.polygons.foreach_set("loop_total", faces_loop_total)
 
-    if context_material in material_mapping:
+    if 'context_material' in locals() and context_material in material_mapping:
         faces_ma_index = tuple(material_mapping[context_material] for (
             _, _, _, context_material, _, _, _) in faces)
         me.polygons.foreach_set("material_index", faces_ma_index)

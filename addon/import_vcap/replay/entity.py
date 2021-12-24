@@ -3,7 +3,7 @@ import math
 from typing import IO
 from bmesh import new
 from bpy.types import Armature, Context, Object
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
 import xml.etree.ElementTree as ET
@@ -19,6 +19,9 @@ def load_entity(file: IO[str], context: Context):
     Raises:
         Exception: If the XML is malformatted
     """
+    
+    def convert_vector(input=(0, 0, 0)):
+       return Vector((input[0], -input[2], input[1]))
     
     tree = ET.parse(file)
     entity = tree.getroot()
@@ -40,15 +43,15 @@ def load_entity(file: IO[str], context: Context):
     else:
         print("Warning: no mesh found in entity XML.")
 
-    armature_obj, bones = parse_armature(model, context)
+    armature_obj, bone_def = parse_armature(model, context)
     
     # ANIMATION
     anim = entity.find('anim')
     if (anim is not None):
+        armature_obj.rotation_mode = 'QUATERNION'
         render = context.scene.render
         scene_framerate = render.fps / render.fps_base
         
-        armature: Armature = armature_obj.data
         if 'framerate' in anim.attrib:
             framerate = float(anim.attrib['framerate'])
         else:
@@ -59,7 +62,28 @@ def load_entity(file: IO[str], context: Context):
             
             scene_frame = index / framerate * scene_framerate
             
-            for def_index, bone_str in enumerate(frame.split(';')):
+            bones = frame.split(';')
+            
+            # Root transform
+            root_str = bones[0].strip()
+            if len(root_str) > 0:
+                root_vals = [float(i) for i in root_str.split(' ')]
+                
+                if len(root_vals) >= 4:
+                    rotation = Quaternion(root_vals[0:4])
+                    rotation.rotate(Euler((math.radians(90), 0, 0)))
+                    armature_obj.rotation_quaternion = rotation
+                    armature_obj.keyframe_insert('rotation_quaternion', frame=scene_frame)
+                
+                if len(root_vals) >= 7:
+                    armature_obj.location = convert_vector(root_vals[4:7])
+                    armature_obj.keyframe_insert('location', frame=scene_frame)
+                
+                if len(root_vals) >= 10:
+                    armature_obj.scale = convert_vector(root_vals[7:10])
+                    armature_obj.keyframe_insert('scale', frame=scene_frame )
+            
+            for def_index, bone_str in enumerate(bones[1:]):
                 bone_str = bone_str.strip()
                 if (len(bone_str) == 0): continue
                 
@@ -67,7 +91,7 @@ def load_entity(file: IO[str], context: Context):
                 if len(bone_vals) == 0: continue
                 
                 # Get the pose bone based on the definition order.
-                bone = armature_obj.pose.bones[bones[def_index]]
+                bone = armature_obj.pose.bones[bone_def[def_index]]
                 
                 if len(bone_vals) >= 4:
                     bone.rotation_quaternion = bone_vals[0:4]
@@ -81,7 +105,7 @@ def load_entity(file: IO[str], context: Context):
                     bone.scale = bone_vals[7:10]
                     bone.keyframe_insert('scale', frame=scene_frame)
                 
-                ...
+                
             
 
 

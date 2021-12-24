@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
+import org.joml.Quaterniond;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.render.entity.PlayerModelPart;
@@ -23,15 +24,17 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
     
     /**
      * Extract the pose from the underlying model.
-     * @param entity Target entity.
-     * @param yaw Entity's yaw.
+     * 
+     * @param entity    Target entity.
+     * @param yaw       Entity's yaw. Note: yaw is applied in the parent class.
+     *                  Don't rotate the whole model here.
      * @param tickDelta Tick delta.
      * @return The generated pose.
      */
     protected abstract Pose writePose(T entity, float yaw, float tickDelta);
 
     @Override
-    public Pose getPose(T entity, float y, float tickDelta) {
+    public Pose getPose(T entity, float yaw, float tickDelta) {
 
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();
@@ -95,7 +98,9 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
         this.animateModel(entity, limbAngle, limbDistance, tickDelta);
         this.setAngles(entity, limbAngle, limbDistance, animProgress, headYaw, pitch);
 
-        return writePose(entity, y, tickDelta);
+        Pose pose = writePose(entity, yaw, tickDelta);
+        pose.rot = pose.rot.rotateY(Math.toRadians(yaw), new Quaterniond());
+        return pose;
     }
 
     protected boolean isShaking(T entity) {

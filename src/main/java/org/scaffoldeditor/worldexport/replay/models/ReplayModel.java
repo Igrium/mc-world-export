@@ -96,9 +96,9 @@ public class ReplayModel {
     }
 
     public static class Pose {
-        public Vector3dc pos;
-        public Quaterniondc rot;
-        public Vector3dc scale;
+        public Vector3dc pos = new Vector3d();
+        public Quaterniondc rot = new Quaterniond();
+        public Vector3dc scale = new Vector3d(1d);
 
         public final Map<Bone, BoneTransform> bones = new HashMap<>();
     }

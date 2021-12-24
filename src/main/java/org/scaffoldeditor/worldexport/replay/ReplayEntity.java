@@ -5,15 +5,19 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.Vec3d;
 
 /**
  * Represents an entity in the concept of a replay export.
@@ -30,6 +34,8 @@ public class ReplayEntity<T extends Entity> {
     protected ReplayModelAdapter<T> modelAdapter;
 
     protected final List<Pose> frames = new ArrayList<>();
+
+    private MinecraftClient client = MinecraftClient.getInstance();
     
     /**
      * Construct a replay entity.
@@ -57,8 +63,13 @@ public class ReplayEntity<T extends Entity> {
         if (this.modelAdapter == null) {
             throw new IllegalStateException("Model adapter has not been generated. Generate it with genAdapter()");
         }
+        EntityRenderer<? super T> renderer = client.getEntityRenderDispatcher().getRenderer(entity);
+        Vec3d mcPos = entity.getPos();
+        mcPos = mcPos.add(renderer.getPositionOffset(entity, tickDelta));
 
         Pose pose = this.modelAdapter.getPose(entity, entity.getYaw(), tickDelta);
+        pose.pos = pose.pos.add(new Vector3d(mcPos.x, mcPos.y, mcPos.z), new Vector3d());
+
         this.frames.add(pose);
         return pose;
     }
@@ -80,6 +91,20 @@ public class ReplayEntity<T extends Entity> {
                 BoneTransform transform = pose.bones.get(bone);
                 if (transform != null) transforms.add(transform);
             }
+            
+            // Root pos
+            List<String> rootVals = new ArrayList<>();
+            rootVals.add(String.valueOf(pose.rot.w()));
+            rootVals.add(String.valueOf(pose.rot.x()));
+            rootVals.add(String.valueOf(pose.rot.y()));
+            rootVals.add(String.valueOf(pose.rot.z()));
+
+            rootVals.add(String.valueOf(pose.pos.x()));
+            rootVals.add(String.valueOf(pose.pos.y()));
+            rootVals.add(String.valueOf(pose.pos.z()));
+
+            writer.append(String.join(" ", rootVals));
+            writer.append("; ");
 
             Iterator<BoneTransform> bones = transforms.iterator();
             while (bones.hasNext()) {
