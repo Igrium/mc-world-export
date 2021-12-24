@@ -31,16 +31,42 @@ import net.minecraft.util.math.Vec3f;
 public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGenerator<T> {
     public final AnimalModel<T> model;
     protected ReplayModel replayModel;
+    protected float yOffset;
 
     /**
      * Maps model parts to their corrisponding bones, allowing the pose generator to
      * reference the proper replay bones.
      */
     protected Map<ModelPart, Bone> boneMapping = new HashMap<>();
-
+    
+    /**
+     * Construct an animal model wrapper.
+     * @param model The base model.
+     */
     public AnimalModelWrapper(AnimalModel<T> model) {
+        this(model, 0);
+    }
+
+    /**
+     * Construct an animal model wrapper.
+     * @param model The base model.
+     * @param yOffset Vertical root offset. See {@link #getYOffset()} for more info.
+     */
+    public AnimalModelWrapper(AnimalModel<T> model, float yOffset) {
         this.model = model;
+        this.yOffset = yOffset;
         this.replayModel = captureBaseModel(model);
+    }
+
+    /**
+     * Some animal models (biped) have their roots at the neck instead of the feet.
+     * This obviously doesn't work when animating entities, so this value designates
+     * a vertical offset to apply to all values in order to fix this.
+     * 
+     * @return The vertical root offset in meters.
+     */
+    public float getYOffset() {
+        return yOffset;
     }
 
     @Override
@@ -66,6 +92,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         forEachPart(model, (name, part, transform) -> {
             Vector3d position = new Vector3d();
             transform.getTranslation(position);
+            position = position.add(0, yOffset, 0);
 
             Quaterniond rotation = new Quaterniond();
             transform.getNormalizedRotation(rotation);
@@ -97,6 +124,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             Bone bone = new Bone(name);
             Vector3d translation = new Vector3d();
             transform.getTranslation(translation);
+            translation = translation.add(0, yOffset, 0);
             bone.pos = translation;
 
             Quaterniond rotation = new Quaterniond();
@@ -111,6 +139,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         
         MatrixStack renderStack = new MatrixStack();
         renderStack.multiply(new Quaternion(Vec3f.POSITIVE_X, 180, true));
+        renderStack.translate(0, -yOffset, 0);
         model.render(renderStack, consumer, 255, 0, 255, 255, 255, 255);
 
         return replayModel;
@@ -136,6 +165,12 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
     }
 
     protected interface ModelPartConsumer {
+        /**
+         * Called for every model part.
+         * @param name The model part's name.
+         * @param part The model part.
+         * @param transform The part's transformation relative to the model root (y offset not included)
+         */
         void accept(String name, ModelPart part, Matrix4dc transform);
     }
 

@@ -15,6 +15,8 @@ public final class ReplayModels {
     private ReplayModels() {
     };
 
+    public static final float BIPED_Y_OFFSET = 1.5f;
+
     public static void registerDefaults() {
         MinecraftClient client = MinecraftClient.getInstance();
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
@@ -26,7 +28,7 @@ public final class ReplayModels {
                         LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>> renderer = (LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>>) client
                                 .getEntityRenderDispatcher().getRenderer(entity);
 
-                        return new AnimalModelWrapper<>(renderer.getModel());
+                        return new AnimalModelWrapper<>(renderer.getModel(), BIPED_Y_OFFSET);
                     }
 
                 });
