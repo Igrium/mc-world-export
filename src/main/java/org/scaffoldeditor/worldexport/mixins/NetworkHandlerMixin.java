@@ -6,14 +6,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class NetworkHandlerMixin {
+    private static MinecraftClient client = MinecraftClient.getInstance();
     
     @Inject(method = "onBlockUpdate", at = @At("RETURN"))
     private void onBlockUpdate(BlockUpdateS2CPacket packet, CallbackInfo info) {
-        ClientBlockPlaceCallback.EVENT.invoker().place(packet.getPos(), packet.getState());
+        ClientBlockPlaceCallback.EVENT.invoker().place(packet.getPos(), packet.getState(), client.world);
     }
 }

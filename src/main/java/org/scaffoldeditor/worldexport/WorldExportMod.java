@@ -2,7 +2,6 @@ package org.scaffoldeditor.worldexport;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -10,9 +9,6 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModels;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.math.BlockPos;
 
 public class WorldExportMod implements ClientModInitializer {
 
@@ -23,13 +19,13 @@ public class WorldExportMod implements ClientModInitializer {
         return instance;
     }
 
-    private Set<BiConsumer<BlockPos, BlockState>> blockUpdateListeners = new HashSet<>();
+    private Set<ClientBlockPlaceCallback> blockUpdateListeners = new HashSet<>();
     
-    public void onBlockUpdated(BiConsumer<BlockPos, BlockState> listener) {
+    public void onBlockUpdated(ClientBlockPlaceCallback listener) {
         blockUpdateListeners.add(listener);
     }
 
-    public boolean removeOnBlockUpdated(BiConsumer<BlockPos, BlockState> listener) {
+    public boolean removeOnBlockUpdated(ClientBlockPlaceCallback listener) {
         return blockUpdateListeners.remove(listener);
     }
 
@@ -39,9 +35,8 @@ public class WorldExportMod implements ClientModInitializer {
         ExportCommand.register();
         ReplayTestCommand.register();
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
-            blockUpdateListeners.forEach(listener -> listener.accept(pos, state));
-            return ActionResult.PASS;
+        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
+            blockUpdateListeners.forEach(listener -> listener.place(pos, state, world));
         });
 
         ReplayModels.registerDefaults();

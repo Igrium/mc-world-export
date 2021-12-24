@@ -17,7 +17,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -48,6 +47,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 
 /**
@@ -271,11 +271,11 @@ public class VcapExporter {
 
     private Date captureStartTime;
     private Set<BlockPos> updateCache = new HashSet<>();
-    private BiConsumer<BlockPos, BlockState> listener = new BiConsumer<BlockPos,BlockState>() {
+    private ClientBlockPlaceCallback listener = new ClientBlockPlaceCallback() {
         private boolean isCaptureQueued = false;
 
         @Override
-        public void accept(BlockPos t, BlockState u) {
+        public void place(BlockPos t, BlockState u, World world) {
             updateCache.add(t);
             if (!isCaptureQueued) {
                 RenderSystem.recordRenderCall(() -> {

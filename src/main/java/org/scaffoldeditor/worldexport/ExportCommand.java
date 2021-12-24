@@ -31,7 +31,6 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandException;
 import net.minecraft.text.LiteralText;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -82,9 +81,8 @@ public final class ExportCommand {
     public static void register() {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
+        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
             worldListeners.forEach(listener -> listener.accept(pos, state));
-            return ActionResult.PASS;
         });
 
         LiteralCommandNode<FabricClientCommandSource> start = ClientCommandManager.literal("start")
