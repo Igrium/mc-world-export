@@ -19,6 +19,7 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
 import org.w3c.dom.Document;
 
 import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
@@ -70,9 +71,13 @@ public final class ReplayTestCommand {
     public static void testExport(Entity ent, FabricClientCommandSource source) {
         ReplayFile file = new ReplayFile(source.getWorld());
         ReplayEntity<Entity> rEntity = new ReplayEntity<>(ent, file);
-        rEntity.genAdapter();
+        try {
+            rEntity.genAdapter();
+        } catch (ModelNotFoundException e1) {
+            throw new CommandException(new LiteralText(e1.getMessage()));
+        }
         rEntity.capture(0);
-        rEntity.capture(0);
+        rEntity.capture(.3f);
 
         DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder;

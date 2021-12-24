@@ -20,19 +20,46 @@ public interface ReplayModelAdapter<T extends Entity> {
         public ReplayModelAdapter<T> create(T entity);
     }
 
+    /**
+     * Thrown if a model adapter is attempted to be generated for an entity type with no factory registered.
+     */
+    public static class ModelNotFoundException extends Exception {
+        
+        /**
+         * The ID of the entity that caused the exception. May be <code>null</code>.
+         */
+        public final Identifier id;
+
+        public ModelNotFoundException(String message) {
+            super(message);
+            id = null;
+        }
+
+        public ModelNotFoundException(Identifier id) {
+            super("No model adapter registered for "+id.toString());
+            this.id = id;
+        }
+
+        public ModelNotFoundException(String message, Identifier id) {
+            super(message);
+            this.id = id;
+        }
+    }
+
     public static final Map<Identifier, ReplayModelAdapterFactory<?>> REGISTRY = new HashMap<>();
 
     /**
      * Create a model adapter for a given entity.
      * @param entity The entity.
      * @return The generated model adapter.
+     * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> ReplayModelAdapter<E> getModelAdapter(E entity) {
+    public static <E extends Entity> ReplayModelAdapter<E> getModelAdapter(E entity) throws ModelNotFoundException {
         Identifier id = EntityType.getId(entity.getType());
         ReplayModelAdapterFactory<E> factory = (ReplayModelAdapterFactory<E>) REGISTRY.get(id);
         if (factory == null) {
-            throw new IllegalStateException("No model adapter registered for ID "+id.toString());
+            throw new ModelNotFoundException(id);
         }
 
         return factory.create(entity);

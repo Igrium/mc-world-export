@@ -10,6 +10,7 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -46,7 +47,11 @@ public class ReplayEntity<T extends Entity> {
         this.file = file;
     }
 
-    public void genAdapter() {
+    /**
+     * Generate this entity's model adapter.
+     * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
+     */
+    public void genAdapter() throws ModelNotFoundException {
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
         this.model = modelAdapter.generateModel(entity, file);
     }

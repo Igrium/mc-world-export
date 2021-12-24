@@ -4,8 +4,10 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ReplayMod
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
+import net.minecraft.client.render.entity.model.PigEntityModel;
 import net.minecraft.client.render.entity.model.SkeletonEntityModel;
 import net.minecraft.entity.mob.SkeletonEntity;
+import net.minecraft.entity.passive.PigEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -16,6 +18,7 @@ public final class ReplayModels {
     };
 
     public static final float BIPED_Y_OFFSET = 1.5f;
+    public static final float QUADRUPED_Y_OFFSET = 1.5f;
 
     public static void registerDefaults() {
         MinecraftClient client = MinecraftClient.getInstance();
@@ -32,5 +35,20 @@ public final class ReplayModels {
                     }
 
                 });
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:pig"),
+                new ReplayModelAdapterFactory<PigEntity>() {
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public ReplayModelAdapter<PigEntity> create(PigEntity entity) {
+                        LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>> renderer = (LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>>) client
+                                .getEntityRenderDispatcher().getRenderer(entity);
+
+                        return new AnimalModelWrapper<>(renderer.getModel(), QUADRUPED_Y_OFFSET);
+                    }
+
+                });
+
     }
 }
