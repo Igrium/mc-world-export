@@ -29,7 +29,7 @@ public class ReplayEntity<T extends Entity> {
      */
     public final T entity;
 
-    public final ReplayFile file;
+    protected ReplayFile file;
 
     protected ReplayModel model;
     protected ReplayModelAdapter<T> modelAdapter;
@@ -41,6 +41,7 @@ public class ReplayEntity<T extends Entity> {
     /**
      * Construct a replay entity.
      * @param entity The base entity that this replay entity represents.
+     * @param file The replay file this entity belongs to.
      */
     public ReplayEntity(T entity, ReplayFile file) {
         this.entity = entity;
@@ -58,6 +59,22 @@ public class ReplayEntity<T extends Entity> {
 
     public ReplayModel getModel() {
         return model;
+    }
+
+    /**
+     * Get the replay file this entity belongs to.
+     * @return The replay file.
+     */
+    public ReplayFile getFile() {
+        return file;
+    }
+
+    /**
+     * Get the name this entity will serialize with.
+     * @return Entity name. Most likely the UUID string.
+     */
+    public String getName() {
+        return entity.getEntityName();
     }
 
     public ReplayModelAdapter<T> getAdapter() {
@@ -81,10 +98,12 @@ public class ReplayEntity<T extends Entity> {
 
     public static Element writeToXML(ReplayEntity<?> entity, Document doc) {
         Element node = doc.createElement("entity");
+        node.setAttribute("name", entity.getName());
         Element modelNode = ReplayModel.serialize(entity.model, doc);
         node.appendChild(modelNode);
 
         Element animNode = doc.createElement("anim");
+        animNode.setAttribute("fps", String.valueOf(entity.getFile().getFps()));
         StringWriter writer = new StringWriter();
 
         Iterator<Pose> frames = entity.frames.iterator();

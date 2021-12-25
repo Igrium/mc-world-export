@@ -52,8 +52,8 @@ def load_entity(file: IO[str], context: Context):
         render = context.scene.render
         scene_framerate = render.fps / render.fps_base
         
-        if 'framerate' in anim.attrib:
-            framerate = float(anim.attrib['framerate'])
+        if 'fps' in anim.attrib:
+            framerate = float(anim.attrib['fps'])
         else:
             framerate = scene_framerate
         

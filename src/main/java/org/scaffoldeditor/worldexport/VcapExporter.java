@@ -57,9 +57,12 @@ import net.minecraft.world.WorldAccess;
 public class VcapExporter {
     private static Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * The world this exporter is exporting.
+     */
     public final WorldAccess world;
-    public final ChunkPos minChunk;
-    public final ChunkPos maxChunk;
+    private ChunkPos minChunk;
+    private ChunkPos maxChunk;
     public final List<Frame> frames = new ArrayList<>();
     public final ExportContext context;
 
@@ -67,14 +70,44 @@ public class VcapExporter {
      * Create a new export instance.
      * 
      * @param world    World to capture.
-     * @param minChunk Bounding box min.
-     * @param maxChunk Bounding box max.
+     * @param minChunk Bounding box min (inclusive).
+     * @param maxChunk Bounding box max (exclusive).
      */
     public VcapExporter(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk) {
+        setBBox(minChunk, maxChunk);
         this.world = world;
+
+        context = new ExportContext();
+    }
+
+    /**
+     * Get the bounding box min point.
+     * @return Bounding box min (inclusive)
+     */
+    public ChunkPos getMinChunk() {
+        return minChunk;
+    }
+    
+    /**
+     * Get the bounding box max point.
+     * @return Bounding box max (exclusive).
+     */
+    public ChunkPos getMaxChunk() {
+        return maxChunk;
+    }
+    
+    /**
+     * Set the bounding box.
+     * @param minChunk Bounding box min (inclusive).
+     * @param maxChunk Bounding box max (exclusive).
+     */
+    public void setBBox(ChunkPos minChunk, ChunkPos maxChunk) {
+        if (minChunk.x > maxChunk.x || minChunk.z > maxChunk.z) {
+            throw new IllegalArgumentException("Min chunk "+minChunk+" must be less than max chunk "+maxChunk);
+        }
+
         this.minChunk = minChunk;
         this.maxChunk = maxChunk;
-        context = new ExportContext();
     }
 
     /**
@@ -224,7 +257,7 @@ public class VcapExporter {
         out.closeEntry();
 
         LOGGER.info("Finished writing Vcap.");
-        out.close();
+        out.finish();
     }
 
     private static void writeMesh(Obj mesh, String id, ZipOutputStream out) throws IOException {
