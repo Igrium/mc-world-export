@@ -100,7 +100,7 @@ public final class BlockExporter {
             int sectionX, int sectionY, int sectionZ, ExportContext context) {
 
         BlockRenderManager dispatcher = client.getBlockRenderManager();
-        LogManager.getLogger().info("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
+        LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
 
         NbtCompound tag = new NbtCompound();
         tag.putInt("x", sectionX);

@@ -165,7 +165,7 @@ public class VcapExporter {
 
         for (ModelEntry model : context.models.keySet()) {
             String id = context.models.get(model);
-            LOGGER.info("Writing mesh: "+id);
+            LOGGER.debug("Writing mesh: "+id);
 
             MeshInfo info = MeshWriter.writeBlockMesh(model, random);
             writeMesh(info.mesh, id, out);
@@ -176,7 +176,7 @@ public class VcapExporter {
         }
 
         for (String id : context.fluidMeshes.keySet()) {
-            LOGGER.info("Writing fluid mesh: "+id);
+            LOGGER.debug("Writing fluid mesh: "+id);
             writeMesh(context.fluidMeshes.get(id), id, out);
         }
 

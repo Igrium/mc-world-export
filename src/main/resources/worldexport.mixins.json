@@ -8,7 +8,9 @@
   "client": [
     "WorldMixin",
     "AnimalModelAccessor",
-    "ModelPartAccessor"
+    "ModelPartAccessor",
+    "VideoRendererAccessor",
+    "GuiRenderSettingsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

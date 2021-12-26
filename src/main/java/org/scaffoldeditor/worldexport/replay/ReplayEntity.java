@@ -52,9 +52,10 @@ public class ReplayEntity<T extends Entity> {
      * Generate this entity's model adapter.
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
-    public void genAdapter() throws ModelNotFoundException {
+    public ReplayModelAdapter<T> genAdapter() throws ModelNotFoundException {
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
         this.model = modelAdapter.generateModel(entity, file);
+        return modelAdapter;
     }
 
     public ReplayModel getModel() {
