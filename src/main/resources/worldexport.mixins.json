@@ -9,8 +9,8 @@
     "WorldMixin",
     "AnimalModelAccessor",
     "ModelPartAccessor",
-    "VideoRendererAccessor",
-    "GuiRenderSettingsMixin"
+    "GuiRenderSettingsMixin",
+    "VideoRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

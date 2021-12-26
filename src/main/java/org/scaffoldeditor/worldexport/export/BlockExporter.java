@@ -77,7 +77,7 @@ public final class BlockExporter {
         BlockRenderManager dispatcher = client.getBlockRenderManager();
 
 
-        if (!fluid.isEmpty()) {
+        if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
             id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
         } else {
             BlockPos.Mutable mutable = pos.mutableCopy();
@@ -121,7 +121,7 @@ public final class BlockExporter {
                     String id;
 
                     FluidState fluid = state.getFluidState();
-                    if (!fluid.isEmpty()) {
+                    if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
                         id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();

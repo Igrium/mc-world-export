@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -206,14 +205,7 @@ public final class ExportCommand {
                             new Thread(() -> {
                                 NativeImage image;
                                 LogManager.getLogger().info("Obtaining atlas texture...");
-                                try {
-                                    image = TextureExtractor.getAtlas().get();
-                                } catch (InterruptedException | ExecutionException e) {
-                                    LogManager.getLogger().error(e);
-                                    context.getSource()
-                                            .sendError(new LiteralText("Unable to retrieve atlas. " + e.getMessage()));
-                                    return;
-                                }
+                                image = TextureExtractor.getAtlas();
 
                                 try {
                                     image.writeTo(targetFile);

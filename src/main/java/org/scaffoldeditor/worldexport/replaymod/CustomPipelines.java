@@ -15,8 +15,8 @@ import com.replaymod.render.rendering.Pipeline;
 
 import net.minecraft.client.MinecraftClient;
 
-public final class Pipelines {
-    private Pipelines() {};
+public final class CustomPipelines {
+    private CustomPipelines() {};
     private static MinecraftClient client = MinecraftClient.getInstance();
 
     public static Pipeline<BitmapFrame, BitmapFrame> newReplayPipeline(RenderInfo info) {

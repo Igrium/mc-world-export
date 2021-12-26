@@ -75,8 +75,7 @@ public class ReplayFile {
      * Save this replay to a file.
      * </p>
      * <b>Warning:</b> Due to Vcap's need to capture the world texture, this method
-     * blocks untill the next
-     * frame is rendered. Do not call on the render thread.
+     * blocks untill the next frame is rendered if not called on the render thread.
      * 
      * @param os Output stream to write to.
      * @throws IOException If an IO exception occurs while writing the file.
@@ -97,6 +96,7 @@ public class ReplayFile {
             out.closeEntry();
         }
 
+        LOGGER.info("Finished writing replay file.");
         out.finish();
     }
 

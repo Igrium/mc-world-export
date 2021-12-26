@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
@@ -32,6 +31,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
 public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
@@ -80,7 +80,17 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     
 
     protected void setup() {
+        if (exporter == null) {
+            int viewDistance = client.options.viewDistance;
+            ChunkPos centerPos = client.getCameraEntity().getChunkPos();
+            exporter = new ReplayFile(world, 
+                    new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
+                    new ChunkPos(centerPos.x + viewDistance, centerPos.z + viewDistance));
+        }
+        
         exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
+        exporter.getWorldExporter().getSettings().setExportFluids(false);
+        LogManager.getLogger().info("Capturing initial world");
         exporter.getWorldExporter().captureIFrame(0);
         WorldExportMod.getInstance().onBlockUpdated(blockUpdateListener);
     }
@@ -146,15 +156,10 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         File target = folder.resolve(FilenameUtils.getBaseName(output.getName())+".replay").normalize().toFile();
 
         LogManager.getLogger().info("Saving replay file to "+target);
-        CompletableFuture.runAsync(() -> {
-            try {
-                FileOutputStream out = new FileOutputStream(target);
-                exporter.save(out);
-                out.close();
-            } catch (IOException e) {
-                LogManager.getLogger("ReplayFrameCapturer").error("Error saving replay file.", e);
-            }
-        });
+        
+        FileOutputStream out = new FileOutputStream(target);
+        exporter.save(out);
+        out.close();
     }
 
     /**

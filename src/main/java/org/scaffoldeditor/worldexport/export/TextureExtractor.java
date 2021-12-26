@@ -1,7 +1,5 @@
 package org.scaffoldeditor.worldexport.export;
 
-import java.util.concurrent.CompletableFuture;
-
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -18,34 +16,35 @@ public final class TextureExtractor {
 
     /**
      * <p>Obtain an atlas texture in a native image.</p>
-     * <b>Note:</b> Will not complete untill at least the next frame. Don't hold the game thread while waiting.
+     * <b>Note:</b> Must be called on the render thread.
      * @param atlasID Atlas texture identifier.
-     * @return A future that completes once the texture has been retrieved from the GPU.
+     * @return The atlas texture.
      */
-    public static CompletableFuture<NativeImage> getAtlas(Identifier atlasID) {
-        CompletableFuture<NativeImage> future = new CompletableFuture<>();
-        RenderSystem.recordRenderCall(() -> {
-            LogManager.getLogger().info("Fetching atlas texture...");
-            SpriteAtlasTexture atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(atlasID);
-            
-            atlas.bindTexture();
-            // SpriteTextureAtlas doesn't save the texture's width/height post-init, so we need to retrieve it from the GPU.
-            int width = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_WIDTH);
-            int height = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_HEIGHT);
-            NativeImage image = new NativeImage(width, height, false);
-            image.loadFromTextureImage(0, false);
-            future.complete(image);
-        });
+    public static NativeImage getAtlas(Identifier atlasID) {
+        if (!RenderSystem.isOnRenderThread()) {
+            throw new IllegalStateException("Texture atlas can only be retrieved on the render thread!");
+        }
 
-        return future;
+        LogManager.getLogger().info("Fetching atlas texture...");
+        SpriteAtlasTexture atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(atlasID);
+        
+        atlas.bindTexture();
+        // SpriteTextureAtlas doesn't save the texture's width/height post-init, so we need to retrieve it from the GPU.
+        int width = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_WIDTH);
+        int height = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_HEIGHT);
+        NativeImage image = new NativeImage(width, height, false);
+        image.loadFromTextureImage(0, false);
+
+        return image;
     }
+    
     
     /**
      * <p>Obtain an atlas texture in a native image.</p>
-     * <b>Note:</b> Will not complete untill at least the next frame. Don't hold the game thread while waiting.
-     * @return A future that completes once the texture has been retrieved from the GPU.
+     * <b>Note:</b> Must be called on the render thread.
+     * @return The atlas texture.
      */
-    public static CompletableFuture<NativeImage> getAtlas() {
+    public static NativeImage getAtlas() {
         return getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
     }
 }

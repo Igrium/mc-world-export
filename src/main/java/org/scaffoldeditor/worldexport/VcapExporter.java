@@ -14,9 +14,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -37,6 +34,7 @@ import org.scaffoldeditor.worldexport.export.MeshWriter;
 import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
 import org.scaffoldeditor.worldexport.export.TextureExtractor;
 import org.scaffoldeditor.worldexport.export.VcapMeta;
+import org.scaffoldeditor.worldexport.export.VcapSettings;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -65,6 +63,10 @@ public class VcapExporter {
     private ChunkPos maxChunk;
     public final List<Frame> frames = new ArrayList<>();
     public final ExportContext context;
+    
+    public VcapSettings getSettings() {
+        return context.getSettings();
+    }
 
     /**
      * Create a new export instance.
@@ -138,8 +140,9 @@ public class VcapExporter {
      * </p>
      * <p>
      * <b>Warning:</b> Due to the need to extract the atlas texture from
-     * the GPU, this method blocks untill the next frame is rendered. Do not
-     * call from a thread that will stop the rendering of the next frame.
+     * the GPU, this method blocks untill the next frame is rendered if it is not
+     * called on the render thread. Do not call from a thread that will stop the
+     * rendering of the next frame.
      * 
      * @param os Output stream to write to.
      * @throws IOException If an IO exception occurs while writing the file
@@ -224,18 +227,10 @@ public class VcapExporter {
 
         // TEXTURE ATLAS
         LOGGER.info("Extracting world texture...");
-        CompletableFuture<NativeImage> atlasFuture = TextureExtractor.getAtlas();
         // For some reason, NativeImage can only write to a file; not an output stream.
-        NativeImage atlas;
+        NativeImage atlas = TextureExtractor.getAtlas();
         File atlasTemp = File.createTempFile("atlas-", ".png");
         atlasTemp.deleteOnExit();
-        try {
-            atlas = atlasFuture.get(5, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IOException("Unable to retrieve texture atlas.", e);
-        } catch (TimeoutException e) {
-            throw new IOException("Texture retrieval timed out.");
-        }
 
         atlas.writeTo(atlasTemp);
 
