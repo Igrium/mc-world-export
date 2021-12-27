@@ -57,11 +57,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
 
         @Override
         public void place(BlockPos pos, BlockState state, World world) {
-            if (world == getWorld()) {
-                blockUpdateCache.put(pos, state);
-            } else {
-                LogManager.getLogger().warn("Block update detected at "+pos+" in the wrong world.");
-            }
+            blockUpdateCache.put(pos, state);
         }
         
     };
@@ -105,7 +101,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         if (framesDone == 0) {
             setup();
         }
-        tickDelta = client.getTickDelta();
+        tickDelta = renderInfo.updateForNextFrame();
 
         double time = framesDone / (double) renderInfo.getRenderSettings().getFramesPerSecond();
         if (blockUpdateCache.size() > 0) {
