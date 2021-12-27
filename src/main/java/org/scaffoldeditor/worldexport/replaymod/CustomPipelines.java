@@ -13,15 +13,12 @@ import com.replaymod.render.rendering.FrameCapturer;
 import com.replaymod.render.rendering.FrameConsumer;
 import com.replaymod.render.rendering.Pipeline;
 
-import net.minecraft.client.MinecraftClient;
-
 public final class CustomPipelines {
     private CustomPipelines() {};
-    private static MinecraftClient client = MinecraftClient.getInstance();
 
     public static Pipeline<BitmapFrame, BitmapFrame> newReplayPipeline(RenderInfo info) {
         WorldRenderer renderer = new EntityRendererHandler(info.getRenderSettings(), info);
-        FrameCapturer<BitmapFrame> capturer = new ReplayFrameCapturer(info, client.world);
+        FrameCapturer<BitmapFrame> capturer = new ReplayFrameCapturer(info);
         FrameConsumer<BitmapFrame> consumer = new FrameConsumer<>() {
 
             @Override

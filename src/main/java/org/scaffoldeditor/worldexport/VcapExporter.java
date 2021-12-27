@@ -292,6 +292,23 @@ public class VcapExporter {
      * @return The captured frame.
      */
     public PFrame capturePFrame(double time, Set<BlockPos> blocks) {
+        return capturePFrame(time, blocks, world);
+    }
+
+    /**
+     * Capture a predicted frame, sampling the blocks from the given world, and add
+     * it to the file.
+     * 
+     * @param time   Timstamp of the frame, in seconds since the beginning of the
+     *               animation.
+     * @param blocks A set of blocks to include data for in the frame. All ajacent
+     *               blocks will be queried, and if they are found to have changed,
+     *               they are also included in the frame.
+     * @param world  The world to query. Should contain a block structure equal to
+     *               that in this exporter.
+     * @return The captured frame.
+     */
+    public PFrame capturePFrame(double time, Set<BlockPos> blocks, WorldAccess world) {
         PFrame pFrame = PFrame.capture(world, blocks, time, frames.get(frames.size() - 1), context);
         frames.add(pFrame);
         return pFrame;

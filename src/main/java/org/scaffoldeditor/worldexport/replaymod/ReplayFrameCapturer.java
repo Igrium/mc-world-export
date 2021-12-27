@@ -27,7 +27,6 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotF
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.BlockPos;
@@ -39,7 +38,6 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     protected int framesDone;
     protected RenderInfo renderInfo;
     protected ReplayFile exporter;
-    protected ClientWorld world;
 
     protected Map<BlockPos, BlockState> blockUpdateCache = new HashMap<>();
     protected Map<Entity, ReplayEntity<?>> entityCache = new HashMap<>();
@@ -48,9 +46,8 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     private float tickDelta = 0;
     private MinecraftClient client = MinecraftClient.getInstance();
 
-    public ReplayFrameCapturer(RenderInfo renderInfo, ClientWorld world) {
+    public ReplayFrameCapturer(RenderInfo renderInfo) {
         this.renderInfo = renderInfo;
-        this.world = world;
     }
 
     protected ClientBlockPlaceCallback blockUpdateListener = new ClientBlockPlaceCallback() {
@@ -66,10 +63,6 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         return exporter;
     }
 
-    public ClientWorld getWorld() {
-        return world;
-    }
-
     public RenderInfo getRenderInfo() {
         return renderInfo;
     }
@@ -79,7 +72,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         if (exporter == null) {
             int viewDistance = client.options.viewDistance;
             ChunkPos centerPos = client.getCameraEntity().getChunkPos();
-            exporter = new ReplayFile(world, 
+            exporter = new ReplayFile(client.world, 
                     new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
                     new ChunkPos(centerPos.x + viewDistance, centerPos.z + viewDistance));
         }
@@ -98,18 +91,18 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     @Override
     public Map<Channel, BitmapFrame> process() {
+        tickDelta = renderInfo.updateForNextFrame();
         if (framesDone == 0) {
             setup();
         }
-        tickDelta = renderInfo.updateForNextFrame();
 
         double time = framesDone / (double) renderInfo.getRenderSettings().getFramesPerSecond();
         if (blockUpdateCache.size() > 0) {
-            exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet());
+            exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet(), client.world);
             blockUpdateCache.clear();
         }
 
-        world.getEntities().forEach(this::captureEntity);
+        client.world.getEntities().forEach(this::captureEntity);
 
         // Bogus frame to satisfy encoder.
         BitmapFrame frame = new BitmapFrame(framesDone++, new Dimension(0, 0), 0, ByteBufferPool.allocate(0));
