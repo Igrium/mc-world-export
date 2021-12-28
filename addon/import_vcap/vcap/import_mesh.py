@@ -7,7 +7,7 @@ from . import import_obj, materials
 
 
 def load(context: VCAPContext, name: str, file: IO[bytes]):
-    (meshes, mats) = import_obj.load(context.context, file, name=name, unique_materials=context.materials, use_split_objects=False, use_split_groups=True)
+    (meshes, mats, vgroups) = import_obj.load(context.context, file, name=name, unique_materials=context.materials, use_split_objects=False, use_split_groups=True)
     context.materials = mats # Likely won't do anything.
 
     if (len(meshes) > 1):

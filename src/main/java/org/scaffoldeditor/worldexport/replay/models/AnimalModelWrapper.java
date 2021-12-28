@@ -87,25 +87,27 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         Pose pose = new Pose();
 
         forEachPart(model, (name, part, transform) -> {
-            Vector3d position = new Vector3d();
-            transform.getTranslation(position);
-
-            Quaterniond rotation = new Quaterniond();
-            transform.getNormalizedRotation(rotation);
-
-            Vector3d scale = new Vector3d();
-            transform.getScale(scale);
-
             Bone bone = boneMapping.get(part);
             if (bone == null) {
                 LogManager.getLogger("Replay Models").error("Model part not found in bone mapping!");
                 return;
             }
+            // Matrix4d inverseBone = new Matrix4d().rotate(bone.rot).translate(bone.pos).invert();
+            // Matrix4d relative = transform.mul(inverseBone, new Matrix4d());
 
+            Quaterniond rotation = new Quaterniond();
+            transform.getUnnormalizedRotation(rotation);
+
+            Vector3d position = new Vector3d();
+            transform.getTranslation(position);
+
+            Vector3d scale = new Vector3d();
+            transform.getScale(scale);
+
+            Quaterniond diff = bone.rot.difference(rotation, new Quaterniond());
             position.sub(bone.pos);
-            bone.rot.difference(rotation, rotation);
             
-            pose.bones.put(bone, new BoneTransform(position, rotation, scale));
+            pose.bones.put(bone, new BoneTransform(position, diff, scale));
         });
         return pose;
     }
@@ -123,7 +125,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             bone.pos = translation;
 
             Quaterniond rotation = new Quaterniond();
-            transform.getNormalizedRotation(rotation);
+            transform.getUnnormalizedRotation(rotation);
             bone.rot = rotation;
 
             replayModel.bones.add(bone);
