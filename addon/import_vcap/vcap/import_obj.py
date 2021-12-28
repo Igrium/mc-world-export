@@ -1322,7 +1322,7 @@ def load(context: Context,
     # view_layer = context.view_layer
     # collection = view_layer.active_layer_collection.collection
 
-    return (meshes, unique_materials)
+    return (meshes, unique_materials, vertex_groups)
 
     # Create new obj
     # for obj in new_objects:

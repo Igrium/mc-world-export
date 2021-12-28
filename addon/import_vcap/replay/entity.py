@@ -34,12 +34,16 @@ def load_entity(file: IO[str], context: Context):
 
     if mesh is not None:
         obj = BytesIO(bytes(mesh.text, 'utf-8'))
-        meshes, mats = load_obj(context, obj)
+        meshes, mats, vertex_groups = load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True)
         
         for mesh in meshes:
             new_object = bpy.data.objects.new(mesh.name, mesh)
             context.scene.collection.objects.link(new_object)
             new_object.rotation_euler[0] = math.radians(90)
+            
+            for group_name, group_indices in vertex_groups.items():
+                group = new_object.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
+                group.add(group_indices, 1.0, 'REPLACE')
     else:
         print("Warning: no mesh found in entity XML.")
 

@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,7 +9,6 @@ import org.joml.Matrix4dStack;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
-import org.scaffoldeditor.worldexport.export.ObjVertexConsumer;
 import org.scaffoldeditor.worldexport.mixins.AnimalModelAccessor;
 import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
@@ -21,7 +21,6 @@ import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.math.MathHelper;
 
 /**
  * Wraps an {@link AnimalModel} in a replay model generator.
@@ -132,16 +131,10 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
 
             part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
                 if (!path.equals("")) return; // We only want to get the cuboids from this part.
+                replayModel.mesh.setActiveGroupNames(Collections.singleton(name));
                 MeshUtils.appendCuboid(cuboid, replayModel.mesh, transform);
             });
         });
-
-        // ObjVertexConsumer consumer = new ObjVertexConsumer(replayModel.mesh, new Vec3d(0, 0, 0));
-        
-        // MatrixStack renderStack = new MatrixStack();
-        // renderStack.multiply(new Quaternion(Vec3f.POSITIVE_X, 180, true));
-        // renderStack.translate(0, -yOffset, 0);
-        // model.render(renderStack, consumer, 255, 0, 255, 255, 255, 255);
 
         return replayModel;
     }
