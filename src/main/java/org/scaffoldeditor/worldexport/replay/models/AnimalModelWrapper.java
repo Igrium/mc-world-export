@@ -15,15 +15,13 @@ import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.scaffoldeditor.worldexport.util.MeshUtils;
 
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Quaternion;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3f;
 
 /**
  * Wraps an {@link AnimalModel} in a replay model generator.
@@ -92,7 +90,6 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         forEachPart(model, (name, part, transform) -> {
             Vector3d position = new Vector3d();
             transform.getTranslation(position);
-            position = position.add(0, yOffset, 0);
 
             Quaterniond rotation = new Quaterniond();
             transform.getNormalizedRotation(rotation);
@@ -124,7 +121,6 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             Bone bone = new Bone(name);
             Vector3d translation = new Vector3d();
             transform.getTranslation(translation);
-            translation = translation.add(0, yOffset, 0);
             bone.pos = translation;
 
             Quaterniond rotation = new Quaterniond();
@@ -133,14 +129,19 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
 
             replayModel.bones.add(bone);
             boneMapping.put(part, bone);
+
+            part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
+                if (!path.equals("")) return; // We only want to get the cuboids from this part.
+                MeshUtils.appendCuboid(cuboid, replayModel.mesh, transform);
+            });
         });
 
-        ObjVertexConsumer consumer = new ObjVertexConsumer(replayModel.mesh, new Vec3d(0, 0, 0));
+        // ObjVertexConsumer consumer = new ObjVertexConsumer(replayModel.mesh, new Vec3d(0, 0, 0));
         
-        MatrixStack renderStack = new MatrixStack();
-        renderStack.multiply(new Quaternion(Vec3f.POSITIVE_X, 180, true));
-        renderStack.translate(0, -yOffset, 0);
-        model.render(renderStack, consumer, 255, 0, 255, 255, 255, 255);
+        // MatrixStack renderStack = new MatrixStack();
+        // renderStack.multiply(new Quaternion(Vec3f.POSITIVE_X, 180, true));
+        // renderStack.translate(0, -yOffset, 0);
+        // model.render(renderStack, consumer, 255, 0, 255, 255, 255, 255);
 
         return replayModel;
     }
@@ -169,7 +170,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
          * Called for every model part.
          * @param name The model part's name.
          * @param part The model part.
-         * @param transform The part's transformation relative to the model root (y offset not included)
+         * @param transform The part's transformation relative to the model root (y offset included)
          */
         void accept(String name, ModelPart part, Matrix4dc transform);
     }
@@ -178,13 +179,14 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         offset.pushMatrix();
         offset.rotate(Math.PI, 1, 0, 0);
         offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
+        offset.translate(0, -yOffset, 0);
 
         if (part.pitch != 0)
-            offset.rotateX(part.pitch * MathHelper.RADIANS_PER_DEGREE);
+            offset.rotateX(part.pitch);
         if (part.yaw != 0)
-            offset.rotateY(part.yaw * MathHelper.RADIANS_PER_DEGREE);
+            offset.rotateY(part.yaw);
         if (part.roll != 0)
-            offset.rotateZ(part.roll * MathHelper.RADIANS_PER_DEGREE);
+            offset.rotateZ(part.roll);
 
         consumer.accept(name, part, offset);
         ((ModelPartAccessor) (Object) part).getChildren().forEach((key, child) -> {

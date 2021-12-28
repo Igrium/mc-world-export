@@ -13,6 +13,9 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3f;
 
+/**
+ * Base replay model generator for living entities (with living entity renderers).
+ */
 public abstract class LivingModelGenerator<T extends LivingEntity> implements ReplayModelAdapter<T> {
     
     protected float handSwingProgress = 0;
