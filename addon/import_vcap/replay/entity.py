@@ -2,19 +2,20 @@ from io import BytesIO
 import math
 from typing import IO
 from bmesh import new
-from bpy.types import Armature, Context, Object
+from bpy.types import Armature, Collection, Context, Object
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
 import xml.etree.ElementTree as ET
 import bpy
 
-def load_entity(file: IO[str], context: Context):
+def load_entity(file: IO[str], context: Context, collection: Collection):
     """Load a replay entity into Blender
 
     Args:
         file (IO[str]): Raw XML file
         context (Context): Blender context
+        collection (Collection): collection to add to.
 
     Raises:
         Exception: If the XML is malformatted
@@ -31,6 +32,7 @@ def load_entity(file: IO[str], context: Context):
         raise Exception("Entity XML is missing model tag.")
     
     mesh = model.find('mesh')
+    parsed_objs: list[Object] = []
 
     if mesh is not None:
         obj = BytesIO(bytes(mesh.text, 'utf-8'))
@@ -38,16 +40,23 @@ def load_entity(file: IO[str], context: Context):
         
         for mesh in meshes:
             new_object = bpy.data.objects.new(mesh.name, mesh)
-            context.scene.collection.objects.link(new_object)
-            new_object.rotation_euler[0] = math.radians(90)
+            collection.objects.link(new_object)
+            # new_object.rotation_euler[0] = math.radians(90) // Armature handles this
             
             for group_name, group_indices in vertex_groups.items():
                 group = new_object.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
                 group.add(group_indices, 1.0, 'REPLACE')
+            parsed_objs.append(new_object)
     else:
         print("Warning: no mesh found in entity XML.")
 
-    armature_obj, bone_def = parse_armature(model, context)
+    armature_obj, bone_def = parse_armature(model, context, collection)
+    
+    # Parent mesh to armature
+
+    for obj in parsed_objs:
+        obj.parent = armature_obj
+        obj.parent_type = 'ARMATURE'
     
     # ANIMATION
     anim = entity.find('anim')
@@ -113,7 +122,7 @@ def load_entity(file: IO[str], context: Context):
             
 
 
-def parse_armature(model: ET.Element, context: Context, name="entity") -> tuple[Object, list[str]]:
+def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity") -> tuple[Object, list[str]]:
     """Load an armature from a model XML element.
 
     Args:
@@ -127,7 +136,7 @@ def parse_armature(model: ET.Element, context: Context, name="entity") -> tuple[
     armature = bpy.data.armatures.new(name)
     obj = bpy.data.objects.new(name, armature)
 
-    context.scene.collection.objects.link(obj)
+    collection.objects.link(obj)
     context.view_layer.objects.active = obj
     
     definition_order: list[str] = []

@@ -1,5 +1,5 @@
 from abc import abstractmethod, abstractproperty
-from typing import Any
+from typing import Any, Callable
 
 from numpy import ndarray
 import bmesh
@@ -22,8 +22,12 @@ def load_frame(nbt: TAG_Compound, index = 0):
 
 class VcapFrame:
     @abstractmethod
-    def get_meshes(self, vcontext: VCAPContext,
-                   settings: VCAPSettings) -> dict[Any, Mesh]:
+    def get_meshes(
+            self,
+            vcontext: VCAPContext,
+            settings: VCAPSettings,
+            progress_function: Callable[[float],
+                                       None] = None) -> dict[Any, Mesh]:
         """Generate the meshes of this frame.
 
         Returns:
@@ -60,7 +64,7 @@ class PFrame(VcapFrame):
         self.time = nbt['time'].value
         self.overrides = dict()
 
-    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings):
+    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings, progress_function=None):
         blocks: TAG_List = self.__nbt__['blocks']
         palette: TAG_List = self.__nbt__['palette']
 
@@ -89,7 +93,7 @@ class PFrame(VcapFrame):
                 if position in self.overrides[id]:
                     mesh_index = id
                     break
-            
+
             if settings.use_vertex_colors and 'color' in block:
                 color_tag: TAG_List = block['color']
                 r = _make_unsigned(color_tag[0].value) / 255
@@ -144,7 +148,7 @@ class IFrame(VcapFrame):
         self.index = index
         self.time = nbt['time'].value
 
-    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings) -> list[Mesh]:
+    def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings, progress_function: Callable[[float], None] = None) -> list[Mesh]:
         sections: TAG_List[TAG_Compound] = self.__nbt__['sections']
         meshes: dict[Any, BMesh] = {}
         meshes['base'] = bmesh.new() # The first mesh has no override.
@@ -152,7 +156,8 @@ class IFrame(VcapFrame):
             meshes[id] = bmesh.new()
 
         section: TAG_Compound
-        for i in range(0, len(sections)):
+        num_sections = len(sections)
+        for i in range(0, num_sections):
             section = sections[i]
             palette: TAG_List = section['palette']
             offset = (section['x'].value, section['y'].value, section['z'].value)
@@ -193,6 +198,7 @@ class IFrame(VcapFrame):
                                 break
 
                         util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(world_pos), color=color)
+            if(progress_function): progress_function(i / num_sections)
         final_meshes: dict[Any, Mesh] = {}
         for id in meshes:
             mesh = meshes[id]

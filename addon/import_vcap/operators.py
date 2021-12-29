@@ -3,7 +3,7 @@ from os import path
 from .vcap.context import VCAPSettings
 
 from .vcap import vcap_importer, import_obj
-from .replay import entity
+from .replay import entity, replay_file
 from bpy.types import Context, Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -87,11 +87,15 @@ class ImportVcap(Operator, ImportHelper):
 
     def execute(self, context: Context):
         vcap_importer.load(
-            self.filepath, context.view_layer.active_layer_collection.collection, context,
-            VCAPSettings(use_vertex_colors=self.use_vertex_colors, merge_verts=self.merge_verts))
+            self.filepath,
+            context.view_layer.active_layer_collection.collection,
+            context,
+            name=path.basename(self.filepath),
+            settings=VCAPSettings(use_vertex_colors=self.use_vertex_colors,
+                                  merge_verts=self.merge_verts))
         return {'FINISHED'}
-    
-    
+
+
 class ImportEntityOperator(Operator, ImportHelper):
     bl_idname = "vcap.importentity"
     bl_label = "Import Replay Entity"
@@ -107,10 +111,25 @@ class ImportEntityOperator(Operator, ImportHelper):
 
     def execute(self, context: Context):
         with open(self.filepath) as file:
-            entity.load_entity(file, context)
+            entity.load_entity(file, context, context.scene.collection)
         return {'FINISHED'}
 
+class ImportReplayOperator(Operator, ImportHelper):
+    bl_idname = "vcap.importreplay"
+    bl_label = "Import Minecraft Replay"
 
+    # ImportHelper mixin class uses this
+    filename_ext = ".txt"
+
+    filter_glob: StringProperty(
+        default="*.replay",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
+
+    def execute(self, context: Context):
+        replay_file.load_replay(self.filepath, context, context.scene.collection)
+        return {'FINISHED'}
 
 # Only needed if you want to add into a dynamic menu
 def menu_func_import(self, context):
@@ -122,19 +141,26 @@ def menu_func_import2(self, context):
     self.layout.operator(ImportEntityOperator.bl_idname,
                          text="Test Replay Entity (.xml)")
 
+def menu_func_replay(self, context):
+    self.layout.operator(ImportReplayOperator.bl_idname,
+                         text="Minecraft Replay File (.replay)")
 
 
 def register():
     bpy.utils.register_class(ImportVcap)
     bpy.utils.register_class(ImportEntityOperator)
+    bpy.utils.register_class(ImportReplayOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     # bpy.utils.register_class(ImportTestOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_replay)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportVcap)
     bpy.utils.unregister_class(ImportEntityOperator)
+    bpy.utils.unregister_class(ImportReplayOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
     # bpy.utils.unregister_class(ImportTestOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_replay)
