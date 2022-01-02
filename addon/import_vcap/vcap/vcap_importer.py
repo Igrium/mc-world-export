@@ -111,13 +111,14 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
         frame = frames[i]
         for id in overrides:
             frame.overrides[id] = overrides[id]
-        print(f"Wrote frame ${i} with {len(overrides)} overrides.")
         meshes = frame.get_meshes(
             vcontext,
             settings,
             progress_function = pfunction)
         
         final_frame = TesselatedFrame()
+        print(f"Wrote frame ${i} with {len(overrides)} overrides.")
+
         for id in meshes:
             obj = bpy.data.objects.new(meshes[id].name, meshes[id])
             final_frame.objects[id] = obj

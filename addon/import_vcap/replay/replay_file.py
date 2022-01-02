@@ -18,6 +18,7 @@ def load_replay(file: Union[str, IO[bytes]], context: Context, collection: Colle
             vcap_importer.load(world_file, world_collection, context, settings=VCAPSettings(merge_verts=False))
         
         # Entities
+        print("Parsing entities...")
         ent_collection = bpy.data.collections.new('entities')
         collection.children.link(ent_collection)
         

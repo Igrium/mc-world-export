@@ -158,6 +158,9 @@ class IFrame(VcapFrame):
         section: TAG_Compound
         num_sections = len(sections)
         for i in range(0, num_sections):
+            # Only print every 10 chunks so we don't slow down the program
+            if i % 10 == 0: print(f'Writing section {i}/{num_sections}')
+            
             section = sections[i]
             palette: TAG_List = section['palette']
             offset = (section['x'].value, section['y'].value, section['z'].value)

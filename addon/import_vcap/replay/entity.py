@@ -1,14 +1,34 @@
 from io import BytesIO
 import math
 import time
-from typing import IO
+from typing import IO, Generic, Sequence, TypeVar
 from bmesh import new
-from bpy.types import Armature, Collection, Context, Object
+from bpy.types import Armature, Collection, Context, Object, PoseBone
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
 import xml.etree.ElementTree as ET
-import bpy
+import bpy  
+
+class AnimChannel:
+    __slots__ = (
+        # Datapath of the fcurve
+        'datapath',
+        # Name of the bone in the file. ROOT for the root bone.
+        'bone_name',
+        # A dict of all the keyframes in the channel.
+        'keyframes'
+    )
+    
+    datapath: str
+    bone_name: str
+    keyframes: dict[int, Sequence[float]]
+    
+    def __init__(self, bone_name: str, datapath: str) -> None:
+        self.bone_name = bone_name
+        self.datapath = datapath
+        self.keyframes = {}
+        
 
 def load_entity(file: IO[str], context: Context, collection: Collection):
     """Load a replay entity into Blender
@@ -67,6 +87,16 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
     # ANIMATION
     anim = entity.find('anim')
     if (anim is not None):
+        root_pos = AnimChannel('ROOT', 'location')
+        root_rot = AnimChannel('ROOT', 'rotation_quaternion')
+        root_scale = AnimChannel('ROOT', 'scale')
+        
+        root_scale.keyframes[0] = [1, 1, 1] # If the file doesn't have any scale keyframes.
+        
+        pos_channels: dict[PoseBone, AnimChannel] = {}
+        rot_channels: dict[PoseBone, AnimChannel] = {}
+        scale_channels: dict[PoseBone, AnimChannel] = {}
+        
         armature_obj.rotation_mode = 'QUATERNION'
         render = context.scene.render
         scene_framerate = render.fps / render.fps_base
@@ -81,7 +111,9 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
         for index, frame in enumerate(animtext.splitlines()):
             frame = frame.strip()
             
-            scene_frame = index / framerate * scene_framerate
+            # scene_frame = index / framerate * scene_framerate
+            # Note: gonna have to support framerate matching later.
+            scene_frame = index
             
             bones = frame.split(';')
             
@@ -93,16 +125,17 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
                 if length >= 4:
                     rotation = Quaternion(root_vals[0:4])
                     rotation.rotate(Euler((math.radians(90), 0, 0)))
-                    armature_obj.rotation_quaternion = rotation
-                    armature_obj.keyframe_insert('rotation_quaternion', frame=scene_frame)
+                    root_rot.keyframes[scene_frame] = rotation
                 
                 if length >= 7:
-                    armature_obj.location = convert_vector(root_vals[4:7])
-                    armature_obj.keyframe_insert('location', frame=scene_frame)
+                    location = root_vals[4:7]
+                    # Switch coordinate space
+                    root_pos.keyframes[scene_frame] = (location[0], -location[2], location[1])
                 
                 if length >= 10:
-                    armature_obj.scale = convert_vector(root_vals[7:10])
-                    armature_obj.keyframe_insert('scale', frame=scene_frame )
+                    root_scale.keyframes[scene_frame] = root_vals[7:10]
+                    # armature_obj.scale = convert_vector(root_vals[7:10])
+                    # armature_obj.keyframe_insert('scale', frame=scene_frame )
             
             for def_index, bone_str in enumerate(bones[1:]):
                 bone_str = bone_str.strip()
@@ -115,20 +148,70 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
                 bone = armature_obj.pose.bones[bone_def[def_index]]
                 
                 if len(bone_vals) >= 4:
-                    bone.rotation_quaternion = bone_vals[0:4]
-                    bone.keyframe_insert('rotation_quaternion', frame=scene_frame)
+                    if bone in rot_channels:
+                        channel = rot_channels[bone]
+                    else:
+                        channel = AnimChannel(bone.name, f'pose.bones["{bone.name}"].rotation_quaternion')
+                        rot_channels[bone] = channel
+                    
+                    channel.keyframes[scene_frame] = bone_vals[0:4]
+                    # bone.rotation_quaternion = bone_vals[0:4]
+                    # bone.keyframe_insert('rotation_quaternion', frame=scene_frame)
                 
                 if len(bone_vals) >= 7:
-                    bone.location = bone_vals[4:7]
-                    bone.keyframe_insert('location', frame=scene_frame)
+                    if bone in pos_channels:
+                        channel = pos_channels[bone]
+                    else:
+                        channel = AnimChannel(bone.name, f'pose.bones["{bone.name}"].location')
+                        pos_channels[bone] = channel
+                    
+                    channel.keyframes[scene_frame] = bone_vals[4:7]      
+                    # bone.location = bone_vals[4:7]
+                    # bone.keyframe_insert('location', frame=scene_frame)
                 
                 if len(bone_vals) >= 10:
-                    bone.scale = bone_vals[7:10]
-                    bone.keyframe_insert('scale', frame=scene_frame)
-    
-    print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
-                
+                    if bone in scale_channels:
+                        channel = scale_channels[bone]
+                    else:
+                        channel = AnimChannel(bone.name, f'pose.bones["{bone.name}"].scale')
+                        channel.keyframes[0] = (1, 1, 1) # If the bone doesn't have have any scale keyframes.
+                        scale_channels[bone] = channel
+                    
+                    channel.keyframes[scene_frame] = bone_vals[7:10]
+                    # bone.scale = bone_vals[7:10]
+                    # bone.keyframe_insert('scale', frame=scene_frame)
+                    
+        anim_data = armature_obj.animation_data_create()
+        action = bpy.data.actions.new(name=f"{name}_action")
+        anim_data.action = action
+        
+        # Add F curves
+        def add_curve(channel: AnimChannel, index: int):
+            curve = action.fcurves.new(data_path=channel.datapath, index=index)
+            keyframe_points = curve.keyframe_points
+            max = 0
+            for frame in channel.keyframes.keys():
+                if frame > max: max = frame
             
+            keyframe_points.add(max + 1)
+            for frame, val in channel.keyframes.items():
+                keyframe_points[frame].co = (frame, val[index])
+                keyframe_points[frame].interpolation = 'LINEAR'
+        
+        for i in range(0, 3): add_curve(root_pos, i)
+        for i in range(0, 4): add_curve(root_rot, i)
+        for i in range(0, 3): add_curve(root_scale, i)
+        
+        for channel in pos_channels.values():
+            for i in range(0, 3): add_curve(channel, i)
+        
+        for channel in rot_channels.values():
+            for i in range(0, 4): add_curve(channel, i)
+            
+        for channel in scale_channels.values():
+            for i in range(0, 3): add_curve(channel, i)
+        
+    print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
 
 
 def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity") -> tuple[Object, list[str]]:
