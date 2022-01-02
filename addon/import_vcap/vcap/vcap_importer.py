@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import time
 from typing import IO, Any, Callable, Union
 from zipfile import ZipFile
 from .anim import TesselatedFrame
@@ -31,7 +32,7 @@ def load(file: Union[str, IO[bytes]], collection: Collection, context: Context, 
     # Init
     wm = context.window_manager
     wm.progress_begin(0, 5)
-
+    
     with ZipFile(file, 'r') as archive:
         for obj in context.view_layer.objects.selected:
             obj.select_set(False)

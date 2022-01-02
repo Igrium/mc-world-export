@@ -1,6 +1,7 @@
 from io import BytesIO
 import math
 import time
+import itertools
 from typing import IO, Generic, Sequence, TypeVar
 from bmesh import new
 from bpy.types import Armature, Collection, Context, Object, PoseBone
@@ -189,16 +190,17 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
         def add_curve(channel: AnimChannel, index: int):
             curve = action.fcurves.new(data_path=channel.datapath, index=index)
             keyframe_points = curve.keyframe_points
-            max = 0
-            for frame in channel.keyframes.keys():
-                if frame > max: max = frame
             
-            keyframe_points.add(max + 1)
-            for frame, val in channel.keyframes.items():
-                keyframe_points[frame].co = (
-                    frame / framerate * scene_framerate, val[index] # Scene frame rate correction
-                )
-                keyframe_points[frame].interpolation = 'LINEAR'
+            # Gotta love data manipulation.
+            keyframes = [(
+                frame / framerate * scene_framerate,
+                val[index]
+            ) for frame, val in channel.keyframes.items()]
+            
+            
+            keyframe_points.add(len(keyframes))
+            keyframe_points.foreach_set('co', list(itertools.chain.from_iterable(keyframes)))
+            keyframe_points.foreach_set('interpolation', [1] * len(keyframes))
         
         for i in range(0, 3): add_curve(root_pos, i)
         for i in range(0, 4): add_curve(root_rot, i)

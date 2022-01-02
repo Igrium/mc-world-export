@@ -1,4 +1,5 @@
 import io
+import time
 from typing import IO, Union
 from zipfile import ZipFile
 import bpy
@@ -10,6 +11,7 @@ from ..vcap import vcap_importer
 
 
 def load_replay(file: Union[str, IO[bytes]], context: Context, collection: Collection):
+    start_time = time.time()
     with ZipFile(file, 'r') as archive:
         # World
         world_collection = bpy.data.collections.new('world')
@@ -26,4 +28,4 @@ def load_replay(file: Union[str, IO[bytes]], context: Context, collection: Colle
             if (entry.filename.endswith('.xml')):
                 with io.TextIOWrapper(archive.open(entry), 'utf-8') as e:
                     entity.load_entity(e, context, ent_collection)
-        ...
+        print(f"Imported replay in {time.time() - start_time} seconds.")
