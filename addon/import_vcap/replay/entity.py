@@ -195,7 +195,9 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
             
             keyframe_points.add(max + 1)
             for frame, val in channel.keyframes.items():
-                keyframe_points[frame].co = (frame, val[index])
+                keyframe_points[frame].co = (
+                    frame / framerate * scene_framerate, val[index] # Scene frame rate correction
+                )
                 keyframe_points[frame].interpolation = 'LINEAR'
         
         for i in range(0, 3): add_curve(root_pos, i)
