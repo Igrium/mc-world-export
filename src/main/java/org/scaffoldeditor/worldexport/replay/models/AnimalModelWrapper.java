@@ -83,6 +83,13 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
     }
 
     @Override
+    protected void updateValues(LivingModelValues values) {
+        model.handSwingProgress = values.handSwingProgress;
+        model.child = values.child;
+        model.riding = values.riding;
+    }
+
+    @Override
     protected Pose writePose(T entity, float yaw, float tickDelta) {
         Pose pose = new Pose();
 
@@ -92,8 +99,6 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
                 LogManager.getLogger("Replay Models").error("Model part not found in bone mapping!");
                 return;
             }
-            // Matrix4d inverseBone = new Matrix4d().rotate(bone.rot).translate(bone.pos).invert();
-            // Matrix4d relative = transform.mul(inverseBone, new Matrix4d());
 
             Quaterniond rotation = new Quaterniond();
             transform.getUnnormalizedRotation(rotation);
@@ -104,10 +109,10 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             Vector3d scale = new Vector3d();
             transform.getScale(scale);
 
-            Quaterniond diff = bone.rot.difference(rotation, new Quaterniond());
+            rotation = bone.rot.difference(rotation, new Quaterniond());
             position.sub(bone.pos);
             
-            pose.bones.put(bone, new BoneTransform(position, diff, scale));
+            pose.bones.put(bone, new BoneTransform(position, rotation, scale));
         });
         return pose;
     }
@@ -176,10 +181,10 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
         offset.translate(0, -yOffset, 0);
 
-        if (part.pitch != 0)
-            offset.rotateX(part.pitch);
         if (part.yaw != 0)
             offset.rotateY(part.yaw);
+        if (part.pitch != 0)
+            offset.rotateX(part.pitch);
         if (part.roll != 0)
             offset.rotateZ(part.roll);
 

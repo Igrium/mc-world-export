@@ -18,12 +18,33 @@ import net.minecraft.util.math.Vec3f;
  */
 public abstract class LivingModelGenerator<T extends LivingEntity> implements ReplayModelAdapter<T> {
     
+    /**
+     * Wrapper class around various <code>LivingEntityRenderer</code> values for use in function calls.
+     */
+    public static class LivingModelValues {
+        public final float handSwingProgress;
+        public final boolean riding;
+        public final boolean child;
+
+        public LivingModelValues(float handSwingProgress, boolean riding, boolean child) {
+            this.handSwingProgress = handSwingProgress;
+            this.riding = riding;
+            this.child = child;
+        }
+    }
+    
     protected float handSwingProgress = 0;
     protected boolean riding = false;
     protected boolean child = false;
     
     public abstract void animateModel(T entity, float limbAngle, float limbDistance, float tickDelta);
     public abstract void setAngles(T entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+
+    /**
+     * Update various values on the entity model.
+     * @param values An object wrapper around the values.
+     */
+    protected abstract void updateValues(LivingModelValues values);
     
     /**
      * Extract the pose from the underlying model.
@@ -42,29 +63,30 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();
         this.child = entity.isBaby();
+        updateValues(new LivingModelValues(handSwingProgress, riding, child));
 
         // TRANSFORMATION
         Matrix4f transform = Matrix4f.translate(0, 0, 0);
 
         float bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevBodyYaw, entity.bodyYaw);
         float headYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevHeadYaw, entity.headYaw);
-        float headYawDiff = headYaw - bodyYaw;
+        float headYawFinal = headYaw - bodyYaw;
 
         if (entity.hasVehicle() && entity.getVehicle() instanceof LivingEntity) {
             LivingEntity parent = (LivingEntity) entity.getVehicle();
             bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, parent.prevBodyYaw, parent.bodyYaw);
-            headYawDiff = headYaw - bodyYaw;
+            headYawFinal = headYaw - bodyYaw;
 
-            float wrapped = MathHelper.wrapDegrees(headYawDiff);
+            float wrapped = MathHelper.wrapDegrees(headYawFinal);
             if (wrapped < -85) wrapped = -85;
             if (wrapped >= 85) wrapped = 85;
 
             bodyYaw = headYaw - wrapped;
             if (wrapped * wrapped > 2500) {
-                bodyYaw += wrapped * .2;
+                bodyYaw += wrapped * .2f;
             }
 
-            headYawDiff = headYaw - bodyYaw;
+            headYawFinal = headYaw - bodyYaw;
         }
 
         if (entity.getPose() == EntityPose.SLEEPING) {
@@ -86,23 +108,23 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
         float limbDistance = 0;
         float pitch = MathHelper.lerp(tickDelta, entity.prevPitch, entity.getPitch());
         if (!entity.hasVehicle() && entity.isAlive()) {
-            limbAngle = MathHelper.lerp(tickDelta, entity.lastLimbDistance, entity.limbDistance);
-            limbDistance = entity.limbAngle - entity.limbDistance * (1 - tickDelta);
+            limbDistance = MathHelper.lerp(tickDelta, entity.lastLimbDistance, entity.limbDistance);
+            limbAngle = entity.limbAngle - entity.limbDistance * (1 - tickDelta);
 
             if (entity.isBaby()) {
-                limbDistance *= 3;
+                limbAngle *= 3f;
             }
 
-            if (limbAngle > 1) {
-                limbAngle = 1;
+            if (limbDistance > 1) {
+                limbDistance = 1f;
             }
         }
 
         this.animateModel(entity, limbAngle, limbDistance, tickDelta);
-        this.setAngles(entity, limbAngle, limbDistance, animProgress, headYaw, pitch);
+        this.setAngles(entity, limbAngle, limbDistance, animProgress, headYawFinal, pitch);
 
         Pose pose = writePose(entity, yaw, tickDelta);
-        pose.rot = pose.rot.rotateY(Math.toRadians(yaw), new Quaterniond());
+        pose.rot = pose.rot.rotateY(-Math.toRadians(yaw), new Quaterniond());
         return pose;
     }
 

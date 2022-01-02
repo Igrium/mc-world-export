@@ -1,5 +1,6 @@
 from io import BytesIO
 import math
+import time
 from typing import IO
 from bmesh import new
 from bpy.types import Armature, Collection, Context, Object
@@ -24,8 +25,12 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
     def convert_vector(input=(0, 0, 0)):
        return Vector((input[0], -input[2], input[1]))
     
+    start_time = time.time()
     tree = ET.parse(file)
     entity = tree.getroot()
+    name = entity.get('name')
+    if not name:
+        name = 'entity'
     
     model = entity.find('model')
     if model is None:
@@ -39,7 +44,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
         meshes, mats, vertex_groups = load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True)
         
         for mesh in meshes:
-            new_object = bpy.data.objects.new(mesh.name, mesh)
+            new_object = bpy.data.objects.new(f'{name}.mesh', mesh)
             collection.objects.link(new_object)
             # new_object.rotation_euler[0] = math.radians(90) // Armature handles this
             
@@ -50,13 +55,14 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
     else:
         print("Warning: no mesh found in entity XML.")
 
-    armature_obj, bone_def = parse_armature(model, context, collection)
+    armature_obj, bone_def = parse_armature(model, context, collection, name=f'{name}.bones')
     
     # Parent mesh to armature
 
     for obj in parsed_objs:
         obj.parent = armature_obj
         obj.parent_type = 'ARMATURE'
+        
     
     # ANIMATION
     anim = entity.find('anim')
@@ -65,12 +71,14 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
         render = context.scene.render
         scene_framerate = render.fps / render.fps_base
         
-        if 'fps' in anim.attrib:
-            framerate = float(anim.attrib['fps'])
+        fps = anim.get('fps')
+        if fps:
+            framerate = float(fps)
         else:
             framerate = scene_framerate
         
-        for index, frame in enumerate(anim.text.splitlines()):
+        animtext = anim.text # cache the text for optimization
+        for index, frame in enumerate(animtext.splitlines()):
             frame = frame.strip()
             
             scene_frame = index / framerate * scene_framerate
@@ -80,19 +88,19 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
             # Root transform
             root_str = bones[0].strip()
             if len(root_str) > 0:
-                root_vals = [float(i) for i in root_str.split(' ')]
-                
-                if len(root_vals) >= 4:
+                root_vals = list(map(lambda i: float(i), root_str.split(' ')))
+                length = len(root_vals)
+                if length >= 4:
                     rotation = Quaternion(root_vals[0:4])
                     rotation.rotate(Euler((math.radians(90), 0, 0)))
                     armature_obj.rotation_quaternion = rotation
                     armature_obj.keyframe_insert('rotation_quaternion', frame=scene_frame)
                 
-                if len(root_vals) >= 7:
+                if length >= 7:
                     armature_obj.location = convert_vector(root_vals[4:7])
                     armature_obj.keyframe_insert('location', frame=scene_frame)
                 
-                if len(root_vals) >= 10:
+                if length >= 10:
                     armature_obj.scale = convert_vector(root_vals[7:10])
                     armature_obj.keyframe_insert('scale', frame=scene_frame )
             
@@ -117,7 +125,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
                 if len(bone_vals) >= 10:
                     bone.scale = bone_vals[7:10]
                     bone.keyframe_insert('scale', frame=scene_frame)
-                
+    
+    print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
                 
             
 
