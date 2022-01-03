@@ -56,8 +56,8 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
     public AnimalModelWrapper(AnimalModel<T> model, Identifier texture, float yOffset) {
         this.model = model;
         this.yOffset = yOffset;
-        this.replayModel = captureBaseModel(model);
         this.texture = texture;
+        this.replayModel = captureBaseModel(model);
     }
 
     Identifier getTexture(T entity) {
@@ -145,6 +145,7 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
             replayModel.bones.add(bone);
             boneMapping.put(part, bone);
 
+            replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
             part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
                 if (!path.equals("")) return; // We only want to get the cuboids from this part.
                 replayModel.mesh.setActiveGroupNames(Collections.singleton(name));

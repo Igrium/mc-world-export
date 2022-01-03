@@ -4,7 +4,7 @@ import time
 import itertools
 from typing import IO, Generic, Sequence, TypeVar
 from bmesh import new
-from bpy.types import Armature, Collection, Context, Object, PoseBone
+from bpy.types import Armature, Collection, Context, Material, Object, PoseBone
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
@@ -31,7 +31,7 @@ class AnimChannel:
         self.keyframes = {}
         
 
-def load_entity(file: IO[str], context: Context, collection: Collection):
+def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}):
     """Load a replay entity into Blender
 
     Args:
@@ -62,7 +62,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
 
     if mesh is not None:
         obj = BytesIO(bytes(mesh.text, 'utf-8'))
-        meshes, mats, vertex_groups = load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True)
+        meshes, mats, vertex_groups = load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True, unique_materials=materials)
         
         for mesh in meshes:
             new_object = bpy.data.objects.new(f'{name}.mesh', mesh)
@@ -82,8 +82,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection):
 
     for obj in parsed_objs:
         obj.parent = armature_obj
-        obj.parent_type = 'ARMATURE'
-        
+        obj.parent_type = 'ARMATURE'  
     
     # ANIMATION
     anim = entity.find('anim')

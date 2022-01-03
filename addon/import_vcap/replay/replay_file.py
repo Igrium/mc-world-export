@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import sys
 import time
@@ -9,10 +10,12 @@ import zipfile
 import numpy as np
 import bpy
 
-from bpy.types import Collection, Context
+from bpy.types import Collection, Context, Image, Material
+from ..vcap import util
 from . import entity
 from ..vcap.context import VCAPSettings
 from ..vcap import vcap_importer
+from ..vcap import materials as matlib
 
 do_profiling = False
 
@@ -43,6 +46,9 @@ def load_replay(file: Union[str, IO[bytes]],
         pr = cProfile.Profile()
         pr.enable()
 
+    textures: dict[str, Image] = {}
+    materials: dict[str, Material] = {}
+
     context.window_manager.progress_begin(min=0, max=1)
     context.window_manager.progress_update(0)
     start_time = time.time()
@@ -61,24 +67,44 @@ def load_replay(file: Union[str, IO[bytes]],
                                    settings=settings.vcap_settings,
                                    progress_function=wold_progress_function)
 
+        # Materials
+        def load_texture(tex_name: str, is_data=False):
+            if tex_name in textures:
+                return textures[tex_name]
+
+            filename = f'tex/{tex_name}.png'
+            with archive.open(filename) as file:
+                image = util.import_image(file, os.path.basename(tex_name), is_data=is_data)
+                textures[tex_name] = image
+                return image
+
+        for entry in archive.filelist:
+            n = entry.filename
+            if n.startswith('mat/') and n.endswith('.json'):
+                defname = os.path.splitext(n[(n.find('/') + 1):])[0] # Remove 'mat/'
+                materials[defname] = matlib.parse_raw(
+                    json.load(archive.open(entry)),
+                    os.path.basename(n), load_texture)
+
+
         # Entities
         if settings.entities:
             print("Parsing entities...")
             ent_collection = bpy.data.collections.new('entities')
             collection.children.link(ent_collection)
-            
+
             ent_folder = zipfile.Path(archive, 'entities/')
             if not ent_folder.is_dir():
                 raise RuntimeError("'entities' entry in replay must be a directory!")
-            
+
             entity_files = [path for path in ent_folder.iterdir() if path.name.endswith('.xml')]
             # entity_files = [file for file in archive.filelist if file.filename.endswith(".xml")]
 
             for index, entry in enumerate(entity_files):
                 context.window_manager.progress_update((.5 * index / len(entity_files)) + .5)
                 with entry.open('r') as e:
-                        entity.load_entity(e, context, ent_collection)
-            
+                    entity.load_entity(e, context, ent_collection, materials)
+
         print(f"Imported replay in {time.time() - start_time} seconds.")
         context.window_manager.progress_end()
 

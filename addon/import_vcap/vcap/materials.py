@@ -1,9 +1,9 @@
 import json
 import numbers
-from typing import IO, Type
+from typing import IO, Callable, Type
 
 import bpy
-from bpy.types import Material, Node, NodeSocket, NodeTree
+from bpy.types import Image, Material, Node, NodeSocket, NodeTree
 from mathutils import Vector
 from .context import VCAPContext
 from . import util
@@ -32,6 +32,35 @@ def read(file: IO, name: str, context: VCAPContext):
     obj = json.load(file)
     return parse(obj, name, context)
 
+def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Image]) -> Material:
+    """Parse a vcap material entry without attaching it to a Vcap Context.
+
+    Args:
+        obj (any): Unserialized json
+        name (str): Material name
+        image_provider (Callable[[str, bool], Image]): Function responsible for retrieving the material's textures.
+    """
+    
+    transparent: bool = False
+    if 'transparent' in obj:
+        transparent = obj['transparent']
+        
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    
+    node_tree = mat.node_tree
+    
+    node_tree.nodes.remove(node_tree.nodes.get('Principled BSDF')) # The generator adds this
+    frame, node, alpha = generate_nodes(obj, node_tree, image_provider, name)
+    
+    mat_output = node_tree.nodes.get('Material Output')
+    node_tree.links.new(node.outputs[0], mat_output.inputs[0])
+    
+    if transparent:
+        mat.blend_method = 'HASHED'
+    return mat
+
+
 def parse(obj, name: str, context: VCAPContext):
     """Parse a vcap material entry.
 
@@ -51,7 +80,7 @@ def parse(obj, name: str, context: VCAPContext):
     node_tree.nodes.remove(node_tree.nodes.get('Principled BSDF'))
 
     # frame, node, tex = generate_node(obj, node_tree, context, name=name)
-    
+
     # material_output = node_tree.nodes.get('Material Output')
     # node_tree.links.new(node.outputs[0], material_output.inputs[0])
 
@@ -60,7 +89,10 @@ def parse(obj, name: str, context: VCAPContext):
     group_inputs.location = (-800, 0)
     group.inputs.new(name='UV', type='NodeSocketVector')
 
-    frame, node, alpha = generate_nodes(obj, group, context, name, uv_input=group_inputs.outputs[0])
+    def get_image(tex_id: str, is_data: bool):
+        return load_texture(tex_id, context, is_data)
+
+    frame, node, alpha = generate_nodes(obj, group, get_image, name, uv_input=group_inputs.outputs[0])
 
     group_outputs = group.nodes.new('NodeGroupOutput')
     group_outputs.location = (300, 0)
@@ -71,19 +103,19 @@ def parse(obj, name: str, context: VCAPContext):
     group.outputs.new(name='Alpha', type='NodeSocketFloat')
     group.links.new(alpha, group_outputs.inputs['Alpha'])
     context.material_groups[name] = group
-    
+
 
     group_node = node_tree.nodes.new('ShaderNodeGroup')
     group_node.node_tree = group
     material_output = node_tree.nodes.get('Material Output')
     node_tree.links.new(group_node.outputs[0], material_output.inputs[0])
-    
+
 
     if transparent:
         mat.blend_method = 'HASHED'
     return mat
 
-def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = 'vcap_mat', uv_input: NodeSocket = None):
+def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool], Image], name: str = 'vcap_mat', uv_input: NodeSocket = None):
     """Read a Vcap material and generate a node structure from it.
 
     Args:
@@ -103,7 +135,7 @@ def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = '
             tex = node_tree.nodes.new('ShaderNodeTexImage')
             node_tree.links.new(tex.outputs[0], target.inputs[index])
 
-            tex.image = load_texture(value, context, is_data)
+            tex.image = image_provider(value, is_data)
             tex.interpolation = 'Closest'
             tex.parent = frame
 
@@ -114,7 +146,7 @@ def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = '
             target.inputs[index].default_value = (value[0], value[1], value[2])
         else:
             print(f'Cannot add input with type {type(value)} from material {name}.')
-    
+
     principled_node = node_tree.nodes.new('ShaderNodeBsdfPrincipled')
     frame = node_tree.nodes.new(type='NodeFrame')
 
@@ -146,7 +178,7 @@ def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = '
                 node_tree.links.new(tex.outputs[0], principled_node.inputs[0])
 
             node_tree.links.new(tex.outputs[1], principled_node.inputs[19]) # Alpha
-            tex.image = load_texture(color, context, False)
+            tex.image = image_provider(color, False)
             tex.interpolation = 'Closest'
             tex.parent = frame
             tex.location = Vector((-350, -40))
@@ -156,7 +188,7 @@ def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = '
             color_tex = tex
         else:
             parse_field(color, principled_node, 0)
-    
+
     if 'roughness' in obj:
         parse_field(obj['roughness'], principled_node, 7, True)
     if 'metallic' in obj:
@@ -165,21 +197,21 @@ def generate_nodes(obj, node_tree: NodeTree, context: VCAPContext, name: str = '
         normal = node_tree.nodes.new('ShaderNodeNormalMap')
         node_tree.links.new(normal.outputs[0], principled_node.inputs[20])
         normal.parent = frame
-        
+
         tex = node_tree.nodes.new('ShaderNodeTexImage')
         node_tree.links.new(tex.outputs[0], normal.inputs[1])
-        tex.image = load_texture(obj['normal'], context, True)
+        tex.image = image_provider(obj['normal'], True)
         tex.interpolation = 'Closest'
         tex.parent = frame
 
         if uv_input:
             node_tree.links.new(uv_input, tex.inputs[0])
-    
+
     frame.name = name
     frame.label = name
     principled_node.parent = frame
     return (frame, principled_node, color_tex.outputs[1])
-    
+
 def create_composite_material(name: str, context: VCAPContext, mat1: str, mat2: str):
     """Create a face layer composite material.
 
@@ -192,10 +224,10 @@ def create_composite_material(name: str, context: VCAPContext, mat1: str, mat2: 
     Returns:
         Material: The material.
     """
-    
+
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
-    
+
     node_tree = mat.node_tree
     node_tree.nodes.remove(node_tree.nodes.get('Principled BSDF'))
 
