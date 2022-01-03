@@ -1,7 +1,7 @@
 package org.scaffoldeditor.worldexport.util;
 
 import org.joml.Matrix4dc;
-import org.scaffoldeditor.worldexport.export.ObjVertexConsumer;
+import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
 
 import de.javagl.obj.Obj;
 import net.minecraft.client.model.ModelPart.Cuboid;

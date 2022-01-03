@@ -5,7 +5,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -16,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.VcapExporter;
 
+import net.minecraft.block.Material;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
 
@@ -29,6 +32,11 @@ public class ReplayFile {
      * A set of all the replay entities in this file.
      */
     public final Set<ReplayEntity<?>> entities = new HashSet<>();
+
+    /**
+     * Materials which will be written to the file.
+     */
+    public final Map<String, Material> materials = new HashMap<>();
     private float fps = 30f;
 
     public ReplayFile(ClientWorld world, ChunkPos minChunk, ChunkPos maxChunk) {

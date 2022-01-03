@@ -20,7 +20,7 @@ import com.replaymod.render.utils.ByteBufferPool;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
-import org.scaffoldeditor.worldexport.WorldExportMod;
+import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
@@ -81,7 +81,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         exporter.getWorldExporter().getSettings().setExportFluids(false);
         LogManager.getLogger().info("Capturing initial world");
         exporter.getWorldExporter().captureIFrame(0);
-        WorldExportMod.getInstance().onBlockUpdated(blockUpdateListener);
+        ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
      * Close this capturer without saving it to file.
      */
     public void cleanUp() {
-        WorldExportMod.getInstance().removeOnBlockUpdated(blockUpdateListener);
+        ReplayExportMod.getInstance().removeOnBlockUpdated(blockUpdateListener);
     }
     
 }

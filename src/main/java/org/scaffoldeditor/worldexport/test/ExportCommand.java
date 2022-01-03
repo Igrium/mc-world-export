@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport;
+package org.scaffoldeditor.worldexport.test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,7 +18,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.export.TextureExtractor;
+import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
+import org.scaffoldeditor.worldexport.VcapExporter;
+import org.scaffoldeditor.worldexport.vcap.TextureExtractor;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;

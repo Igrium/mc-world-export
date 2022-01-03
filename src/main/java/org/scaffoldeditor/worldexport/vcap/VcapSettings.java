@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 public class VcapSettings {
     private boolean exportFluids = true;

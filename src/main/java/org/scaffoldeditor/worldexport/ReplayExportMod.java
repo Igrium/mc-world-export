@@ -6,16 +6,17 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModels;
+import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
 import net.fabricmc.api.ClientModInitializer;
 
-public class WorldExportMod implements ClientModInitializer {
+public class ReplayExportMod implements ClientModInitializer {
 
     public static final Logger LOGGER = LogManager.getLogger("worldexport");
-    private static WorldExportMod instance;
+    private static ReplayExportMod instance;
 
-    public static WorldExportMod getInstance() {
+    public static ReplayExportMod getInstance() {
         return instance;
     }
 

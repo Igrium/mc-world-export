@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.util.Map;
 

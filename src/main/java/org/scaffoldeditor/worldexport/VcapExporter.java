@@ -24,17 +24,17 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.export.ExportContext;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
-import org.scaffoldeditor.worldexport.export.Frame;
-import org.scaffoldeditor.worldexport.export.Frame.IFrame;
-import org.scaffoldeditor.worldexport.export.Frame.PFrame;
-import org.scaffoldeditor.worldexport.export.Material;
-import org.scaffoldeditor.worldexport.export.MeshWriter;
-import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
-import org.scaffoldeditor.worldexport.export.TextureExtractor;
-import org.scaffoldeditor.worldexport.export.VcapMeta;
-import org.scaffoldeditor.worldexport.export.VcapSettings;
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.vcap.ExportContext;
+import org.scaffoldeditor.worldexport.vcap.Frame;
+import org.scaffoldeditor.worldexport.vcap.MeshWriter;
+import org.scaffoldeditor.worldexport.vcap.TextureExtractor;
+import org.scaffoldeditor.worldexport.vcap.VcapMeta;
+import org.scaffoldeditor.worldexport.vcap.VcapSettings;
+import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.Frame.IFrame;
+import org.scaffoldeditor.worldexport.vcap.Frame.PFrame;
+import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -344,10 +344,10 @@ public class VcapExporter {
             captureStartTime = startTime;
         }
 
-        WorldExportMod.getInstance().onBlockUpdated(listener);
+        ReplayExportMod.getInstance().onBlockUpdated(listener);
     }
 
     public void stopListen() {
-        WorldExportMod.getInstance().removeOnBlockUpdated(listener);
+        ReplayExportMod.getInstance().removeOnBlockUpdated(listener);
     }
 }

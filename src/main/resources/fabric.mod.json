@@ -3,17 +3,17 @@
   "id": "worldexport",
   "version": "${version}",
 
-  "name": "3D World Exporter",
-  "description": "A mod which eases the exporting of Minecraft worlds into Blender and similar software.",
+  "name": "Replay Export Mod",
+  "description": "An addon to the Replay Mod allowing it to export into Blender and other 3D softwarea.",
   "authors": [
     "Igrium"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/Sam54123/mc-world-export",
+    "sources": "https://github.com/Sam54123/mc-world-export"
   },
 
-  "license": "MIT",
+  "license": "GPL",
   "icon": "assets/modid/icon.png",
 
   "environment": "*",
@@ -21,7 +21,7 @@
     "main": [
     ],
     "client": [
-      "org.scaffoldeditor.worldexport.WorldExportMod"
+      "org.scaffoldeditor.worldexport.ReplayExportMod"
     ]
   },
   "mixins": [

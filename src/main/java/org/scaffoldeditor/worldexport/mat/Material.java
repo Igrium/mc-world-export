@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.mat;
 
 import java.io.OutputStream;
 import java.io.PrintWriter;

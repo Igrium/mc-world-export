@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;

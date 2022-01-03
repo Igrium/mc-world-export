@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;

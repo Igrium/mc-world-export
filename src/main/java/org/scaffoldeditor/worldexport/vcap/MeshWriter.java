@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -11,7 +11,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
