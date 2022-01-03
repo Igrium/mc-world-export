@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -77,7 +77,7 @@ public final class BlockExporter {
         BlockRenderManager dispatcher = client.getBlockRenderManager();
 
 
-        if (!fluid.isEmpty()) {
+        if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
             id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
         } else {
             BlockPos.Mutable mutable = pos.mutableCopy();
@@ -100,7 +100,7 @@ public final class BlockExporter {
             int sectionX, int sectionY, int sectionZ, ExportContext context) {
 
         BlockRenderManager dispatcher = client.getBlockRenderManager();
-        LogManager.getLogger().info("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
+        LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
 
         NbtCompound tag = new NbtCompound();
         tag.putInt("x", sectionX);
@@ -121,7 +121,7 @@ public final class BlockExporter {
                     String id;
 
                     FluidState fluid = state.getFluidState();
-                    if (!fluid.isEmpty()) {
+                    if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
                         id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();

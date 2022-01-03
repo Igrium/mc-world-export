@@ -14,10 +14,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.BiConsumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -28,16 +24,17 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.export.ExportContext;
-import org.scaffoldeditor.worldexport.export.ExportContext.ModelEntry;
-import org.scaffoldeditor.worldexport.export.Frame;
-import org.scaffoldeditor.worldexport.export.Frame.IFrame;
-import org.scaffoldeditor.worldexport.export.Frame.PFrame;
-import org.scaffoldeditor.worldexport.export.Material;
-import org.scaffoldeditor.worldexport.export.MeshWriter;
-import org.scaffoldeditor.worldexport.export.MeshWriter.MeshInfo;
-import org.scaffoldeditor.worldexport.export.TextureExtractor;
-import org.scaffoldeditor.worldexport.export.VcapMeta;
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.vcap.ExportContext;
+import org.scaffoldeditor.worldexport.vcap.Frame;
+import org.scaffoldeditor.worldexport.vcap.MeshWriter;
+import org.scaffoldeditor.worldexport.vcap.TextureExtractor;
+import org.scaffoldeditor.worldexport.vcap.VcapMeta;
+import org.scaffoldeditor.worldexport.vcap.VcapSettings;
+import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.Frame.IFrame;
+import org.scaffoldeditor.worldexport.vcap.Frame.PFrame;
+import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -48,6 +45,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 
 /**
@@ -57,24 +55,61 @@ import net.minecraft.world.WorldAccess;
 public class VcapExporter {
     private static Logger LOGGER = LogManager.getLogger();
 
+    /**
+     * The world this exporter is exporting.
+     */
     public final WorldAccess world;
-    public final ChunkPos minChunk;
-    public final ChunkPos maxChunk;
+    private ChunkPos minChunk;
+    private ChunkPos maxChunk;
     public final List<Frame> frames = new ArrayList<>();
     public final ExportContext context;
+    
+    public VcapSettings getSettings() {
+        return context.getSettings();
+    }
 
     /**
      * Create a new export instance.
      * 
      * @param world    World to capture.
-     * @param minChunk Bounding box min.
-     * @param maxChunk Bounding box max.
+     * @param minChunk Bounding box min (inclusive).
+     * @param maxChunk Bounding box max (exclusive).
      */
     public VcapExporter(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk) {
+        setBBox(minChunk, maxChunk);
         this.world = world;
+
+        context = new ExportContext();
+    }
+
+    /**
+     * Get the bounding box min point.
+     * @return Bounding box min (inclusive)
+     */
+    public ChunkPos getMinChunk() {
+        return minChunk;
+    }
+    
+    /**
+     * Get the bounding box max point.
+     * @return Bounding box max (exclusive).
+     */
+    public ChunkPos getMaxChunk() {
+        return maxChunk;
+    }
+    
+    /**
+     * Set the bounding box.
+     * @param minChunk Bounding box min (inclusive).
+     * @param maxChunk Bounding box max (exclusive).
+     */
+    public void setBBox(ChunkPos minChunk, ChunkPos maxChunk) {
+        if (minChunk.x > maxChunk.x || minChunk.z > maxChunk.z) {
+            throw new IllegalArgumentException("Min chunk "+minChunk+" must be less than max chunk "+maxChunk);
+        }
+
         this.minChunk = minChunk;
         this.maxChunk = maxChunk;
-        context = new ExportContext();
     }
 
     /**
@@ -105,8 +140,9 @@ public class VcapExporter {
      * </p>
      * <p>
      * <b>Warning:</b> Due to the need to extract the atlas texture from
-     * the GPU, this method blocks untill the next frame is rendered. Do not
-     * call from a thread that will stop the rendering of the next frame.
+     * the GPU, this method blocks untill the next frame is rendered if it is not
+     * called on the render thread. Do not call from a thread that will stop the
+     * rendering of the next frame.
      * 
      * @param os Output stream to write to.
      * @throws IOException If an IO exception occurs while writing the file
@@ -132,7 +168,7 @@ public class VcapExporter {
 
         for (ModelEntry model : context.models.keySet()) {
             String id = context.models.get(model);
-            LOGGER.info("Writing mesh: "+id);
+            LOGGER.debug("Writing mesh: "+id);
 
             MeshInfo info = MeshWriter.writeBlockMesh(model, random);
             writeMesh(info.mesh, id, out);
@@ -143,7 +179,7 @@ public class VcapExporter {
         }
 
         for (String id : context.fluidMeshes.keySet()) {
-            LOGGER.info("Writing fluid mesh: "+id);
+            LOGGER.debug("Writing fluid mesh: "+id);
             writeMesh(context.fluidMeshes.get(id), id, out);
         }
 
@@ -191,18 +227,10 @@ public class VcapExporter {
 
         // TEXTURE ATLAS
         LOGGER.info("Extracting world texture...");
-        CompletableFuture<NativeImage> atlasFuture = TextureExtractor.getAtlas();
         // For some reason, NativeImage can only write to a file; not an output stream.
-        NativeImage atlas;
+        NativeImage atlas = TextureExtractor.getAtlas();
         File atlasTemp = File.createTempFile("atlas-", ".png");
         atlasTemp.deleteOnExit();
-        try {
-            atlas = atlasFuture.get(5, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException e) {
-            throw new IOException("Unable to retrieve texture atlas.", e);
-        } catch (TimeoutException e) {
-            throw new IOException("Texture retrieval timed out.");
-        }
 
         atlas.writeTo(atlasTemp);
 
@@ -224,7 +252,7 @@ public class VcapExporter {
         out.closeEntry();
 
         LOGGER.info("Finished writing Vcap.");
-        out.close();
+        out.finish();
     }
 
     private static void writeMesh(Obj mesh, String id, ZipOutputStream out) throws IOException {
@@ -264,6 +292,23 @@ public class VcapExporter {
      * @return The captured frame.
      */
     public PFrame capturePFrame(double time, Set<BlockPos> blocks) {
+        return capturePFrame(time, blocks, world);
+    }
+
+    /**
+     * Capture a predicted frame, sampling the blocks from the given world, and add
+     * it to the file.
+     * 
+     * @param time   Timstamp of the frame, in seconds since the beginning of the
+     *               animation.
+     * @param blocks A set of blocks to include data for in the frame. All ajacent
+     *               blocks will be queried, and if they are found to have changed,
+     *               they are also included in the frame.
+     * @param world  The world to query. Should contain a block structure equal to
+     *               that in this exporter.
+     * @return The captured frame.
+     */
+    public PFrame capturePFrame(double time, Set<BlockPos> blocks, WorldAccess world) {
         PFrame pFrame = PFrame.capture(world, blocks, time, frames.get(frames.size() - 1), context);
         frames.add(pFrame);
         return pFrame;
@@ -271,11 +316,11 @@ public class VcapExporter {
 
     private Date captureStartTime;
     private Set<BlockPos> updateCache = new HashSet<>();
-    private BiConsumer<BlockPos, BlockState> listener = new BiConsumer<BlockPos,BlockState>() {
+    private ClientBlockPlaceCallback listener = new ClientBlockPlaceCallback() {
         private boolean isCaptureQueued = false;
 
         @Override
-        public void accept(BlockPos t, BlockState u) {
+        public void place(BlockPos t, BlockState u, World world) {
             updateCache.add(t);
             if (!isCaptureQueued) {
                 RenderSystem.recordRenderCall(() -> {
@@ -299,10 +344,10 @@ public class VcapExporter {
             captureStartTime = startTime;
         }
 
-        WorldExportMod.getInstance().onBlockUpdated(listener);
+        ReplayExportMod.getInstance().onBlockUpdated(listener);
     }
 
     public void stopListen() {
-        WorldExportMod.getInstance().removeOnBlockUpdated(listener);
+        ReplayExportMod.getInstance().removeOnBlockUpdated(listener);
     }
 }

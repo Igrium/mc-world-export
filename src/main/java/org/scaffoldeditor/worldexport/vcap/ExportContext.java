@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -76,6 +76,16 @@ public class ExportContext {
      * The fluid meshes in the export context.
      */
     public final Map<String, Obj> fluidMeshes = new HashMap<>();
+
+    private VcapSettings settings = new VcapSettings();
+
+    public VcapSettings getSettings() {
+        return settings;
+    }
+
+    public void setSettings(VcapSettings settings) {
+        this.settings = settings;
+    }
 
     /**
      * Generate the ID of a model entry. Returns the current ID if it already exists.

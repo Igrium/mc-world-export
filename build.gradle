@@ -11,11 +11,15 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+	repositories {
+    ivy {
+        setName("ReplayMod")
+        setUrl("https://minio.replaymod.com/replaymod/")
+        patternLayout { artifact("[artifact]-[revision](-[classifier])(.[ext])") }
+        metadataSources { artifact() }
+        content { includeGroup("com.replaymod") }
+    }
+}
 }
 
 dependencies {
@@ -26,8 +30,10 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	modImplementation "com.replaymod:replaymod-1.17.1:2.6.1"
 	
 	implementation(include('de.javagl:obj:0.3.0'))
+	implementation(include('org.joml:joml:1.10.2'))
 }
 
 processResources {

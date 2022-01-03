@@ -6,7 +6,11 @@
   "mixins": [
   ],
   "client": [
-    "NetworkHandlerMixin"
+    "WorldMixin",
+    "AnimalModelAccessor",
+    "ModelPartAccessor",
+    "GuiRenderSettingsMixin",
+    "VideoRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,4 +1,9 @@
-package org.scaffoldeditor.worldexport.export;
+package org.scaffoldeditor.worldexport.vcap;
+
+import org.joml.Matrix4d;
+import org.joml.Matrix4dc;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
 
 import de.javagl.obj.Obj;
 import net.minecraft.client.render.VertexConsumer;
@@ -10,7 +15,7 @@ import net.minecraft.util.math.Vec3d;
 public class ObjVertexConsumer implements VertexConsumer {
     
     public final Obj baseObj;
-    public final Vec3d offset;
+    private Matrix4dc transform;
 
     float[][] vertCache = new float[4][];
     float[][] normalCache = new float[4][];
@@ -19,39 +24,51 @@ public class ObjVertexConsumer implements VertexConsumer {
     
     public ObjVertexConsumer(Obj baseObj, Vec3d offset) {
         this.baseObj = baseObj;
-        this.offset = offset;
+        Matrix4d transform = new Matrix4d();
+        this.transform = transform.translate(offset.x, offset.y, offset.z);
+    }
+
+    public ObjVertexConsumer(Obj baseObj, Matrix4dc transform) {
+        this.baseObj = baseObj;
+        this.transform = transform;
+    }
+
+    public Matrix4dc getTransform() {
+        return transform;
     }
 
     @Override
-    public VertexConsumer vertex(double x, double y, double z) {
-        vertCache[head] = new float[] { (float) (x + offset.x), (float) (y + offset.y), (float) (z + offset.z) };
+    public ObjVertexConsumer vertex(double x, double y, double z) {
+        Vector3d pos = new Vector3d(x, y, z).mulPosition(transform);
+        vertCache[head] = new float[] { (float) pos.x(), (float) pos.y(), (float) pos.z() };
         return this;
     }
 
     @Override
-    public VertexConsumer color(int red, int green, int blue, int alpha) {
+    public ObjVertexConsumer color(int red, int green, int blue, int alpha) {
         return this;
     }
 
     @Override
-    public VertexConsumer texture(float u, float v) {
+    public ObjVertexConsumer texture(float u, float v) {
         texCache[head] = new float[] { (float) u, (float) v };
         return this;
     }
 
     @Override
-    public VertexConsumer overlay(int u, int v) {
+    public ObjVertexConsumer overlay(int u, int v) {
         return this;
     }
 
     @Override
-    public VertexConsumer light(int u, int v) {
+    public ObjVertexConsumer light(int u, int v) {
         return this;
     }
 
     @Override
-    public VertexConsumer normal(float x, float y, float z) {
-        normalCache[head] = new float[] { x, y, z };
+    public ObjVertexConsumer normal(float x, float y, float z) {
+        Vector3f vec = new Vector3f(x, y, z).mulDirection(transform);
+        normalCache[head] = new float[] { vec.x(), vec.y(), vec.z() };
         return this;
     }
 

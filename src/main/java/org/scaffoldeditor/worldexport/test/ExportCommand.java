@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport;
+package org.scaffoldeditor.worldexport.test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -19,7 +18,9 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.export.TextureExtractor;
+import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
+import org.scaffoldeditor.worldexport.VcapExporter;
+import org.scaffoldeditor.worldexport.vcap.TextureExtractor;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -31,7 +32,6 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandException;
 import net.minecraft.text.LiteralText;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -82,9 +82,8 @@ public final class ExportCommand {
     public static void register() {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state) -> {
+        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
             worldListeners.forEach(listener -> listener.accept(pos, state));
-            return ActionResult.PASS;
         });
 
         LiteralCommandNode<FabricClientCommandSource> start = ClientCommandManager.literal("start")
@@ -208,14 +207,7 @@ public final class ExportCommand {
                             new Thread(() -> {
                                 NativeImage image;
                                 LogManager.getLogger().info("Obtaining atlas texture...");
-                                try {
-                                    image = TextureExtractor.getAtlas().get();
-                                } catch (InterruptedException | ExecutionException e) {
-                                    LogManager.getLogger().error(e);
-                                    context.getSource()
-                                            .sendError(new LiteralText("Unable to retrieve atlas. " + e.getMessage()));
-                                    return;
-                                }
+                                image = TextureExtractor.getAtlas();
 
                                 try {
                                     image.writeTo(targetFile);
