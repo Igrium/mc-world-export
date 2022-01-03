@@ -1,4 +1,4 @@
-from os import path
+from os import name, path
 
 from .vcap.context import VCAPSettings
 
@@ -58,8 +58,8 @@ class ImportTestOperator(Operator, ImportHelper):
 
 
 class ImportVcap(Operator, ImportHelper):
-    """This appears in the tooltip of the operator and in the generated docs"""
-    bl_idname = "vcap.import_vcap"  # important since its how bpy.ops.import_test.some_data is constructed
+    """Import a Voxel Capture file. Used internally in the replay importer."""
+    bl_idname = "vcap.import_vcap"
     bl_label = "Import VCAP"
 
     # ImportHelper mixin class uses this
@@ -97,6 +97,7 @@ class ImportVcap(Operator, ImportHelper):
 
 
 class ImportEntityOperator(Operator, ImportHelper):
+    """Import a single replay entity. Generally only used for testing."""
     bl_idname = "vcap.importentity"
     bl_label = "Import Replay Entity"
 
@@ -126,9 +127,41 @@ class ImportReplayOperator(Operator, ImportHelper):
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
+    
+    import_world: BoolProperty(
+        name="Import World",
+        description="Import world blocks (significantly increases import time.)",
+        default=True
+    )
+        
+    import_entities: BoolProperty(
+        name="Import Entities",
+        description="Import Minecraft entities and their animations.",
+        default=True
+    )
+    
+    use_vertex_colors: BoolProperty(
+        name="Use Block Colors",
+        description="Import block colors from the file (grass tint, etc). If unchecked, world may look very grey.",
+        default=True,
+    )
+    
+    merge_verts: BoolProperty(
+        name="Merge Vertices",
+        description="Run a 'merge by distance' operation on the imported world. May exhibit unpredictable behavior.",
+        default=False
+    )
 
     def execute(self, context: Context):
-        replay_file.load_replay(self.filepath, context, context.scene.collection)
+        settings = replay_file.ReplaySettings(
+            world=self.import_world,
+            entities=self.import_entities,
+            vcap_settings=VCAPSettings(
+                use_vertex_colors=self.use_vertex_colors,
+                merge_verts=self.merge_verts
+            )
+        )
+        replay_file.load_replay(self.filepath, context, context.scene.collection, settings=settings)
         return {'FINISHED'}
 
 # Only needed if you want to add into a dynamic menu

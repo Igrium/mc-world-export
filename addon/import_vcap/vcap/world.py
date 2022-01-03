@@ -89,8 +89,8 @@ class PFrame(VcapFrame):
                 continue
 
             mesh_index = 'base'
-            for id in self.overrides:
-                if position in self.overrides[id]:
+            for id, vals in self.overrides.items():
+                if position in vals:
                     mesh_index = id
                     break
 
@@ -159,7 +159,9 @@ class IFrame(VcapFrame):
         num_sections = len(sections)
         for i in range(0, num_sections):
             # Only print every 10 chunks so we don't slow down the program
-            if i % 10 == 0: print(f'Writing section {i}/{num_sections}')
+            if i % 10 == 0:
+                print(f'Writing section {i}/{num_sections}')
+                if(progress_function): progress_function(i / num_sections)
             
             section = sections[i]
             palette: TAG_List = section['palette']
@@ -195,13 +197,13 @@ class IFrame(VcapFrame):
                         world_pos.freeze()
                         mesh_index = 'base'
 
-                        for id in self.overrides:
-                            if world_pos in self.overrides[id]:
+                        for id, vals in self.overrides.items():
+                            if world_pos in vals:
                                 mesh_index = id
                                 break
 
                         util.add_mesh(meshes[mesh_index], block_mesh, Matrix.Translation(world_pos), color=color)
-            if(progress_function): progress_function(i / num_sections)
+    
         final_meshes: dict[Any, Mesh] = {}
         for id in meshes:
             mesh = meshes[id]

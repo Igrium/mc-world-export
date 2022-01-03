@@ -52,6 +52,11 @@ class VCAPContext:
         self.target = bmesh.new()
 
 class VCAPSettings:
+    __slots__ = (
+        'use_vertex_colors',
+        'merge_verts'
+    )
+    
     use_vertex_colors: bool
     merge_verts: bool
 

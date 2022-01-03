@@ -4,24 +4,31 @@ import os
 import time
 from typing import IO, Any, Callable, Union
 from zipfile import ZipFile
-from .anim import TesselatedFrame
-
-from numpy import ndarray
 
 import bmesh
 import bpy
 from bmesh.types import BMesh
-from bpy.types import Collection, Context, Image, Material, Mesh, Object, Struct
+from bpy.types import (Collection, Context, Image, Material, Mesh, Object,
+                       Struct)
 from bpy_extras.wm_utils.progress_report import ProgressReport
-from .context import VCAPContext, VCAPSettings
 from mathutils import Matrix, Vector
+from numpy import ndarray
 
 from .. import amulet_nbt
-from ..amulet_nbt import TAG_Byte_Array, TAG_Compound, TAG_List, TAG_String, TAG_Int_Array
-from . import util, materials, import_mesh
+from ..amulet_nbt import (TAG_Byte_Array, TAG_Compound, TAG_Int_Array,
+                          TAG_List, TAG_String)
+from . import import_mesh, materials, util
+from .anim import TesselatedFrame
+from .context import VCAPContext, VCAPSettings
 from .world import VcapFrame, load_frame
 
-def load(file: Union[str, IO[bytes]], collection: Collection, context: Context, name='world', settings: VCAPSettings=VCAPSettings()):
+
+def load(file: Union[str, IO[bytes]],
+         collection: Collection,
+         context: Context,
+         name='world',
+         settings: VCAPSettings = VCAPSettings(),
+         progress_function: Callable[[float], None]=None):
     """Import a vcap file.
 
     Args:
@@ -30,16 +37,19 @@ def load(file: Union[str, IO[bytes]], collection: Collection, context: Context, 
         context (bpy.context): Blender context.
     """
     # Init
-    wm = context.window_manager
-    wm.progress_begin(0, 5)
-    
+    has_progress = False
+    if not progress_function:
+        wm = context.window_manager
+        wm.progress_begin(0, 1)
+        progress_function = wm.progress_update
+        has_progress = True
+
     with ZipFile(file, 'r') as archive:
         for obj in context.view_layer.objects.selected:
             obj.select_set(False)
 
         vcontext = VCAPContext(archive, collection, context, name)
-        wm.progress_update(1)
-
+        
         # Materials
         for entry in archive.filelist:
             if entry.filename.startswith('mat/'):
@@ -54,13 +64,12 @@ def load(file: Union[str, IO[bytes]], collection: Collection, context: Context, 
         print(vcontext.materials)
         # Meshes
         loadMeshes(archive, vcontext)
-        wm.progress_update(2)
+        progress_function(.1)
 
         # Blocks
         world_dat = archive.open('world.dat')
-        readWorld(world_dat, vcontext, settings, lambda progress: wm.progress_update(progress + 2))
+        readWorld(world_dat, vcontext, settings, lambda progress: progress_function(progress * .9 + .1))
         world_dat.close()
-        wm.progress_update(3)
 
         # Object
         if (settings.merge_verts):
@@ -76,13 +85,13 @@ def load(file: Union[str, IO[bytes]], collection: Collection, context: Context, 
             print("Appending material ", mat)
             obj.data.materials.append(mat)
 
-        wm.progress_update(4)
-
+        progress_function(1)
         # Clean up
         for mesh in vcontext.models.values():
             context.blend_data.meshes.remove(mesh)
 
-    wm.progress_end()
+    if has_progress:
+        wm.progress_end()
 
 def loadMeshes(archive: ZipFile, context: VCAPContext):
     for file in archive.filelist:
@@ -106,8 +115,6 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     loaded_frames: list[TesselatedFrame] = []
 
     for i in reversed(range(0, len(frames))): # Go backward because overrides affect past frames.
-        def pfunction(progress: float):
-            if (progress_function): progress_function((i + progress) / len(frames))
 
         frame = frames[i]
         for id in overrides:
@@ -115,8 +122,8 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
         meshes = frame.get_meshes(
             vcontext,
             settings,
-            progress_function = pfunction)
-        
+            progress_function = progress_function)
+
         final_frame = TesselatedFrame()
         print(f"Wrote frame ${i} with {len(overrides)} overrides.")
 
