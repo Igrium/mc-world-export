@@ -66,16 +66,25 @@ public interface ReplayModelAdapter<T extends Entity> {
     }
     
     /**
+     * <p>
      * Generate the entity's replay model. 90% of the time, this returns the same
-     * thing every time,
-     * but some entities (like items) require different models on a per-entity
-     * basis.
+     * thing every time, but some entities (like items) require different models on
+     * a per-entity basis.
+     * </p>
      * 
-     * @param entity Entity to generate the model for.
+     * @param entity Entity to generate the model using.
      * @param file   Replay file to generate into.
      * @return Generated model.
      */
     public ReplayModel generateModel(T entity, ReplayFile file);
+
+    /**
+     * Generate the materials for this model.
+     * 
+     * @param entity Entity to generate the materials using.
+     * @param file   Replay file to put materials/textures into.
+     */
+    public void generateMaterials(T entity, ReplayFile file);
 
     /**
      * Get an entity's current pose (relative to the entity's root).

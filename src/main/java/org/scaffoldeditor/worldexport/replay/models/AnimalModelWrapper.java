@@ -21,12 +21,14 @@ import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.Identifier;
 
 /**
  * Wraps an {@link AnimalModel} in a replay model generator.
  */
 public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGenerator<T> {
     public final AnimalModel<T> model;
+    protected Identifier texture;
     protected ReplayModel replayModel;
     protected float yOffset;
 
@@ -39,20 +41,27 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
     /**
      * Construct an animal model wrapper.
      * @param model The base model.
+     * @param texture The Minecraft texture to use on this model.
      */
-    public AnimalModelWrapper(AnimalModel<T> model) {
-        this(model, 0);
+    public AnimalModelWrapper(AnimalModel<T> model, Identifier texture) {
+        this(model, texture, 0);
     }
 
     /**
      * Construct an animal model wrapper.
      * @param model The base model.
+     * @param texture The Minecraft texture to use on this model.
      * @param yOffset Vertical root offset. See {@link #getYOffset()} for more info.
      */
-    public AnimalModelWrapper(AnimalModel<T> model, float yOffset) {
+    public AnimalModelWrapper(AnimalModel<T> model, Identifier texture, float yOffset) {
         this.model = model;
         this.yOffset = yOffset;
         this.replayModel = captureBaseModel(model);
+        this.texture = texture;
+    }
+
+    Identifier getTexture(T entity) {
+        return this.texture;
     }
 
     /**
@@ -194,5 +203,6 @@ public class AnimalModelWrapper<T extends LivingEntity> extends LivingModelGener
         });
         offset.popMatrix();
     }
+    
 
 }

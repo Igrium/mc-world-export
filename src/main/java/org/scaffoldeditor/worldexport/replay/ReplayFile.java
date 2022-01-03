@@ -17,8 +17,11 @@ import java.util.zip.ZipOutputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.VcapExporter;
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
+import org.scaffoldeditor.worldexport.mat.Material.Field;
+import org.scaffoldeditor.worldexport.mat.Material.Field.FieldType;
 
-import net.minecraft.block.Material;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
 
@@ -33,10 +36,9 @@ public class ReplayFile {
      */
     public final Set<ReplayEntity<?>> entities = new HashSet<>();
 
-    /**
-     * Materials which will be written to the file.
-     */
     public final Map<String, Material> materials = new HashMap<>();
+    public final Map<String, ReplayTexture> textures = new HashMap<>();
+
     private float fps = 30f;
 
     public ReplayFile(ClientWorld world, ChunkPos minChunk, ChunkPos maxChunk) {
@@ -104,8 +106,37 @@ public class ReplayFile {
             out.closeEntry();
         }
 
+        LOGGER.info("Saving Materials...");
+        for (String id : materials.keySet()) {
+            Material mat = materials.get(id);
+            checkForTexture(mat.color, id);
+            checkForTexture(mat.metallic, id);
+            checkForTexture(mat.normal, id);
+            checkForTexture(mat.roughness, id);
+
+            out.putNextEntry(new ZipEntry("mat/"+id+".json"));
+            mat.serialize(out);
+            out.closeEntry();
+        }
+
+        for (String id : textures.keySet()) {
+            ReplayTexture tex = textures.get(id);
+
+            out.putNextEntry(new ZipEntry("tex/"+id+".png"));
+            tex.save(out);
+            out.closeEntry();
+        }
+
         LOGGER.info("Finished writing replay file.");
         out.finish();
+    }
+
+    private boolean checkForTexture(Field field, String matName) {
+        if (field != null && field.mode == FieldType.TEXTURE && !this.textures.containsKey(field.getTexture())) {
+            LogManager.getLogger().warn("Material: '{}' references missing texture: {}", matName, field.getTexture());
+            return false;
+        }
+        return true;
     }
 
     public CompletableFuture<Void> saveAsync(OutputStream os) {

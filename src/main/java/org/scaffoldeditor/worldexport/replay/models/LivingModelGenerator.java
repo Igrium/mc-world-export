@@ -1,13 +1,22 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import org.joml.Quaterniond;
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.TextureExtractor;
+import org.scaffoldeditor.worldexport.mat.Material.Field;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
+import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.render.entity.PlayerModelPart;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Matrix4f;
@@ -56,6 +65,39 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
      * @return The generated pose.
      */
     protected abstract Pose writePose(T entity, float yaw, float tickDelta);
+
+    abstract Identifier getTexture(T entity);
+
+    @Override
+    public void generateMaterials(T entity, ReplayFile file) {
+        Identifier texture = getTexture(entity);
+        String texName = getTexName(texture);
+        if (file.materials.containsKey(texName)) return;
+        Material mat = new Material();
+        mat.color = new Field(texName);
+        mat.transparent = isTransparent(entity);
+        file.materials.put(texName, mat);
+
+        RenderSystem.recordRenderCall(() -> {
+            if (file.textures.containsKey(texName)) return;
+            NativeImage tex = TextureExtractor.getTexture(texture);
+            file.textures.put(texName, new NativeImageReplayTexture(tex));
+        });
+    }
+
+    protected String getTexName(Identifier texture) {
+        String name = texture.toString().replace(':', '/');
+        int index = name.lastIndexOf('.');
+        if (index > 0) {
+            return name.substring(0, index);
+        } else {
+            return name;
+        }
+    }
+
+    protected boolean isTransparent(T entity) {
+        return true;
+    }
 
     @Override
     public Pose getPose(T entity, float yaw, float tickDelta) {

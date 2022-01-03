@@ -55,6 +55,8 @@ public class ReplayEntity<T extends Entity> {
     public ReplayModelAdapter<T> genAdapter() throws ModelNotFoundException {
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
         this.model = modelAdapter.generateModel(entity, file);
+        modelAdapter.generateMaterials(entity, file);
+        
         return modelAdapter;
     }
 

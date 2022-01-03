@@ -31,11 +31,12 @@ public final class ReplayModels {
                         LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>> renderer = (LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>>) client
                                 .getEntityRenderDispatcher().getRenderer(entity);
 
-                        return new AnimalModelWrapper<>(renderer.getModel(), BIPED_Y_OFFSET);
+                        return new AnimalModelWrapper<>(renderer.getModel(),
+                                new Identifier("textures/entity/skeleton/skeleton.png"), BIPED_Y_OFFSET);
                     }
 
                 });
-        
+
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:pig"),
                 new ReplayModelAdapterFactory<PigEntity>() {
 
@@ -45,7 +46,8 @@ public final class ReplayModels {
                         LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>> renderer = (LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>>) client
                                 .getEntityRenderDispatcher().getRenderer(entity);
 
-                        return new AnimalModelWrapper<>(renderer.getModel(), QUADRUPED_Y_OFFSET);
+                        return new AnimalModelWrapper<>(renderer.getModel(),
+                                new Identifier("textures/entity/pig/pig.png"), QUADRUPED_Y_OFFSET);
                     }
 
                 });

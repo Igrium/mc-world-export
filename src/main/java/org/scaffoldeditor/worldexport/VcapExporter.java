@@ -1,11 +1,9 @@
 package org.scaffoldeditor.worldexport;
 
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -25,16 +23,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
-import org.scaffoldeditor.worldexport.vcap.Frame;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter;
-import org.scaffoldeditor.worldexport.vcap.TextureExtractor;
-import org.scaffoldeditor.worldexport.vcap.VcapMeta;
-import org.scaffoldeditor.worldexport.vcap.VcapSettings;
 import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.Frame;
 import org.scaffoldeditor.worldexport.vcap.Frame.IFrame;
 import org.scaffoldeditor.worldexport.vcap.Frame.PFrame;
+import org.scaffoldeditor.worldexport.vcap.MeshWriter;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
+import org.scaffoldeditor.worldexport.vcap.VcapMeta;
+import org.scaffoldeditor.worldexport.vcap.VcapSettings;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -229,13 +227,9 @@ public class VcapExporter {
         LOGGER.info("Extracting world texture...");
         // For some reason, NativeImage can only write to a file; not an output stream.
         NativeImage atlas = TextureExtractor.getAtlas();
-        File atlasTemp = File.createTempFile("atlas-", ".png");
-        atlasTemp.deleteOnExit();
-
-        atlas.writeTo(atlasTemp);
 
         out.putNextEntry(new ZipEntry("tex/world.png"));
-        Files.copy(atlasTemp.toPath(), out);
+        TextureExtractor.writeTextureToFile(atlas, out);
         out.closeEntry();
 
         // META
