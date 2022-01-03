@@ -58,6 +58,7 @@ def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Image]) -> M
     
     if transparent:
         mat.blend_method = 'HASHED'
+        
     return mat
 
 
@@ -113,6 +114,8 @@ def parse(obj, name: str, context: VCAPContext):
 
     if transparent:
         mat.blend_method = 'HASHED'
+    
+    mat.use_backface_culling = True
     return mat
 
 def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool], Image], name: str = 'vcap_mat', uv_input: NodeSocket = None):
