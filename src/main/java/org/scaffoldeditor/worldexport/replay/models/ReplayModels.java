@@ -3,11 +3,10 @@ package org.scaffoldeditor.worldexport.replay.models;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ReplayModelAdapterFactory;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.PigEntityModel;
-import net.minecraft.client.render.entity.model.SkeletonEntityModel;
-import net.minecraft.entity.mob.SkeletonEntity;
-import net.minecraft.entity.passive.PigEntity;
+import net.minecraft.client.render.entity.model.AnimalModel;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -19,38 +18,109 @@ public final class ReplayModels {
 
     public static final float BIPED_Y_OFFSET = 1.5f;
     public static final float QUADRUPED_Y_OFFSET = 1.5f;
+    static MinecraftClient client = MinecraftClient.getInstance();
 
+    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T> {
+
+        public final Identifier tex;
+        public final float y_offset;
+
+        public AnimalModelFactory(Identifier tex, float y_offset) {
+            this.tex = tex;
+            this.y_offset = y_offset;
+        }
+
+        @Override
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        public ReplayModelAdapter<T> create(T entity) {
+            LivingEntityRenderer renderer = (LivingEntityRenderer) client.getEntityRenderDispatcher().getRenderer(entity);
+            return new AnimalModelWrapper<T>((AnimalModel<T>) renderer.getModel(), tex, y_offset);
+        }
+
+    }
+
+    @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
-                new ReplayModelAdapterFactory<SkeletonEntity>() {
 
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public ReplayModelAdapter<SkeletonEntity> create(SkeletonEntity entity) {
-                        LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>> renderer = (LivingEntityRenderer<SkeletonEntity, SkeletonEntityModel<SkeletonEntity>>) client
-                                .getEntityRenderDispatcher().getRenderer(entity);
+        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity>() {
+            public ReplayModelAdapter<AbstractClientPlayerEntity> create(AbstractClientPlayerEntity entity) {
+                return PlayerModelAdapter.newInstance(entity);
+            }   
+        });
 
-                        return new AnimalModelWrapper<>(renderer.getModel(),
-                                new Identifier("textures/entity/skeleton/skeleton.png"), BIPED_Y_OFFSET);
-                    }
+        /**
+         * QUADRIPEDS
+         */
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:cow"),
+                new AnimalModelFactory(new Identifier("textures/entity/cow/cow.png"), QUADRUPED_Y_OFFSET));
+                
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:goat"),
+                new AnimalModelFactory(new Identifier("textures/entity/goat/goat.png"), QUADRUPED_Y_OFFSET));
 
-                });
-
+        // TODO: write custom model adapter that updates texture situationally.
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:panda"), 
+                new AnimalModelFactory(new Identifier("textures/entity/panda/panda.png"), QUADRUPED_Y_OFFSET));
+        
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:pig"),
-                new ReplayModelAdapterFactory<PigEntity>() {
+                new AnimalModelFactory(new Identifier("textures/entity/pig/pig.png"), QUADRUPED_Y_OFFSET));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:polar_bear"),
+                new AnimalModelFactory(new Identifier("textures/entity/bear/polarbear.png"), QUADRUPED_Y_OFFSET));
+        
+        // TODO: Make this render wool properly.
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:sheep"),
+                new AnimalModelFactory(new Identifier("textures/entity/sheep/sheep.png"), QUADRUPED_Y_OFFSET));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:turtle"), 
+                new AnimalModelFactory(new Identifier("textures/entity/turtle/big_sea_turtle.png"), QUADRUPED_Y_OFFSET));
+            
+        /**
+         * BIPEDS
+         */
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:zombie"),
+                new AnimalModelFactory(new Identifier("textures/entity/zombie/zombie.png"), BIPED_Y_OFFSET));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:drowned"),
+                new AnimalModelFactory(new Identifier("textures/entity/zombie/drowned.png"), BIPED_Y_OFFSET));
 
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public ReplayModelAdapter<PigEntity> create(PigEntity entity) {
-                        LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>> renderer = (LivingEntityRenderer<PigEntity, PigEntityModel<PigEntity>>) client
-                                .getEntityRenderDispatcher().getRenderer(entity);
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:enderman"), 
+                new AnimalModelFactory(new Identifier("textures/entity/enderman/enderman.png"), BIPED_Y_OFFSET));
+            
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
+                new AnimalModelFactory(new Identifier("textures/entity/skeleton/skeleton.png"), BIPED_Y_OFFSET));
 
-                        return new AnimalModelWrapper<>(renderer.getModel(),
-                                new Identifier("textures/entity/pig/pig.png"), QUADRUPED_Y_OFFSET);
-                    }
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:vex"), 
+                new AnimalModelFactory(new Identifier("textures/entity/illager/vex.png"), BIPED_Y_OFFSET));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("zombie_villager"), 
+                new AnimalModelFactory(new Identifier("textures/entity/zombie_villager/zombie_villager.png"), BIPED_Y_OFFSET));
 
-                });
+        /**
+         * MISC
+         */
+
+        // TODO: Axolotl's varients make implementation non-trivial
+
+        ReplayModelAdapter.REGISTRY.put(new Identifier("bee"),
+                new AnimalModelFactory(new Identifier("textures/entity/bee/bee.png"), 0));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"),
+                new AnimalModelFactory(new Identifier("textures/entity/chicken.png"), 0));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("fox"),
+                new AnimalModelFactory(new Identifier("textures/entity/fox/fox.png"), 0));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("hoglin"), 
+                new AnimalModelFactory(new Identifier("textures/entity/hoglin/hoglin.png"), 0));
+
+        // TODO: Horse variant types
+        ReplayModelAdapter.REGISTRY.put(new Identifier("horse"),
+                new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), 0));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("donkey"),
+                new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), 0));
 
     }
 }
