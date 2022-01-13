@@ -165,19 +165,14 @@ public final class ExportCommand {
 
                             try {
                                 FileOutputStream os = new FileOutputStream(targetFile);
-                                currentExport.exporter.saveAsync(os).whenComplete((val, e) -> {
-                                    if (e != null) {
-                                        context.getSource()
-                                                .sendError(new LiteralText("Failed to save vcap. " + e.getMessage()));
-                                        LogManager.getLogger().error("Failed to save vcap.", e);
-                                    } else {
-                                        context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
-                                        currentExport = null;
-                                    }
-                                });
-                            } catch (FileNotFoundException e) {
+                                currentExport.exporter.save(os);
+                                
+                            } catch (IOException e) {
                                 throw new CommandException(
-                                        new LiteralText("Unable to load file: " + e.getLocalizedMessage()));
+                                    new LiteralText("Unable to save file. " + e.getLocalizedMessage()));
+                            } catch (Exception e) {
+                                throw new CommandException(
+                                    new LiteralText("Error generating Vcap." + e.getLocalizedMessage()));
                             }
                             return 0;
                         }))

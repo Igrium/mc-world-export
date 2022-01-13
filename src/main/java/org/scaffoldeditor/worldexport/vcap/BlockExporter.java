@@ -116,7 +116,7 @@ public final class BlockExporter {
         IntStream.range(0, 16).forEach(y -> {
             IntStream.range(0, 16).forEach(z -> {
                 IntStream.range(0, 16).forEach(x -> {
-                    BlockState state = section.getContainer().get(x, y, z);
+                    BlockState state = section.getBlockStateContainer().get(x, y, z);
                     BlockPos worldPos = new BlockPos(sectionX * 16 + x, sectionY * 16 + y, sectionZ * 16 + z);
                     String id;
 

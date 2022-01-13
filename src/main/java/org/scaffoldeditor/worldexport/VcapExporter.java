@@ -12,6 +12,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -37,6 +38,7 @@ import org.scaffoldeditor.worldexport.vcap.VcapSettings;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -138,9 +140,8 @@ public class VcapExporter {
      * </p>
      * <p>
      * <b>Warning:</b> Due to the need to extract the atlas texture from
-     * the GPU, this method blocks untill the next frame is rendered if it is not
-     * called on the render thread. Do not call from a thread that will stop the
-     * rendering of the next frame.
+     * the GPU, if this method is not called on the render thread, it will block
+     * until the next frame is rendered.
      * 
      * @param os Output stream to write to.
      * @throws IOException If an IO exception occurs while writing the file
@@ -224,14 +225,22 @@ public class VcapExporter {
         out.closeEntry();
 
         // TEXTURE ATLAS
-        LOGGER.info("Extracting world texture...");
-        // For some reason, NativeImage can only write to a file; not an output stream.
-        NativeImage atlas = TextureExtractor.getAtlas();
+        CompletableFuture<NativeImage> textureExtraction = new CompletableFuture<>();
+        MinecraftClient.getInstance().execute(() -> {
+            LOGGER.info("Extracting world texture...");
+            textureExtraction.complete(TextureExtractor.getAtlas());
+        });
 
         out.putNextEntry(new ZipEntry("tex/world.png"));
-        TextureExtractor.writeTextureToFile(atlas, out);
+        try {
+            TextureExtractor.writeTextureToFile(textureExtraction.get(), out);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Texture extractor was interrupted.", e);
+        } catch (ExecutionException e) {
+            throw new IOException("Error extracting world atlas texture.", e);
+        }
         out.closeEntry();
-
+        
         // META
         LOGGER.info("Writing Vcap metadata.");
         VcapMeta meta = new VcapMeta(numLayers);
@@ -244,6 +253,7 @@ public class VcapExporter {
         writer.print(gson.toJson(meta));
         writer.flush();
         out.closeEntry();
+        
 
         LOGGER.info("Finished writing Vcap.");
         out.finish();
