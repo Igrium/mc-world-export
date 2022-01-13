@@ -1,6 +1,11 @@
 package org.scaffoldeditor.worldexport.util;
 
+import java.util.AbstractSet;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Set;
+
+import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 
 public final class UtilFunctions {
     private UtilFunctions() {}
@@ -21,7 +26,7 @@ public final class UtilFunctions {
             } else {
                 try {
                     int num = Integer.parseInt(name.substring(dot_index + 1));
-                    name = name.substring(0, dot_index + 1) + String.valueOf(num);
+                    name = name.substring(0, dot_index + 1) + String.valueOf(num + 1);
                 } catch (NumberFormatException e) {
                     name = name+".1";
                 }
@@ -29,5 +34,38 @@ public final class UtilFunctions {
         }
 
         return name;
+    }
+
+    /**
+     * Create a view of a set of entities that contains the names of said entities.
+     * @param ents The set of entities.
+     * @return The generated view.
+     */
+    public static Set<String> nameView(Set<ReplayEntity<?>> ents) {
+        return new AbstractSet<String>() {
+
+            @Override
+            public Iterator<String> iterator() {
+                return new Iterator<String>() {
+                    Iterator<ReplayEntity<?>> base = ents.iterator();
+
+                    @Override
+                    public boolean hasNext() {
+                        return base.hasNext();
+                    }
+
+                    @Override
+                    public String next() {
+                        return base.next().getName();
+                    }
+                };
+            }
+
+            @Override
+            public int size() {
+                return ents.size();
+            }
+            
+        };
     }
 }

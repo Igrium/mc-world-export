@@ -55,7 +55,11 @@ public final class BlockExporter {
                 ChunkSection[] sections = chunk.getSectionArray();
                 for (int i = 0; i < sections.length; i++) {
                     if (sections[i] == null) continue;
-                    sectionTag.add(writeSection(sections[i], world, x, chunk.sectionIndexToCoord(i), z, context));
+
+                    int y = chunk.sectionIndexToCoord(i);
+                    if (y < context.getSettings().getLowerDepth()) continue;
+                    
+                    sectionTag.add(writeSection(sections[i], world, x, y, z, context));
                 }
             }
         }
@@ -77,7 +81,7 @@ public final class BlockExporter {
         BlockRenderManager dispatcher = client.getBlockRenderManager();
 
 
-        if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
+        if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
             id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
         } else {
             BlockPos.Mutable mutable = pos.mutableCopy();
@@ -121,7 +125,7 @@ public final class BlockExporter {
                     String id;
 
                     FluidState fluid = state.getFluidState();
-                    if (!fluid.isEmpty() && context.getSettings().isExportFluids()) {
+                    if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
                         id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();

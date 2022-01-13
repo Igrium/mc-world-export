@@ -1,6 +1,5 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
-import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.MinecraftClient;

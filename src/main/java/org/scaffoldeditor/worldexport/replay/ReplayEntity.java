@@ -11,6 +11,7 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.util.UtilFunctions;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -18,6 +19,7 @@ import org.w3c.dom.Element;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.Vec3d;
 
 /**
@@ -33,19 +35,40 @@ public class ReplayEntity<T extends Entity> {
 
     protected ReplayModel model;
     protected ReplayModelAdapter<T> modelAdapter;
+    protected String name;
 
     protected final List<Pose> frames = new ArrayList<>();
 
     private MinecraftClient client = MinecraftClient.getInstance();
+
+    /**
+     * Construct a replay entity with a default name.
+     * @param entity The base entity that this replay entity represents.
+     * @param file The replay file this entity belongs to.
+     */
+    public ReplayEntity(T entity, ReplayFile file) {
+        String name = entity.getEntityName();
+        if (name.equals(entity.getUuidAsString())) {
+            name = EntityType.getId(entity.getType()).toUnderscoreSeparatedString();
+        }
+
+        this.entity = entity;
+        this.file = file;
+
+        this.name = UtilFunctions.validateName(name, UtilFunctions.nameView(file.entities));
+    }
     
     /**
      * Construct a replay entity.
      * @param entity The base entity that this replay entity represents.
      * @param file The replay file this entity belongs to.
+     * @param name Name to give the entity in the file.
      */
-    public ReplayEntity(T entity, ReplayFile file) {
+    public ReplayEntity(T entity, ReplayFile file, String name) {
         this.entity = entity;
         this.file = file;
+
+        this.name = UtilFunctions.validateName(name, UtilFunctions.nameView(file.entities));
     }
 
     /**
@@ -74,10 +97,10 @@ public class ReplayEntity<T extends Entity> {
 
     /**
      * Get the name this entity will serialize with.
-     * @return Entity name. Most likely the UUID string.
+     * @return Entity name.
      */
     public String getName() {
-        return entity.getEntityName();
+        return name;
     }
 
     public ReplayModelAdapter<T> getAdapter() {

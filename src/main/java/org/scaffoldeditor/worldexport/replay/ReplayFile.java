@@ -21,7 +21,6 @@ import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.Material.Field;
 import org.scaffoldeditor.worldexport.mat.Material.Field.FieldType;
-import org.scaffoldeditor.worldexport.util.UtilFunctions;
 
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
@@ -101,13 +100,10 @@ public class ReplayFile {
         out.closeEntry();
 
         LOGGER.info("Serializing entities...");
-        Set<String> usedNames = new HashSet<>();
         for (ReplayEntity<?> ent : entities) {
-            String name = UtilFunctions.validateName(ent.getName(), usedNames);
-            out.putNextEntry(new ZipEntry("entities/"+name+".xml"));
+            out.putNextEntry(new ZipEntry("entities/"+ent.getName()+".xml"));
             ReplayIO.serializeEntity(ent, new OutputStreamWriter(out));
             out.closeEntry();
-            usedNames.add(name);
         }
 
         LOGGER.info("Saving Materials...");
