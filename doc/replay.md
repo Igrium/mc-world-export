@@ -104,7 +104,7 @@ Any of these values may be omitted, but due to the fact that *what* a number rep
 ***Transform entry example:***
 
 ```
-0.219 0.0 0.975 0.0 32.5 -9.0 324.5; 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0;
+0.219 0.0 0.975 0.0 32.5 -9.0 324.5 1.0 1.0 1.0;
 ```
 
 The order of the entries themselves within a frame is determined by the order in which the bones were defined in the file, starting with the entity root. (Remember: unlike JSON, the order in which elements are defined in XML matters.)
@@ -124,7 +124,7 @@ The order of the entries themselves within a frame is determined by the order in
 ### Example Entity
 
 ```xml
-<entity name="minecraft_zombie.69" class="minecraft_zombie">
+<entity name="minecraft_zombie.69" class="minecraft:zombie">
     <model rig-type="armature">
         <bone len="0.16" name="head" pos="0.0,1.5,-1.83E-16" rot="6.12E-17,1.0,0.0,0.0"/>
         <bone len="0.16" name="torso" pos="-0.3125,1.375,-1.685E-16" rot="0.656,0.754,0.00534,-0.01382"/>
@@ -146,5 +146,3 @@ The order of the entries themselves within a frame is determined by the order in
 ```
 
 *Note: this example has been prettied-up to make it digestible and it is NOT a valid entity XML tree. See `[insert file here]` for a proper example.*
-
-
