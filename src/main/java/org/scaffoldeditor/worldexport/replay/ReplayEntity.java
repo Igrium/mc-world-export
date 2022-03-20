@@ -49,7 +49,11 @@ public class ReplayEntity<T extends Entity> {
     public ReplayEntity(T entity, ReplayFile file) {
         String name = entity.getEntityName();
         if (name.equals(entity.getUuidAsString())) {
-            name = EntityType.getId(entity.getType()).toUnderscoreSeparatedString();
+            if (entity.hasCustomName()) {
+                name = entity.getCustomName().asString();
+            } else {
+                name = EntityType.getId(entity.getType()).toUnderscoreSeparatedString();
+            }
         }
 
         this.entity = entity;

@@ -4,6 +4,7 @@ import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 
@@ -37,35 +38,53 @@ public final class UtilFunctions {
     }
 
     /**
+     * A wrapper around a set that contains values from the objects of said set.
+     */
+    public static class SetView<T, U> extends AbstractSet<T> {
+        private Function<U, T> getterFunction;
+        private Set<U> base;
+
+        /**
+         * Create a wrapper around a set that contains a value from the objects inside the base set.
+         * @param base The base set.
+         * @param getterFunction A function witch will retrieve (or calculate) the target value.
+         */
+        public SetView(Set<U> base, Function<U, T> getterFunction) {
+            this.base = base;
+            this.getterFunction = getterFunction;
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return new Iterator<>() {
+                Iterator<U> baseIterator = base.iterator();
+
+                @Override
+                public boolean hasNext() {
+                    return baseIterator.hasNext();
+                }
+
+                @Override
+                public T next() {
+                    return getterFunction.apply(baseIterator.next());
+                }
+                
+            };
+        }
+
+        @Override
+        public int size() {
+            return base.size();
+        }
+
+    }
+
+    /**
      * Create a view of a set of entities that contains the names of said entities.
      * @param ents The set of entities.
      * @return The generated view.
      */
     public static Set<String> nameView(Set<ReplayEntity<?>> ents) {
-        return new AbstractSet<String>() {
-
-            @Override
-            public Iterator<String> iterator() {
-                return new Iterator<String>() {
-                    Iterator<ReplayEntity<?>> base = ents.iterator();
-
-                    @Override
-                    public boolean hasNext() {
-                        return base.hasNext();
-                    }
-
-                    @Override
-                    public String next() {
-                        return base.next().getName();
-                    }
-                };
-            }
-
-            @Override
-            public int size() {
-                return ents.size();
-            }
-            
-        };
+        return new SetView<>(ents, (ent) -> ent.getName());
     }
 }
