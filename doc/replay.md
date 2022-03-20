@@ -121,7 +121,7 @@ The order of the entries themselves within a frame is determined by the order in
 </anim>
 ```
 
-### Example Entity
+## Example Entity
 
 ```xml
 <entity name="minecraft_zombie.69" class="minecraft:zombie">
@@ -145,4 +145,8 @@ The order of the entries themselves within a frame is determined by the order in
 </entity>
 ```
 
-*Note: this example has been prettied-up to make it digestible and it is NOT a valid entity XML tree. See `[insert file here]` for a proper example.*
+*Note: this example has been prettied-up to make it digestible and it is NOT a valid entity XML tree. See [`example_entity.xml`](example_entity.xml) for a proper example.*
+
+# Textures and Materials
+
+Replay files use the exact same texture and material system as Vcap files. [Read about it here.](vcap.md#textures-and-materials)
