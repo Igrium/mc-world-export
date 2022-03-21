@@ -53,6 +53,7 @@ public class ArmatureReplayModel implements ReplayModel<Bone> {
 
     public Element serialize(Document dom) {
         Element element = dom.createElement("model");
+        element.setAttribute("rig-type", "armature");
         for (Bone bone : this.bones) {
             element.appendChild(serializeBone(bone, dom));
         }

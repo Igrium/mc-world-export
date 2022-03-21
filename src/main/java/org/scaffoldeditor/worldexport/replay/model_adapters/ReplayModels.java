@@ -42,7 +42,7 @@ public final class ReplayModels {
 
         ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, ArmatureReplayModel>() {
             public ReplayModelAdapter<AbstractClientPlayerEntity, ArmatureReplayModel> create(AbstractClientPlayerEntity entity) {
-                return PlayerModelAdapter.newInstance(entity);
+                return PlayerModelAdapterOld.newInstance(entity);
             }   
         });
 
