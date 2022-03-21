@@ -1,11 +1,11 @@
-package org.scaffoldeditor.worldexport.replay.models;
+package org.scaffoldeditor.worldexport.replay.model_adapters;
 
+import org.scaffoldeditor.worldexport.replay.models.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.AnimalModel;
+
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.model.BipedEntityModel.ArmPose;
 import net.minecraft.item.CrossbowItem;
@@ -16,32 +16,28 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
 
-public class PlayerModelAdapter extends AnimalModelWrapper<AbstractClientPlayerEntity> {
+public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerEntity> {
 
     static MinecraftClient client = MinecraftClient.getInstance();
 
-    protected PlayerModelAdapter(AnimalModel<AbstractClientPlayerEntity> model, Identifier texture) {
-        super(model, texture, ReplayModels.BIPED_Y_OFFSET);
+    protected PlayerModelAdapter(AbstractClientPlayerEntity player, Identifier texture) {
+        super(player, texture, ReplayModels.BIPED_Y_OFFSET);
     }
 
-    public PlayerEntityModel<AbstractClientPlayerEntity> getModel() {
-        return (PlayerEntityModel<AbstractClientPlayerEntity>) this.model;
-    }
     
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public static PlayerModelAdapter newInstance(AbstractClientPlayerEntity player) {
-        LivingEntityRenderer renderer = (LivingEntityRenderer) client.getEntityRenderDispatcher().getRenderer(player);
-        return new PlayerModelAdapter((AnimalModel) renderer.getModel(), player.getSkinTexture());
+        return new PlayerModelAdapter(player, player.getSkinTexture());
     }
 
     @Override
-    public Pose getPose(AbstractClientPlayerEntity entity, float yaw, float tickDelta) {
-        setModelPose(entity);
-        return super.getPose(entity, yaw, tickDelta);
+    public Pose<Bone> getPose(float tickDelta) {
+        setModelPose();
+        return super.getPose(tickDelta);
     }
 
-    private void setModelPose(AbstractClientPlayerEntity player) {
-        PlayerEntityModel<AbstractClientPlayerEntity> model = getModel();
+    private void setModelPose() {
+        PlayerEntityModel<AbstractClientPlayerEntity> model = (PlayerEntityModel<AbstractClientPlayerEntity>) getEntityModel();
+        AbstractClientPlayerEntity player = getEntity();
         if (player.isSpectator()) {
             model.setVisible(false);
             model.head.visible = true;

@@ -1,15 +1,19 @@
-package org.scaffoldeditor.worldexport.replay.models;
+package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.joml.Quaterniond;
+import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.Material.Field;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
 
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerModelPart;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.entity.EntityPose;
@@ -20,57 +24,60 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Matrix4f;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
 
 /**
  * Base replay model generator for living entities (with living entity renderers).
+ * 
+ * @param <T> The type of entity this is an adapter for.
+ * @param <B> The type of bones that this adapter's model will use.
+ * @param <M> The type of model that this adapter will use.
  */
-public abstract class LivingModelGenerator<T extends LivingEntity> implements ReplayModelAdapter<T> {
-    
-    /**
-     * Wrapper class around various <code>LivingEntityRenderer</code> values for use in function calls.
-     */
-    public static class LivingModelValues {
-        public final float handSwingProgress;
-        public final boolean riding;
-        public final boolean child;
+public abstract class LivingModelAdapter<T extends LivingEntity, B, M extends ReplayModel<B>> implements ReplayModelAdapter<T, B, M> {
 
-        public LivingModelValues(float handSwingProgress, boolean riding, boolean child) {
-            this.handSwingProgress = handSwingProgress;
-            this.riding = riding;
-            this.child = child;
-        }
-    }
+    private T entity;
     
     protected float handSwingProgress = 0;
     protected boolean riding = false;
     protected boolean child = false;
     
-    public abstract void animateModel(T entity, float limbAngle, float limbDistance, float tickDelta);
-    public abstract void setAngles(T entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+    public abstract void animateModel(float limbAngle, float limbDistance, float tickDelta);
+    public abstract void setAngles(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+
+    public LivingModelAdapter(T entity) {
+        this.entity = entity;
+    }
+
+    public T getEntity() {
+        return entity;
+    }
 
     /**
      * Update various values on the entity model.
-     * @param values An object wrapper around the values.
      */
-    protected abstract void updateValues(LivingModelValues values);
+    protected abstract void updateValues(float handSwingProgress, boolean riding, boolean child);
     
     /**
-     * Extract the pose from the underlying model.
+     * Extract the pose from the underlying model. Note: Root transform data gets
+     * applied in the calling function. The Pose's root transform should be in local
+     * space.
      * 
-     * @param entity    Target entity.
-     * @param yaw       Entity's yaw. Note: yaw is applied in the parent class.
-     *                  Don't rotate the whole model here.
+     * @param model     The model to use to generate pose transforms.
      * @param tickDelta Tick delta.
      * @return The generated pose.
      */
-    protected abstract Pose writePose(T entity, float yaw, float tickDelta);
+    protected abstract Pose<B> writePose(float tickDelta);
 
-    abstract Identifier getTexture(T entity);
+    /**
+     * Get the texture of this entity. Identical to {@link EntityRenderer#getTexture}
+     * @return Texture identifier.
+     */
+    abstract Identifier getTexture();
 
     @Override
-    public void generateMaterials(T entity, ReplayFile file) {
-        Identifier texture = getTexture(entity);
+    public void generateMaterials(ReplayFile file) {
+        Identifier texture = getTexture();
         String texName = getTexName(texture);
         if (file.materials.containsKey(texName)) return;
         Material mat = new Material();
@@ -85,6 +92,11 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
         });
     }
 
+    /**
+     * Get the filename of a texture, excluding the extension.
+     * @param texture Texture identifier.
+     * @return Filename, without extension.
+     */
     protected String getTexName(Identifier texture) {
         String name = texture.toString().replace(':', '/');
         int index = name.lastIndexOf('.');
@@ -98,14 +110,15 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
     protected boolean isTransparent(T entity) {
         return true;
     }
+    
 
     @Override
-    public Pose getPose(T entity, float yaw, float tickDelta) {
+    public Pose<B> getPose(float tickDelta) {
 
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();
         this.child = entity.isBaby();
-        updateValues(new LivingModelValues(handSwingProgress, riding, child));
+        updateValues(handSwingProgress, riding, child);
 
         // TRANSFORMATION
         Matrix4f transform = Matrix4f.translate(0, 0, 0);
@@ -162,19 +175,30 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
             }
         }
 
-        this.animateModel(entity, limbAngle, limbDistance, tickDelta);
-        this.setAngles(entity, limbAngle, limbDistance, animProgress, headYawFinal, pitch);
+        this.animateModel(limbAngle, limbDistance, tickDelta);
+        this.setAngles(limbAngle, limbDistance, animProgress, headYawFinal, pitch);
 
-        Pose pose = writePose(entity, yaw, tickDelta);
-        pose.rot = pose.rot.rotateY(-Math.toRadians(yaw), new Quaterniond());
+        Pose<B> pose = writePose(tickDelta);
+        // Root transform
+        Vector3d pos = new Vector3d(pose.root.translation);
+        Quaterniond rot = new Quaterniond();
+        rot.rotateY(-Math.toRadians(entity.getYaw()));
+        rot.transform(pos);
+
+        Vec3d mcPos = entity.getPos();
+        pos.add(mcPos.x, mcPos.y, mcPos.z);
+
+        rot.mul(pose.root.rotation);
+
+        pose.root = new Transform(pos, rot, pose.root.scale);
         return pose;
     }
 
-    protected boolean isShaking(T entity) {
+    protected boolean isShaking() {
         return entity.isFreezing();
     }
 
-    protected float getLyingAngle(T entity) {
+    protected float getLyingAngle() {
         return 90.0F;
     }
 
@@ -197,7 +221,7 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
 	}
 
     protected void prepareTransforms(T entity, Matrix4f matrix, float animationProgress, float bodyYaw, float tickDelta) {
-        if (isShaking(entity)) {
+        if (isShaking()) {
             bodyYaw += Math.cos(entity.age * 3.25d) * Math.PI * 0.4;
         }
         
@@ -213,7 +237,7 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
                 angle = 1;
             }
 
-            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(angle * getLyingAngle(entity)));
+            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(angle * getLyingAngle()));
         } else if (entity.isUsingRiptide()) {
             matrix.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(-90 - entity.getPitch()));
             matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion((entity.age + tickDelta) * -75));
@@ -221,7 +245,7 @@ public abstract class LivingModelGenerator<T extends LivingEntity> implements Re
             Direction direction = entity.getSleepingDirection();
             float rot = direction != null ? getYaw(direction) : bodyYaw;
             matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(rot));
-            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(getLyingAngle(entity)));
+            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(getLyingAngle()));
             matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(270));
         } else if (entity.hasCustomName() || entity instanceof PlayerEntity) {
             String name = Formatting.strip(entity.getName().getString());

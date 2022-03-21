@@ -1,11 +1,7 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -13,14 +9,8 @@ import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
-import org.scaffoldeditor.worldexport.util.TreeIterator;
-import org.scaffoldeditor.worldexport.util.TreeNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
-import de.javagl.obj.Obj;
-import de.javagl.obj.ObjWriter;
-import de.javagl.obj.Objs;
 
 /**
  * <p>
@@ -33,148 +23,113 @@ import de.javagl.obj.Objs;
  * This is an intermediary class which contains entity meshes that can be
  * exported. Generators must be written on a per-class basis.
  * </p>
+ * 
+ * @param <T> The bone data structure this model will use.
  */
-public class ReplayModel {
-    
+public interface ReplayModel<T> {
+
     /**
-     * A single bone in the armature.
+     * Represents a transform within a pose (of a bone, for example).
      */
-    public static class Bone implements TreeNode<Bone> {
-        public String name;
-
-        public Bone(String name) {
-            this.name = name;
-        }
-
-        public Bone(String name, Vector3dc start, Quaterniond rot) {
-            this.name = name;
-            this.pos = start;
-            this.rot = rot;
-        }
-
-        /**
-         * Position of the bone.
-         */
-        public Vector3dc pos = new Vector3d();
-        
-        /**
-         * Rotation of the bone.
-         */
-        public Quaterniondc rot = new Quaterniond();
-
-        /**
-         * Length of the bone.
-         */
-        public float length = .16f;
-
-        /**
-         * The children of this bone.
-         */
-        public final List<Bone> children = new ArrayList<>();
-
-        @Override
-        public Iterator<Bone> getChildren() {
-            return children.iterator();
-        }
-
-        @Override
-        public boolean hasChildren() {
-            return children.size() > 0;
-        }
-    }
-
-    public static class BoneTransform {
+    public static class Transform {
         public final Vector3dc translation;
         public final Quaterniondc rotation;
         public final Vector3dc scale;
 
-        public BoneTransform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
+        public static final Transform NEUTRAL = new Transform(new Vector3d(), new Quaterniond(), new Vector3d(1d));
+        
+        public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
             this.translation = translation;
             this.rotation = rotation;
             this.scale = scale;
         }
+
+        /**
+         * Get a string representation of this bone transform, as defined by the Replay
+         * file specification (for use in the Entity XML.)
+         * 
+         * @param useTranslation Whether to include translation in the string.
+         * @param useScale       Whether to include scale in the string. Can only be
+         *                       if <code>useTranslation</code> is true!
+         * @throws IllegalArgumentException If you attempt to include scale without
+         *                                  including translation.
+         * @return Stringified object.
+         */
+        public String toString(boolean useTranslation, boolean useScale) {
+            if (useScale && !useTranslation) {
+                throw new IllegalArgumentException("Translation MUST be written in order for scale to be written!");
+            }
+
+            List<String> strings = new ArrayList<>();
+
+            strings.add(String.valueOf(rotation.w()));
+            strings.add(String.valueOf(rotation.x()));
+            strings.add(String.valueOf(rotation.y()));
+            strings.add(String.valueOf(rotation.z()));
+
+            if (useTranslation) {
+                strings.add(String.valueOf(translation.x()));
+                strings.add(String.valueOf(translation.y()));
+                strings.add(String.valueOf(translation.z()));
+            }
+            if (useScale) {
+                strings.add(String.valueOf(scale.x()));
+                strings.add(String.valueOf(scale.y()));
+                strings.add(String.valueOf(scale.z()));
+            }
+
+            return String.join(" ", strings)+";";
+        }
+
+        /**
+         * Get a string representation of this bone transform (including translation,
+         * rotation, and scale), as defined by the Replay file specification (for use in
+         * the Entity XML.)
+         */
+        @Override
+        public String toString() {
+            return toString(true, true);
+        }
     }
-
-    public static class Pose {
-        public Vector3dc pos = new Vector3d();
-        public Quaterniondc rot = new Quaterniond();
-        public Vector3dc scale = new Vector3d(1d);
-
-        public final Map<Bone, BoneTransform> bones = new HashMap<>();
-    }
-
+    
     /**
-     * Base mesh data. Face groups to be interpreted as bone weights.
+     * Represents a single-frame pose of a model.
+     * @param <T> The data structure used to represent bones.
      */
-    public final Obj mesh;
-
-    /**
-     * All the bones in this model.
-     */
-    public final List<Bone> bones = new ArrayList<>();
-
-    public ReplayModel(Obj mesh) {
-        this.mesh = mesh;
+    public static class Pose<T> {
+        /**
+         * The root transform of the entity (in world space)
+         */
+        public Transform root = new Transform(
+                new Vector3d(),
+                new Quaterniond(),
+                new Vector3d(1d));
+        /**
+         * A map of bones and their transforms. The coordinate space these transforms
+         * are in depends on the model.
+         */
+        public final Map<T, Transform> bones = new HashMap<>();
     }
 
     /**
-     * Get an iterable view of all the bones in this model and their children.
+     * Get the bones of this model in definition order.
+     * @return A view of this model's bones.
+     */
+    public Iterable<T> getBones();
+
+    /**
+     * Convert a transform into a coordinate space suitable for this armature type.
      * 
-     * @return An iterable that iterates over the bones in "definition order" (the
-     *         order in which they are defined in animation frames.)
+     * @param T  The bone this transform belongs to.
+     * @param in Transform relative to entity root.
+     * @return Transform in the target coordinate space.
      */
-    public Iterable<Bone> getBones() {
-        return () -> new TreeIterator<>(bones.iterator());
-    }
+    public Transform processCoordinateSpace(T bone, Transform in);
 
     /**
-     * Create a replay model with an empty mesh.
-     */
-    public ReplayModel() {
-        this.mesh = Objs.create();
-    }
-
-    /**
-     * Save an entity mesh into XML.
-     * @param model Model to save.
+     * Save this model into XML.
      * @param dom Document to write into.
-     * @return Serialized element.
+     * @return The <code>&lt;model&gt;</code> element of the entity file.
      */
-    public static Element serialize(ReplayModel model, Document dom) {
-        Element element = dom.createElement("model");
-        for (Bone bone : model.bones) {
-            element.appendChild(serializeBone(bone, dom));
-        }
-        Writer writer = new StringWriter();
-        try {
-            ObjWriter.write(model.mesh, writer);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        Element meshNode = dom.createElement("mesh");
-        meshNode.appendChild(dom.createTextNode(writer.toString()));
-        element.appendChild(meshNode);
-        return element;
-    }
-
-    public static Element serializeBone(Bone bone, Document dom) {
-        Element element = dom.createElement("bone");
-        element.setAttribute("name", bone.name);
-        element.setAttribute("pos", writeVectorString(bone.pos));
-        element.setAttribute("rot", writeQuatToString(bone.rot));
-        element.setAttribute("len", String.valueOf(bone.length));
-        for (Bone child : bone.children) {
-            element.appendChild(serializeBone(child, dom));
-        }
-        return element;
-    }
-
-    private static String writeVectorString(Vector3dc vec) {
-        return vec.x()+","+vec.y()+","+vec.z();
-    }
-
-    private static String writeQuatToString(Quaterniondc quat) {
-        return quat.w()+","+quat.x()+","+quat.y()+","+quat.z();
-    }
+    public Element serialize(Document dom);
 }

@@ -5,22 +5,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.joml.Vector3d;
+import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Bone;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.BoneTransform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
 import org.scaffoldeditor.worldexport.util.UtilFunctions;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.util.math.Vec3d;
 
 /**
  * Represents an entity in the concept of a replay export.
@@ -33,13 +29,10 @@ public class ReplayEntity<T extends Entity> {
 
     protected ReplayFile file;
 
-    protected ReplayModel model;
-    protected ReplayModelAdapter<T> modelAdapter;
+    protected ReplayModelAdapter<T, ?, ?> modelAdapter;
     protected String name;
 
-    protected final List<Pose> frames = new ArrayList<>();
-
-    private MinecraftClient client = MinecraftClient.getInstance();
+    protected final List<Pose<?>> frames = new ArrayList<>();
 
     /**
      * Construct a replay entity with a default name.
@@ -79,16 +72,25 @@ public class ReplayEntity<T extends Entity> {
      * Generate this entity's model adapter.
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
-    public ReplayModelAdapter<T> genAdapter() throws ModelNotFoundException {
+    public ReplayModelAdapter<T, ?, ?> genAdapter() throws ModelNotFoundException {
+        if (modelAdapter != null) {
+            throw new IllegalStateException("Model adapter has already been generated!");
+        }
+
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
-        this.model = modelAdapter.generateModel(entity, file);
-        modelAdapter.generateMaterials(entity, file);
+        modelAdapter.generateMaterials(file);
         
         return modelAdapter;
     }
 
-    public ReplayModel getModel() {
-        return model;
+    /**
+     * Get the model from this entity's model adapter. A simple wrapper for {@link ReplayModelAdapter#getModel()}.
+     * @return This entityu's model.
+     * @throws IllegalStateException If the model adapter hasn't been generated yet.
+     */
+    public ReplayModel<?> getModel() {
+        assertModelAdapter();
+        return modelAdapter.getModel();
     }
 
     /**
@@ -106,86 +108,75 @@ public class ReplayEntity<T extends Entity> {
     public String getName() {
         return name;
     }
-
-    public ReplayModelAdapter<T> getAdapter() {
+    
+    /**
+     * Get the entity's model adapter.
+     * @return The model adapter, or <code>null</code> if it hasn't been generated.
+     */
+    public ReplayModelAdapter<T, ?, ?> getAdapter() {
         return modelAdapter;
     }
 
-    public Pose capture(float tickDelta) {
-        if (this.modelAdapter == null) {
-            throw new IllegalStateException("Model adapter has not been generated. Generate it with genAdapter()");
-        }
-        EntityRenderer<? super T> renderer = client.getEntityRenderDispatcher().getRenderer(entity);
-        Vec3d mcPos = entity.getPos();
-        mcPos = mcPos.add(renderer.getPositionOffset(entity, tickDelta));
+    /**
+     * Capture a single frame of this entity's animation, based on the entity's current pose.
+     * Should only need to be called once per-tick.
+     * @param tickDelta Time since the previous tick.
+     * @return The pose which has just been added to the frames list.
+     */
+    public Pose<?> capture(float tickDelta) {
+        assertModelAdapter();
 
-        Pose pose = this.modelAdapter.getPose(entity, entity.getYaw(), tickDelta);
-        pose.pos = pose.pos.add(new Vector3d(mcPos.x, mcPos.y, mcPos.z), new Vector3d());
+        Pose<?> pose = this.modelAdapter.getPose(tickDelta);
 
         this.frames.add(pose);
         return pose;
     }
 
+    protected void assertModelAdapter() {
+        if (this.modelAdapter == null) {
+            throw new IllegalStateException("Model adapter has not been generated. Generate first it with genAdapter()");
+        }
+    }
+
+    /**
+     * Save a replay entity out to XML.
+     * @param entity Entity to save.
+     * @param doc XML document.
+     * @return The root <entity> tag of the XML.
+     */
     public static Element writeToXML(ReplayEntity<?> entity, Document doc) {
         Element node = doc.createElement("entity");
         node.setAttribute("name", entity.getName());
-        Element modelNode = ReplayModel.serialize(entity.model, doc);
+        node.setAttribute("class", EntityType.getId(entity.entity.getType()).toString());
+
+        ReplayModel<?> model = entity.getModel();
+
+        Element modelNode = model.serialize(doc);
         node.appendChild(modelNode);
 
         Element animNode = doc.createElement("anim");
         animNode.setAttribute("fps", String.valueOf(entity.getFile().getFps()));
         StringWriter writer = new StringWriter();
 
-        Iterator<Pose> frames = entity.frames.iterator();
+        Iterator<Pose<?>> frames = entity.frames.iterator();
+        int i = 0;
         while (frames.hasNext()) {
-            Pose pose = frames.next();
-            // Make a list of bone transforms in definition order.
-            List<BoneTransform> transforms = new ArrayList<>();
-            for (Bone bone : entity.model.getBones()) {
-                BoneTransform transform = pose.bones.get(bone);
-                if (transform != null) transforms.add(transform);
-            }
+            Pose<?> pose = frames.next();
+            writer.write(pose.root.toString());
             
-            // Root pos
-            List<String> rootVals = new ArrayList<>();
-            rootVals.add(String.valueOf(pose.rot.w()));
-            rootVals.add(String.valueOf(pose.rot.x()));
-            rootVals.add(String.valueOf(pose.rot.y()));
-            rootVals.add(String.valueOf(pose.rot.z()));
+            for (Object bone : model.getBones()) {
+                Transform transform = pose.bones.get(bone);
+                if (transform == null) {
+                    LogManager.getLogger().warn("Frame {} on {} is missing bone: {}.", i, entity.getName(), bone);
+                    transform = Transform.NEUTRAL;
+                }
 
-            rootVals.add(String.valueOf(pose.pos.x()));
-            rootVals.add(String.valueOf(pose.pos.y()));
-            rootVals.add(String.valueOf(pose.pos.z()));
-
-            writer.append(String.join(" ", rootVals));
-            writer.append("; ");
-
-            Iterator<BoneTransform> bones = transforms.iterator();
-            while (bones.hasNext()) {
-                BoneTransform bone = bones.next();
-                List<String> vals = new ArrayList<>();
-   
-                vals.add(String.valueOf(bone.rotation.w()));
-                vals.add(String.valueOf(bone.rotation.x()));
-                vals.add(String.valueOf(bone.rotation.y()));
-                vals.add(String.valueOf(bone.rotation.z()));
-   
-                vals.add(String.valueOf(bone.translation.x()));
-                vals.add(String.valueOf(bone.translation.y()));
-                vals.add(String.valueOf(bone.translation.z()));
-   
-                vals.add(String.valueOf(bone.scale.x()));
-                vals.add(String.valueOf(bone.scale.y()));
-                vals.add(String.valueOf(bone.scale.z()));
-                
-                writer.append(String.join(" ", vals));
-                writer.append(';');
-   
-                if (bones.hasNext()) writer.append(' ');
+                writer.write(transform.toString());
             }
-            if (frames.hasNext()) writer.write("\n");
+
+            if (frames.hasNext()) writer.write(System.lineSeparator());
         }
-        writer.flush();
+
         animNode.appendChild(doc.createTextNode(writer.toString()));
         node.appendChild(animNode);
 

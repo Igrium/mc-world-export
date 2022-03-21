@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.ReplayIO;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 
 import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;

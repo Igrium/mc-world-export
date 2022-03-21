@@ -23,7 +23,7 @@ import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;

@@ -1,11 +1,11 @@
-package org.scaffoldeditor.worldexport.replay.models;
+package org.scaffoldeditor.worldexport.replay.model_adapters;
 
-import org.scaffoldeditor.worldexport.replay.models.ReplayModelAdapter.ReplayModelAdapterFactory;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
+import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.Bone;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 
@@ -20,10 +20,11 @@ public final class ReplayModels {
     public static final float QUADRUPED_Y_OFFSET = 1.5f;
     static MinecraftClient client = MinecraftClient.getInstance();
 
-    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T> {
 
-        public final Identifier tex;
-        public final float y_offset;
+    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T, Bone, ArmatureReplayModel> {
+
+        public Identifier tex;
+        public float y_offset;
 
         public AnimalModelFactory(Identifier tex, float y_offset) {
             this.tex = tex;
@@ -31,10 +32,8 @@ public final class ReplayModels {
         }
 
         @Override
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        public ReplayModelAdapter<T> create(T entity) {
-            LivingEntityRenderer renderer = (LivingEntityRenderer) client.getEntityRenderDispatcher().getRenderer(entity);
-            return new AnimalModelWrapper<T>((AnimalModel<T>) renderer.getModel(), tex, y_offset);
+        public ReplayModelAdapter<T, Bone, ArmatureReplayModel> create(T entity) {
+            return new AnimalModelAdapter<T>(entity, tex, y_offset);
         }
 
     }
@@ -42,8 +41,8 @@ public final class ReplayModels {
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
-        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity>() {
-            public ReplayModelAdapter<AbstractClientPlayerEntity> create(AbstractClientPlayerEntity entity) {
+        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, Bone, ArmatureReplayModel>() {
+            public ReplayModelAdapter<AbstractClientPlayerEntity, Bone, ArmatureReplayModel> create(AbstractClientPlayerEntity entity) {
                 return PlayerModelAdapter.newInstance(entity);
             }   
         });

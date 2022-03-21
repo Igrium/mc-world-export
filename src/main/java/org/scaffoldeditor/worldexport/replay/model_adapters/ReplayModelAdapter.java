@@ -1,10 +1,11 @@
-package org.scaffoldeditor.worldexport.replay.models;
+package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.entity.Entity;
@@ -13,11 +14,14 @@ import net.minecraft.util.Identifier;
 
 /**
  * Renders an entity into an animated mesh. One exists per entity.
+ * @param <T> The type of entity this is an adapter for.
+ * @param <B> The type of bones that this adapter's model will use.
+ * @param <M> The type of model that this adapter will use.
  */
-public interface ReplayModelAdapter<T extends Entity> {
+public interface ReplayModelAdapter<T extends Entity, B, M extends ReplayModel<B>> {
 
-    public static interface ReplayModelAdapterFactory<T extends Entity> {
-        public ReplayModelAdapter<T> create(T entity);
+    public static interface ReplayModelAdapterFactory<T extends Entity, B, M extends ReplayModel<?>> {
+        public ReplayModelAdapter<T, B, ? extends ReplayModel<B>> create(T entity);
     }
 
     /**
@@ -46,7 +50,7 @@ public interface ReplayModelAdapter<T extends Entity> {
         }
     }
 
-    public static final Map<Identifier, ReplayModelAdapterFactory<?>> REGISTRY = new HashMap<>();
+    public static final Map<Identifier, ReplayModelAdapterFactory<?, ?, ?>> REGISTRY = new HashMap<>();
 
     /**
      * Create a model adapter for a given entity.
@@ -55,45 +59,36 @@ public interface ReplayModelAdapter<T extends Entity> {
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> ReplayModelAdapter<E> getModelAdapter(E entity) throws ModelNotFoundException {
+    public static <E extends Entity> ReplayModelAdapter<E, ?, ?> getModelAdapter(E entity) throws ModelNotFoundException {
         Identifier id = EntityType.getId(entity.getType());
-        ReplayModelAdapterFactory<E> factory = (ReplayModelAdapterFactory<E>) REGISTRY.get(id);
+        ReplayModelAdapterFactory<E, ?, ?> factory = (ReplayModelAdapterFactory<E, ?, ?>) REGISTRY.get(id);
         if (factory == null) {
             throw new ModelNotFoundException(id);
         }
 
         return factory.create(entity);
     }
+
+
+    /**
+     * Get the replay model that was generated when this adapter was created.
+     * @return This adapter's model. May still be written to by this adapter.
+     */
+    public M getModel();
     
     /**
-     * <p>
-     * Generate the entity's replay model. 90% of the time, this returns the same
-     * thing every time, but some entities (like items) require different models on
-     * a per-entity basis.
-     * </p>
+     * Generate the materials for this model. Doesn't do anything if the materials
+     * already exist.
      * 
-     * @param entity Entity to generate the model using.
-     * @param file   Replay file to generate into.
-     * @return Generated model.
+     * @param file Replay file to put materials/textures into.
      */
-    public ReplayModel generateModel(T entity, ReplayFile file);
+    public void generateMaterials(ReplayFile file);
 
     /**
-     * Generate the materials for this model.
+     * Get an entity's current pose .
      * 
-     * @param entity Entity to generate the materials using.
-     * @param file   Replay file to put materials/textures into.
-     */
-    public void generateMaterials(T entity, ReplayFile file);
-
-    /**
-     * Get an entity's current pose (relative to the entity's root).
-     * 
-     * @param entity    The entity to query.
-     * @param yaw       The entity's yaw.
      * @param tickDelta Time since the previous tick.
-     * @return A mapping from the entity's bone names to their corrisponding
-     *         transforms.
+     * @return The current pose.
      */
-    public Pose getPose(T entity, float yaw, float tickDelta);
+    public Pose<B> getPose(float tickDelta);
 }
