@@ -102,6 +102,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         scene_framerate = render.fps / render.fps_base
         
         fps = anim.get('fps')
+        anim_start_time = float(anim.get('start-time', "0"))
+
         if fps:
             framerate = float(fps)
         else:
@@ -192,7 +194,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             
             # Gotta love data manipulation.
             keyframes = [(
-                frame / framerate * scene_framerate,
+                (frame / framerate + anim_start_time) * scene_framerate,
                 val[index]
             ) for frame, val in channel.keyframes.items()]
             

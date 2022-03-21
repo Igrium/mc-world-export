@@ -126,6 +126,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
                 return;
             }
             
+            rEnt.setStartTime(framesDone / (float) renderInfo.getRenderSettings().getFramesPerSecond());
             exporter.entities.add(rEnt);
             entityCache.put(ent, rEnt);
         }

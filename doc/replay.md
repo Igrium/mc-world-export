@@ -80,6 +80,7 @@ The other major part of entity files are animations. Except for a minor detail r
 Each `entity` has *one* `<anim>` element with the following attribute:
 
 - `fps`: The frame rate of the animation, represented as a stringified float. In most cases, this will be `"20"`, matching Minecraft's internal clock speed.
+- `start-time` (optional, default = `"0"`): The time in seconds since the beginning of the file that this animation starts.
 
 Like `<mesh>`, `<anim>` contains raw text which efficiently makes up the animation. Every line in this block of text is an individual frame, and each frame is made up of a set of *transform entries*, separated by semicolons (`;`).
 
@@ -114,7 +115,7 @@ The order of the entries themselves within a frame is determined by the order in
 ***Animation example:***
 
 ```xml
-<anim fps="20">
+<anim fps="20" start-time="0">
     0.219 0.0 0.975 0.0 32.5 -9.0 324.5; 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 0.0193 -0.00167 0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 -0.0193 -0.00167 -0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 -0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0;
     0.219 0.0 0.975 0.0 32.5 -9.0 324.5; 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 0.0193 -0.00167 0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 -0.0193 -0.00167 -0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 -0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0;
     ...
@@ -137,7 +138,7 @@ The order of the entries themselves within a frame is determined by the order in
             [obj data...]
         </mesh>
     </model>
-    <anim fps="20.0">
+    <anim fps="20.0", start-time="0">
         0.219 0.0 0.975 0.0 32.5 -9.0 324.5; 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 0.0193 -0.00167 0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 -0.0193 -0.00167 -0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 -0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0;
         0.219 0.0 0.975 0.0 32.5 -9.0 324.5; 1.0 0.0 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 0.0193 -0.00167 0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 -0.0193 -0.00167 -0.0134 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 -0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 0.979 0.2 0.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0; 1.0 1.23E-32 0.0122 9.62E-35 0.0 0.0 0.0 1.0 1.0 1.0;
         ...

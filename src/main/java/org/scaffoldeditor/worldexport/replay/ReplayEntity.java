@@ -34,6 +34,8 @@ public class ReplayEntity<T extends Entity> {
 
     protected final List<Pose<?>> frames = new ArrayList<>();
 
+    protected float startTime = 0;
+
     /**
      * Construct a replay entity with a default name.
      * @param entity The base entity that this replay entity represents.
@@ -132,6 +134,22 @@ public class ReplayEntity<T extends Entity> {
         return pose;
     }
 
+    /**
+     * Get the time in the file when this entity "spawns".
+     * @return Start time in seconds.
+     */
+    public float getStartTime() {
+        return startTime;
+    }
+
+    /**
+     * Set the time in the file when this entity "spawns".
+     * @param startTime Start time in seconds.
+     */
+    public void setStartTime(float startTime) {
+        this.startTime = startTime;
+    }
+
     protected void assertModelAdapter() {
         if (this.modelAdapter == null) {
             throw new IllegalStateException("Model adapter has not been generated. Generate first it with genAdapter()");
@@ -156,6 +174,7 @@ public class ReplayEntity<T extends Entity> {
 
         Element animNode = doc.createElement("anim");
         animNode.setAttribute("fps", String.valueOf(entity.getFile().getFps()));
+        animNode.setAttribute("start-time", String.valueOf(entity.startTime));
         StringWriter writer = new StringWriter();
 
         Iterator<Pose<?>> frames = entity.frames.iterator();
