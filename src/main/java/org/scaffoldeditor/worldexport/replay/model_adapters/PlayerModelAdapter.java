@@ -30,9 +30,9 @@ public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerE
     }
 
     @Override
-    public Pose<Bone> getPose(float tickDelta) {
+    protected Pose<Bone> writePose(float tickDelta) {
         setModelPose();
-        return super.getPose(tickDelta);
+        return super.writePose(tickDelta);
     }
 
     private void setModelPose() {

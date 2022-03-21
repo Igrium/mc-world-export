@@ -28,7 +28,7 @@ import net.minecraft.util.Identifier;
 /**
  * Umbrella model adapter that works specifically with entities which use Animal Models.
  */
-public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, Bone, ArmatureReplayModel> {
+public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, ArmatureReplayModel> {
     private MinecraftClient client = MinecraftClient.getInstance();
 
     /**

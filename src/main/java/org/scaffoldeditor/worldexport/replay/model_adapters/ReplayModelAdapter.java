@@ -15,13 +15,12 @@ import net.minecraft.util.Identifier;
 /**
  * Renders an entity into an animated mesh. One exists per entity.
  * @param <T> The type of entity this is an adapter for.
- * @param <B> The type of bones that this adapter's model will use.
  * @param <M> The type of model that this adapter will use.
  */
-public interface ReplayModelAdapter<T extends Entity, B, M extends ReplayModel<B>> {
+public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> {
 
-    public static interface ReplayModelAdapterFactory<T extends Entity, B, M extends ReplayModel<?>> {
-        public ReplayModelAdapter<T, B, ? extends ReplayModel<B>> create(T entity);
+    public static interface ReplayModelAdapterFactory<T extends Entity, M extends ReplayModel<?>> {
+        public ReplayModelAdapter<T, ? extends ReplayModel<?>> create(T entity);
     }
 
     /**
@@ -50,7 +49,7 @@ public interface ReplayModelAdapter<T extends Entity, B, M extends ReplayModel<B
         }
     }
 
-    public static final Map<Identifier, ReplayModelAdapterFactory<?, ?, ?>> REGISTRY = new HashMap<>();
+    public static final Map<Identifier, ReplayModelAdapterFactory<?, ?>> REGISTRY = new HashMap<>();
 
     /**
      * Create a model adapter for a given entity.
@@ -59,9 +58,9 @@ public interface ReplayModelAdapter<T extends Entity, B, M extends ReplayModel<B
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> ReplayModelAdapter<E, ?, ?> getModelAdapter(E entity) throws ModelNotFoundException {
+    public static <E extends Entity> ReplayModelAdapter<E, ?> getModelAdapter(E entity) throws ModelNotFoundException {
         Identifier id = EntityType.getId(entity.getType());
-        ReplayModelAdapterFactory<E, ?, ?> factory = (ReplayModelAdapterFactory<E, ?, ?>) REGISTRY.get(id);
+        ReplayModelAdapterFactory<E, ?> factory = (ReplayModelAdapterFactory<E, ?>) REGISTRY.get(id);
         if (factory == null) {
             throw new ModelNotFoundException(id);
         }
@@ -90,5 +89,5 @@ public interface ReplayModelAdapter<T extends Entity, B, M extends ReplayModel<B
      * @param tickDelta Time since the previous tick.
      * @return The current pose.
      */
-    public Pose<B> getPose(float tickDelta);
+    public Pose<?> getPose(float tickDelta);
 }

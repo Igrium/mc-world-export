@@ -29,7 +29,7 @@ public class ReplayEntity<T extends Entity> {
 
     protected ReplayFile file;
 
-    protected ReplayModelAdapter<T, ?, ?> modelAdapter;
+    protected ReplayModelAdapter<T, ?> modelAdapter;
     protected String name;
 
     protected final List<Pose<?>> frames = new ArrayList<>();
@@ -72,7 +72,7 @@ public class ReplayEntity<T extends Entity> {
      * Generate this entity's model adapter.
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
-    public ReplayModelAdapter<T, ?, ?> genAdapter() throws ModelNotFoundException {
+    public ReplayModelAdapter<T, ?> genAdapter() throws ModelNotFoundException {
         if (modelAdapter != null) {
             throw new IllegalStateException("Model adapter has already been generated!");
         }
@@ -113,7 +113,7 @@ public class ReplayEntity<T extends Entity> {
      * Get the entity's model adapter.
      * @return The model adapter, or <code>null</code> if it hasn't been generated.
      */
-    public ReplayModelAdapter<T, ?, ?> getAdapter() {
+    public ReplayModelAdapter<T, ?> getAdapter() {
         return modelAdapter;
     }
 

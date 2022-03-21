@@ -2,7 +2,6 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.Bone;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -21,7 +20,7 @@ public final class ReplayModels {
     static MinecraftClient client = MinecraftClient.getInstance();
 
 
-    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T, Bone, ArmatureReplayModel> {
+    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T, ArmatureReplayModel> {
 
         public Identifier tex;
         public float y_offset;
@@ -32,7 +31,7 @@ public final class ReplayModels {
         }
 
         @Override
-        public ReplayModelAdapter<T, Bone, ArmatureReplayModel> create(T entity) {
+        public ReplayModelAdapter<T, ArmatureReplayModel> create(T entity) {
             return new AnimalModelAdapter<T>(entity, tex, y_offset);
         }
 
@@ -41,8 +40,8 @@ public final class ReplayModels {
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
-        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, Bone, ArmatureReplayModel>() {
-            public ReplayModelAdapter<AbstractClientPlayerEntity, Bone, ArmatureReplayModel> create(AbstractClientPlayerEntity entity) {
+        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, ArmatureReplayModel>() {
+            public ReplayModelAdapter<AbstractClientPlayerEntity, ArmatureReplayModel> create(AbstractClientPlayerEntity entity) {
                 return PlayerModelAdapter.newInstance(entity);
             }   
         });

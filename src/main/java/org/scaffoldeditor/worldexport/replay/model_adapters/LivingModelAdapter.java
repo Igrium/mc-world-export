@@ -31,10 +31,9 @@ import net.minecraft.util.math.Vec3f;
  * Base replay model generator for living entities (with living entity renderers).
  * 
  * @param <T> The type of entity this is an adapter for.
- * @param <B> The type of bones that this adapter's model will use.
  * @param <M> The type of model that this adapter will use.
  */
-public abstract class LivingModelAdapter<T extends LivingEntity, B, M extends ReplayModel<B>> implements ReplayModelAdapter<T, B, M> {
+public abstract class LivingModelAdapter<T extends LivingEntity, M extends ReplayModel<?>> implements ReplayModelAdapter<T, M> {
 
     private T entity;
     
@@ -67,7 +66,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, B, M extends Re
      * @param tickDelta Tick delta.
      * @return The generated pose.
      */
-    protected abstract Pose<B> writePose(float tickDelta);
+    protected abstract Pose<?> writePose(float tickDelta);
 
     /**
      * Get the texture of this entity. Identical to {@link EntityRenderer#getTexture}
@@ -113,7 +112,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, B, M extends Re
     
 
     @Override
-    public Pose<B> getPose(float tickDelta) {
+    public Pose<?> getPose(float tickDelta) {
 
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();
@@ -178,7 +177,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, B, M extends Re
         this.animateModel(limbAngle, limbDistance, tickDelta);
         this.setAngles(limbAngle, limbDistance, animProgress, headYawFinal, pitch);
 
-        Pose<B> pose = writePose(tickDelta);
+        Pose<?> pose = writePose(tickDelta);
         // Root transform
         Vector3d pos = new Vector3d(pose.root.translation);
         Quaterniond rot = new Quaterniond();
