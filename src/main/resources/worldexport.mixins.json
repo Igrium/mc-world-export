@@ -10,7 +10,8 @@
     "AnimalModelAccessor",
     "ModelPartAccessor",
     "GuiRenderSettingsMixin",
-    "VideoRendererMixin"
+    "VideoRendererMixin",
+    "GuiPathingMixin"
   ],
   "injectors": {
     "defaultRequire": 1
