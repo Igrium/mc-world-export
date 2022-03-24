@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.replaymod;
 import java.io.IOException;
 import java.util.Map;
 
+import com.replaymod.render.blend.BlendState;
 import com.replaymod.render.capturer.RenderInfo;
 import com.replaymod.render.capturer.WorldRenderer;
 import com.replaymod.render.frame.BitmapFrame;
@@ -30,6 +31,7 @@ public final class CustomPipelines {
             }
             
         };
+        BlendState.setState(null); // Stop native Blender exporter from running.
         return new Pipeline<>(renderer, capturer, new DummyProcessor<>(), consumer);
     }
 }

@@ -67,7 +67,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(new Runnable() {
         public void run() {
-            GuiFileChooserPopup popup = GuiFileChooserPopup.openLoadGui(GuiExportSettings.this, "replaymod.gui.save", "replay");
+            GuiFileChooserPopup popup = GuiFileChooserPopup.openSaveGui(GuiExportSettings.this, "replaymod.gui.save", "replay");
             popup.setFolder(outputFile.getParentFile());
             popup.setFileName(outputFile.getName());
             popup.onAccept(file -> {

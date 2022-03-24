@@ -4,25 +4,16 @@ import com.replaymod.core.ReplayMod;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.AbstractGuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
-import com.replaymod.render.RenderSettings;
-import com.replaymod.render.RenderSettings.RenderMethod;
 import com.replaymod.render.gui.GuiRenderSettings;
-import com.replaymod.render.rendering.VideoRenderer;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 
-import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.replaymod.RenderSettingsUtils;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiExportSettings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import net.minecraft.util.crash.CrashReport;
-
-import static com.replaymod.core.utils.Utils.error;
 
 
 @Mixin(value = GuiRenderSettings.class, remap = false)
