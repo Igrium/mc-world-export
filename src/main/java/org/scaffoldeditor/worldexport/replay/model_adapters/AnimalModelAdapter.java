@@ -11,6 +11,7 @@ import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mixins.AnimalModelAccessor;
 import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
+import org.scaffoldeditor.worldexport.mixins.QuadrupedModelAccessor;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.Bone;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
@@ -21,6 +22,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.client.render.entity.model.AnimalModel;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.client.render.entity.model.EntityModelPartNames;
+import net.minecraft.client.render.entity.model.QuadrupedEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
@@ -135,12 +139,59 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     }
 
     /**
+     * <p>
+     * Animal models (problematically) don't store the part names of top-level model
+     * parts themselves in a universal formats. By default, a part's
+     * <code>toString()</code> method is used. However, if you know what type of
+     * model you have, it's often possible to manually extract parts and assign them
+     * the proper names.
+     * </p>
+     * <p>
+     * This method tries to cast the animal model to all known subclasses and
+     * extracts said model part names.
+     * </p>
+     * 
+     * @param model     The model to operate on.
+     * @param partNames A map of ModelParts and their names. Extracted part names
+     *                  should be added here.
+     */
+    protected void extractPartNames(AnimalModel<T> model, Map<ModelPart, String> partNames) {
+        if (model instanceof QuadrupedEntityModel) {
+            QuadrupedModelAccessor accessor = (QuadrupedModelAccessor) model;
+            partNames.put(accessor.getHead(), EntityModelPartNames.HEAD);
+            partNames.put(accessor.getBody(), EntityModelPartNames.BODY);
+            partNames.put(accessor.getRightHindLeg(), EntityModelPartNames.RIGHT_HIND_LEG);
+            partNames.put(accessor.getLeftHindLeg(), EntityModelPartNames.LEFT_HIND_LEG);
+            partNames.put(accessor.getRightFrontLeg(), EntityModelPartNames.RIGHT_FRONT_LEG);
+            partNames.put(accessor.getLeftFrontLeg(), EntityModelPartNames.LEFT_FRONT_LEG);
+        }
+
+        if (model instanceof BipedEntityModel) {
+            BipedEntityModel<T> biped = (BipedEntityModel<T>) model;
+            partNames.put(biped.head, EntityModelPartNames.HEAD);
+            partNames.put(biped.hat, EntityModelPartNames.HAT);
+            partNames.put(biped.body, EntityModelPartNames.BODY);
+            partNames.put(biped.rightArm, EntityModelPartNames.RIGHT_ARM);
+            partNames.put(biped.leftArm, EntityModelPartNames.LEFT_ARM);
+            partNames.put(biped.rightLeg, EntityModelPartNames.RIGHT_LEG);
+            partNames.put(biped.leftLeg, EntityModelPartNames.LEFT_LEG);
+        }
+    }
+
+    /**
      * Capture the model in it's "bind pose".
      */
     protected ArmatureReplayModel captureBaseModel(AnimalModel<T> model) {
         ArmatureReplayModel replayModel = new ArmatureReplayModel();
 
-        forEachPart((name, part, transform) -> {
+        // Extracting known bones directly from the model allows us to use user-friendly names.
+        Map<ModelPart, String> partNames = new HashMap<>();
+        extractPartNames(model, partNames);
+
+        forEachPart((generatedName, part, transform) -> {
+            // Check if we need to override this name.
+            String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
+
             Bone bone = new Bone(name);
 
             bone.pos = transform.getTranslation(new Vector3d());
@@ -195,12 +246,13 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     protected void forEachPart(ModelPartConsumer consumer) {
         Matrix4dStack offset = new Matrix4dStack(10);
 
+        // If a bone is assigned to this part, and we're guessing part names anyway, use the bone's name.
         ((AnimalModelAccessor) model).retrieveBodyParts().forEach(part -> {
-            forEachPartInternal(part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).name : part.toString(), part, consumer, offset);
         });
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(part -> {
-            forEachPartInternal(part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).name : part.toString(), part, consumer, offset);
         });
     }
     
