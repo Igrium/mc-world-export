@@ -15,6 +15,7 @@ import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
+import net.minecraft.util.math.Matrix4f;
 
 public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerEntity> {
 
@@ -33,6 +34,12 @@ public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerE
     protected Pose<Bone> writePose(float tickDelta) {
         setModelPose();
         return super.writePose(tickDelta);
+    }
+    
+    @Override
+    protected void scale(AbstractClientPlayerEntity entity, Matrix4f matrix, float amount) {
+        float g = 0.9375f;
+        matrix.multiply(g);
     }
 
     private void setModelPose() {

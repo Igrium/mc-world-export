@@ -1,5 +1,7 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
+import javax.annotation.Nullable;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.joml.Quaterniond;
@@ -119,8 +121,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         this.child = entity.isBaby();
         updateValues(handSwingProgress, riding, child);
 
-        // TRANSFORMATION
-        Matrix4f transform = Matrix4f.translate(0, 0, 0);
+        float animProgress = entity.age + tickDelta;
 
         float bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevBodyYaw, entity.bodyYaw);
         float headYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevHeadYaw, entity.headYaw);
@@ -143,19 +144,18 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
             headYawFinal = headYaw - bodyYaw;
         }
 
-        if (entity.getPose() == EntityPose.SLEEPING) {
-            Direction direction = entity.getSleepingDirection();
-            if (direction != null) {
-                float height = entity.getEyeHeight(EntityPose.STANDING) - .1f;
-                transform.multiplyByTranslation(-direction.getOffsetX() * height, 0, -direction.getOffsetZ() * height);
-            }
-        }
+        // if (entity.getPose() == EntityPose.SLEEPING) {
+        //     Direction direction = entity.getSleepingDirection();
+        //     if (direction != null) {
+        //         float height = entity.getEyeHeight(EntityPose.STANDING) - .1f;
+        //         transform.multiplyByTranslation(-direction.getOffsetX() * height, 0, -direction.getOffsetZ() * height);
+        //     }
+        // }
 
-        float animProgress = entity.age + tickDelta;
-        prepareTransforms(entity, transform, animProgress, bodyYaw, tickDelta);
-        transform.multiply(Matrix4f.scale(-1, -1, 1));
-        scale(entity, transform, tickDelta);
-        transform.multiplyByTranslation(0, -1.5010000467300415f, 0);
+        // prepareTransforms(entity, transform, animProgress, bodyYaw, tickDelta);
+        // transform.multiply(Matrix4f.scale(-1, -1, 1));
+        // scale(entity, transform, tickDelta);
+        // transform.multiplyByTranslation(0, -1.5010000467300415f, 0);
 
         // POSE
         float limbAngle = 0;
@@ -178,18 +178,16 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         this.setAngles(limbAngle, limbDistance, animProgress, headYawFinal, pitch);
 
         Pose<?> pose = writePose(tickDelta);
+
         // Root transform
         Vector3d pos = new Vector3d(pose.root.translation);
-        Quaterniond rot = new Quaterniond();
-        rot.rotateY(-Math.toRadians(entity.getYaw()));
-        rot.transform(pos);
-
         Vec3d mcPos = entity.getPos();
         pos.add(mcPos.x, mcPos.y, mcPos.z);
 
-        rot.mul(pose.root.rotation);
+        Transform transform = prepareTransform(animProgress, bodyYaw, tickDelta, pos,
+                new Quaterniond(pose.root.rotation), new Vector3d(pose.root.scale));
 
-        pose.root = new Transform(pos, rot, pose.root.scale);
+        pose.root = transform;
         return pose;
     }
 
@@ -218,6 +216,73 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
 
     protected void scale(T entity, Matrix4f matrix, float amount) {
 	}
+
+    /**
+     * Prepare root transformations. Takes three optional vector (and quat) values.
+     * If these are specified, the transforms are added on top of these values, and
+     * the passed objects are used in the generated Transform. If not, zero-values
+     * are created.
+     * 
+     * @param animationProgress Animation progress.
+     * @param bodyYaw           World-space body yaw.
+     * @param tickDelta         Time since the previous tick.
+     * @param translation       Base translation.
+     * @param rotation          Base rotation.
+     * @param scale             Base scale.
+     * @return Generated transform, optionally referencing the passed base objects.
+     */
+    protected Transform prepareTransform(float animationProgress, float bodyYaw, float tickDelta,
+            @Nullable Vector3d translation, @Nullable Quaterniond rotation, @Nullable Vector3d scale) {
+        if (translation == null) translation = new Vector3d();
+        if (rotation == null) rotation = new Quaterniond();
+        if (scale == null) scale = new Vector3d(1d);
+
+        EntityPose pose = entity.getPose();
+
+        if (pose == EntityPose.SLEEPING) {
+            Direction direction = entity.getSleepingDirection();
+            if (direction != null) {
+                float height = entity.getEyeHeight(EntityPose.STANDING) - .1f;
+                translation.add(-direction.getOffsetX() * height, 0, -direction.getOffsetZ() * height);
+            }
+        }
+
+        if (isShaking()) {
+            bodyYaw += Math.cos(entity.age * 3.25d) * Math.PI * 0.4;
+        }
+
+        if (pose != EntityPose.SLEEPING) {
+            rotation.rotateY(Math.toRadians(0 - bodyYaw));
+        }
+
+        if (entity.deathTime > 0) {
+            double angle = (entity.deathTime + tickDelta - 1) / 20d * 1.6d;
+            angle = Math.sqrt(angle);
+            if (angle > 1) {
+                angle = 1;
+            } 
+
+            rotation.rotateZ(Math.toRadians(angle * getLyingAngle()));
+        } else if (entity.isUsingRiptide()) {
+            rotation.rotateX(Math.toRadians(-90 - entity.getPitch()));
+            rotation.rotateY(Math.toRadians((entity.age + tickDelta) * -75));
+        } else if (pose == EntityPose.SLEEPING) {
+            Direction direction = entity.getSleepingDirection();
+            float rot = direction != null ? getYaw(direction) : bodyYaw;
+            rotation.rotateY(Math.toRadians(rot));
+            rotation.rotateZ(Math.toRadians(getLyingAngle()));
+            rotation.rotateY(Math.toRadians(270));
+        } else if (entity.hasCustomName() || entity instanceof PlayerEntity) {
+            String name = Formatting.strip(entity.getName().getString());
+            if ((name.equals("Dinnerbone") || name.equals("Grumm")) && (!(entity instanceof PlayerEntity)
+                    || ((PlayerEntity) entity).isPartVisible(PlayerModelPart.CAPE))) {
+                translation.add(0, entity.getHeight() + .1f, 0);
+                rotation.rotateZ(Math.toRadians(180));
+            }
+        }
+
+        return new Transform(translation, rotation, scale);
+    }
 
     protected void prepareTransforms(T entity, Matrix4f matrix, float animationProgress, float bodyYaw, float tickDelta) {
         if (isShaking()) {

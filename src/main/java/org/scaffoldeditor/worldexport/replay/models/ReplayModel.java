@@ -90,6 +90,34 @@ public interface ReplayModel<T> {
         public String toString() {
             return toString(true, true);
         }
+
+        /**
+         * Obtain the inverse of this transformation.
+         * 
+         * @return A transformation that, when applied to an object with this
+         *         transformation applied, will revert the object to its original
+         *         position.
+         */
+        public Transform inverse() {
+            Vector3d pos = translation.mul(-1, new Vector3d());
+            Quaterniond rot = rotation.conjugate(new Quaterniond());
+            Vector3d scale = new Vector3d(1 / this.scale.x(), 1 / this.scale.y(), 1 / this.scale.z());
+
+            return new Transform(pos, rot, scale);
+        }
+
+        /**
+         * Transform this transformation by another transformation.
+         * @param other Transformation to transform by.
+         * @return A transformation which holds the sum of these two transformations.
+         */
+        public Transform add(Transform other) {
+            Vector3d pos = this.translation.add(other.translation, new Vector3d());
+            Quaterniond rot = this.rotation.mul(other.rotation, new Quaterniond());
+            Vector3d scale = this.scale.mul(other.scale, new Vector3d());
+
+            return new Transform(pos, rot, scale);
+        }
     }
     
     /**
@@ -100,10 +128,7 @@ public interface ReplayModel<T> {
         /**
          * The root transform of the entity (in world space)
          */
-        public Transform root = new Transform(
-                new Vector3d(),
-                new Quaterniond(),
-                new Vector3d(1d));
+        public Transform root = Transform.NEUTRAL;
         /**
          * A map of bones and their transforms. The coordinate space these transforms
          * are in depends on the model.
