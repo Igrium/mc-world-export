@@ -184,6 +184,10 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     protected ArmatureReplayModel captureBaseModel(AnimalModel<T> model) {
         ArmatureReplayModel replayModel = new ArmatureReplayModel();
 
+        // Reset pose
+        animateModel(0, 0, 0);
+        setAngles(0, 0, 0, 0, 0);
+
         // Extracting known bones directly from the model allows us to use user-friendly names.
         Map<ModelPart, String> partNames = new HashMap<>();
         extractPartNames(model, partNames);

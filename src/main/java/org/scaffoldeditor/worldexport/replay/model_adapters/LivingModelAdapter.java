@@ -284,6 +284,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         return new Transform(translation, rotation, scale);
     }
 
+    @Deprecated
     protected void prepareTransforms(T entity, Matrix4f matrix, float animationProgress, float bodyYaw, float tickDelta) {
         if (isShaking()) {
             bodyYaw += Math.cos(entity.age * 3.25d) * Math.PI * 0.4;
