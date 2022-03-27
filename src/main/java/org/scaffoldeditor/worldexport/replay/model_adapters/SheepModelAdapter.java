@@ -1,9 +1,8 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
-import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 
 import net.minecraft.client.render.entity.model.AnimalModel;
-import net.minecraft.client.render.entity.model.SheepWoolEntityModel;
 import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.util.Identifier;
 
@@ -20,8 +19,8 @@ public class SheepModelAdapter extends AnimalModelAdapter<SheepEntity> {
     }
     
     @Override
-    protected ArmatureReplayModel captureBaseModel(AnimalModel<SheepEntity> model) {
-        ArmatureReplayModel replayModel = super.captureBaseModel(model);
+    protected MultipartReplayModel captureBaseModel(AnimalModel<SheepEntity> model) {
+        MultipartReplayModel replayModel = super.captureBaseModel(model);
         return replayModel;
     }
 }

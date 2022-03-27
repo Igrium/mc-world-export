@@ -34,7 +34,7 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
             element.appendChild(bone.serialize(dom));
         }
         
-        return null;
+        return element;
     }
     
 }

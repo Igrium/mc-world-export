@@ -1,10 +1,10 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
+import org.joml.Matrix4d;
 import org.joml.Matrix4dStack;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
@@ -12,10 +12,10 @@ import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mixins.AnimalModelAccessor;
 import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.mixins.QuadrupedModelAccessor;
-import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.Bone;
+import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
 
 import net.minecraft.client.MinecraftClient;
@@ -32,17 +32,17 @@ import net.minecraft.util.Identifier;
 /**
  * Umbrella model adapter that works specifically with entities which use Animal Models.
  */
-public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, ArmatureReplayModel> {
+public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, MultipartReplayModel> {
     private MinecraftClient client = MinecraftClient.getInstance();
 
     /**
      * Maps model parts to their corrisponding bones, allowing the pose generator to
      * reference the proper replay bones.
      */
-    protected Map<ModelPart, Bone> boneMapping = new HashMap<>();
+    protected Map<ModelPart, ReplayModelPart> boneMapping = new HashMap<>();
 
     private AnimalModel<T> model;
-    private ArmatureReplayModel replayModel;
+    private MultipartReplayModel replayModel;
 
     protected float yOffset = 0;
     protected Identifier texture;
@@ -89,7 +89,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     }
 
     // @Override
-    public ArmatureReplayModel getModel() {
+    public MultipartReplayModel getModel() {
         return replayModel;
     }
 
@@ -118,20 +118,20 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     }
 
     @Override
-    protected Pose<Bone> writePose(float tickDelta) {
-        Pose<Bone> pose = new Pose<>();
+    protected Pose<ReplayModelPart> writePose(float tickDelta) {
+        Pose<ReplayModelPart> pose = new Pose<>();
         forEachPart((name, part, transform) -> {
-            Bone bone = boneMapping.get(part);
+            ReplayModelPart bone = boneMapping.get(part);
             if (bone == null) {
                 LogManager.getLogger("Replay Models").error("Model part not found in bone mapping!");
                 return;
             }
 
-            Quaterniond rotation = transform.getUnnormalizedRotation(new Quaterniond());
+            Quaterniond rotation = transform.getNormalizedRotation(new Quaterniond());
             Vector3d translation = transform.getTranslation(new Vector3d());
             Vector3d scale = transform.getScale(new Vector3d());
 
-            pose.bones.put(bone, replayModel.processCoordinateSpace(bone, new Transform(translation, rotation, scale)));
+            pose.bones.put(bone, new Transform(translation, rotation, scale));
 
         });
 
@@ -181,8 +181,10 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     /**
      * Capture the model in it's "bind pose".
      */
-    protected ArmatureReplayModel captureBaseModel(AnimalModel<T> model) {
-        ArmatureReplayModel replayModel = new ArmatureReplayModel();
+    protected MultipartReplayModel captureBaseModel(AnimalModel<T> model) {
+        // ArmatureReplayModel replayModel = new ArmatureReplayModel();
+        MultipartReplayModel replayModel = new MultipartReplayModel();
+        final Matrix4d NEUTRAL_TRANSFORM = new Matrix4d();
 
         // Reset pose
         animateModel(0, 0, 0);
@@ -196,19 +198,21 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             // Check if we need to override this name.
             String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
 
-            Bone bone = new Bone(name);
+            // Bone bone = new Bone(name);
+            ReplayModelPart bone = new ReplayModelPart(name);
 
-            bone.pos = transform.getTranslation(new Vector3d());
-            bone.rot = transform.getUnnormalizedRotation(new Quaterniond());
+            // bone.pos = transform.getTranslation(new Vector3d());
+            // bone.rot = transform.getUnnormalizedRotation(new Quaterniond());
 
             replayModel.bones.add(bone);
             boneMapping.put(part, bone);
 
-            replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
+            // replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
+            bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
+
             part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
                 if (!path.equals("")) return; // We only want to get the cuboids from this part.
-                replayModel.mesh.setActiveGroupNames(Collections.singleton(name));
-                MeshUtils.appendCuboid(cuboid, replayModel.mesh, transform);
+                MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
             });
         });
 
@@ -252,11 +256,11 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
 
         // If a bone is assigned to this part, and we're guessing part names anyway, use the bone's name.
         ((AnimalModelAccessor) model).retrieveBodyParts().forEach(part -> {
-            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).name : part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset);
         });
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(part -> {
-            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).name : part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset);
         });
     }
     

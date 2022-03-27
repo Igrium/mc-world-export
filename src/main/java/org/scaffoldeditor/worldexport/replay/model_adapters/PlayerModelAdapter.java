@@ -1,7 +1,7 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
-import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.Bone;
+import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.MinecraftClient;
@@ -32,13 +32,13 @@ public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerE
     }
 
     @Override
-    protected Pose<Bone> writePose(float tickDelta) {
+    protected Pose<ReplayModelPart> writePose(float tickDelta) {
         setModelPose();
         return super.writePose(tickDelta);
     }
 
     @Override
-    protected ArmatureReplayModel captureBaseModel(AnimalModel<AbstractClientPlayerEntity> model) {
+    protected MultipartReplayModel captureBaseModel(AnimalModel<AbstractClientPlayerEntity> model) {
         PlayerEntityModel<AbstractClientPlayerEntity> pModel = (PlayerEntityModel<AbstractClientPlayerEntity>) model;
         pModel.rightArmPose = ArmPose.EMPTY;
         pModel.leftArmPose = ArmPose.EMPTY;

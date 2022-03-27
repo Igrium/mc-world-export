@@ -69,6 +69,8 @@ public class ReplayModelPart implements TreeNode<ReplayModelPart> {
             element.appendChild(child.serialize(dom));
         }
 
+        element.setAttribute("name", getName());
+
         return element;
     }
 }

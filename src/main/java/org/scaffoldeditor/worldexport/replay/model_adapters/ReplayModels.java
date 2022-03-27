@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -31,7 +32,7 @@ public final class ReplayModels {
         }
 
         @Override
-        public ReplayModelAdapter<T, ArmatureReplayModel> create(T entity) {
+        public AnimalModelAdapter<T> create(T entity) {
             return new AnimalModelAdapter<T>(entity, tex, y_offset);
         }
 
@@ -40,8 +41,8 @@ public final class ReplayModels {
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
-        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, ArmatureReplayModel>() {
-            public ReplayModelAdapter<AbstractClientPlayerEntity, ArmatureReplayModel> create(AbstractClientPlayerEntity entity) {
+        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, MultipartReplayModel>() {
+            public ReplayModelAdapter<AbstractClientPlayerEntity, MultipartReplayModel> create(AbstractClientPlayerEntity entity) {
                 return PlayerModelAdapter.newInstance(entity);
             }   
         });

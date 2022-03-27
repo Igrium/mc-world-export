@@ -4,7 +4,7 @@ import time
 import itertools
 from typing import IO, Generic, Sequence, TypeVar
 from bmesh import new
-from bpy.types import Armature, Collection, Context, Material, Object, PoseBone
+from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
@@ -29,7 +29,10 @@ class AnimChannel:
         self.bone_name = bone_name
         self.datapath = datapath
         self.keyframes = {}
-        
+
+def _simple_load_obj(context: Context, file_contents: str, unique_materials: dict[str, Material]):
+    obj = BytesIO(bytes(file_contents, 'utf-8'))
+    return load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True, unique_materials=unique_materials)
 
 def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}):
     """Load a replay entity into Blender
@@ -53,30 +56,46 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     if not name:
         name = 'entity'
     
+    # MODELS
     model = entity.find('model')
     if model is None:
         raise Exception("Entity XML is missing model tag.")
     
-    mesh = model.find('mesh')
+    mesh_tag = model.find('mesh')
     parsed_objs: list[Object] = []
 
-    if mesh is not None:
-        obj = BytesIO(bytes(mesh.text, 'utf-8'))
-        meshes, mats, vertex_groups = load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True, unique_materials=materials)
-        
-        for mesh in meshes:
-            new_object = bpy.data.objects.new(f'{name}.mesh', mesh)
-            collection.objects.link(new_object)
-            # new_object.rotation_euler[0] = math.radians(90) // Armature handles this
-            
-            for group_name, group_indices in vertex_groups.items():
-                group = new_object.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
-                group.add(group_indices, 1.0, 'REPLACE')
-            parsed_objs.append(new_object)
-    else:
-        print("Warning: no mesh found in entity XML.")
+    multipart = ('rig-type' in model.attrib) and (model.attrib['rig-type'] == 'multipart')
+    
+    if multipart:
+        armature_obj, bone_def, meshes = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials)
 
-    armature_obj, bone_def = parse_armature(model, context, collection, name=f'{name}.bones')
+        for mesh in meshes.keys():
+            obj = bpy.data.objects.new(f'{name}.mesh', mesh)
+            collection.objects.link(obj)
+
+            group = obj.vertex_groups.new(name=bone_def[meshes[mesh]])
+            group.add(range(0, len(mesh.vertices)), 1, type='REPLACE')
+
+            parsed_objs.append(obj)
+            ...
+        
+    else:
+        armature_obj, bone_def = parse_armature(model, context, collection, name=f'{name}.bones')
+
+        if mesh_tag is not None:
+            meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
+            
+            for mesh in meshes:
+                new_object = bpy.data.objects.new(f'{name}.mesh', mesh)
+                collection.objects.link(new_object)
+                # new_object.rotation_euler[0] = math.radians(90) // Armature handles this
+                
+                for group_name, group_indices in vertex_groups.items():
+                    group = new_object.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
+                    group.add(group_indices, 1.0, 'REPLACE')
+                parsed_objs.append(new_object)
+        else:
+            print("Warning: no mesh found in entity XML.")
     
     # Parent mesh to armature
 
@@ -218,7 +237,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         
     print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
 
-
 def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity") -> tuple[Object, list[str]]:
     """Load an armature from a model XML element.
 
@@ -289,3 +307,69 @@ def parse_armature(model: ET.Element, context: Context, collection: Collection, 
     obj.rotation_euler[0] = math.radians(90)
     return (obj, definition_order)
     
+def parse_multipart(model: ET.Element, context: Context, collection: Collection, name="entity", materials: dict[str, Material] = {}) -> tuple[Object, list[str], dict[Mesh, int]]:
+    """Load an armature from a multipart model XML element.
+
+    Args:
+        model (ET.Element): Element to load (should be `model` element)
+        context (Context): Blender context.
+        name (str, optional): Name of the armature. Defaults to "entity".
+
+    Returns:
+        tuple[Armature, list[str], list[Mesh]]: The generated armature object,
+        the bone names in definition order, and mapping of parsed meshes and the
+        bone indices they belong to.
+    """
+
+    armature = bpy.data.armatures.new(name)
+    obj = bpy.data.objects.new(name, armature)
+
+    collection.objects.link(obj)
+    context.view_layer.objects.active = obj
+
+    definition_order: list[str] = []
+    meshes: dict[Mesh, int] = {}
+
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    edit_bones = armature.edit_bones
+    id = 0
+
+    def load_bone(element: ET.Element):
+        if element.tag != 'part': return
+        nonlocal id
+
+        attrib = element.attrib
+
+        if 'name' in attrib.keys():
+            name = attrib['name']
+        else:
+            name = f'bone{id}'
+        
+        length = 0.16
+
+        bone = edit_bones.new(name)
+        bone.head = [0, 0, 0]
+        bone.tail = [0, length, 0]
+
+        definition_order.append(name)
+
+        mesh_tag = element.find('mesh')
+        if (mesh_tag is not None):
+            n_meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
+            for mesh in n_meshes:
+                meshes[mesh] = id
+        else:
+            print(f'Model part {name} is missing a mesh!')
+
+        id += 1
+        for child in element:
+            load_bone(child)
+
+    
+    for element in model:
+        load_bone(element)
+    
+    bpy.ops.object.mode_set(mode='OBJECT')
+    obj.rotation_euler[0] = math.radians(90)
+    return (obj, definition_order, meshes)
+
