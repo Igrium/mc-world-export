@@ -8,6 +8,22 @@ The specification for `.replay` files is very similar to that of `.vcap`. Unlike
 
 Replay files are essentially renamed zip files. Changing the file extension from `.replay` to `.zip` allows you to easily inspect the contents inside. The rest of this specification will assume we are looking inside the zip package as if it were a folder.
 
+## Metadata
+
+Like Vcap, Replay files contain a `meta.json` file in the root of the archive containing metadata about the file:
+
+- `version` - *string*: The Replay version. This specification is for version `0.1.0`.
+- `encoder` - *string*: The program used to write this file. Used for debugging.
+
+***Example:***
+
+```json
+{
+    "version": "0.1.0",
+    "encoder": "Minecraft Replay Exporter"
+}
+```
+
 ## The World
 
 Replay files store world data using Vcap technology. In the root of archive is a file called `world.vcap`, which is a [Vcap file](vcap.md) containing this replay's world data. Time `0` in this file corresponds to the first frame of the replay.
@@ -125,8 +141,6 @@ Multipart parts don't have any transformation data because said data is defined 
     </part>
 </model>
 ```
-
-
 
 ## Animation
 

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,6 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,7 +43,7 @@ public class ReplayFile {
     public final Map<String, Material> materials = new HashMap<>();
     public final Map<String, ReplayTexture> textures = new HashMap<>();
 
-    private float fps = 30f;
+    private float fps = 20f;
 
     public ReplayFile(ClientWorld world, ChunkPos minChunk, ChunkPos maxChunk) {
         this.world = world;
@@ -93,6 +97,19 @@ public class ReplayFile {
     public void save(OutputStream os) throws IOException {
         LOGGER.info("Initializing replay serialization...");
         ZipOutputStream out = new ZipOutputStream(os);
+
+        // META
+        ReplayMeta meta = new ReplayMeta();
+        Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .create();
+
+        out.putNextEntry(new ZipEntry("meta.json"));
+        PrintWriter writer = new PrintWriter(out);
+        writer.print(gson.toJson(meta));
+        writer.flush();
+        out.closeEntry();
+
 
         LOGGER.info("Writing world...");
         out.putNextEntry(new ZipEntry("world.vcap"));

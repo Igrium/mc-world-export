@@ -238,6 +238,7 @@ public class VcapExporter {
         // META
         LOGGER.info("Writing Vcap metadata.");
         VcapMeta meta = new VcapMeta(numLayers);
+        context.getIDMapping(meta.blockTypes);
         Gson gson = new GsonBuilder()
             .setPrettyPrinting()
             .create();

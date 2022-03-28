@@ -1,7 +1,5 @@
 package org.scaffoldeditor.worldexport.replaymod;
 
-import org.apache.logging.log4j.LogManager;
-
 public final class ReplayExportSettings {
     private int viewDistance = 8;
     private int lowerDepth = 0;

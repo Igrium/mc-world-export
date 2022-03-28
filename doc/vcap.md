@@ -12,15 +12,23 @@ The first file to look at within the archive is `meta.json`. This JSON file cont
 
 - `version` - *string*: The Vcap version. This specification is for version `0.1.0`.
 - `encoder` - *string*: The program used to write this file. Used for debugging.
+- `blockTypes` (optional) - *object*: A mapping of model IDs and the IDs of the blocks they represent. Used to infer the block ID of any voxel within the file. **Note that not all model IDs must be present in this mapping.**
 
-Example:
+***Example:***
 
 ```json
 {
-  "version": "0.1.0",
-  "encoder": "Minecraft World Exporter"
+    "version": "0.1.0",
+    "encoder": "Minecraft World Exporter",
+    "blockTypes": {
+        "minecraft:dirt#[false, false, false, false, false, true]": "minecraft:dirt",
+        "minecraft:dirt#[false, false, false, false, true, true]": "minecraft:dirt",
+        "minecraft:stone#[false, false, false, false, true, true]": "minecraft:stone"
+    }
 }
 ```
+
+*Note: the `blockTypes` tag in this example has been abbreviated. This will typically be much longer.*
 
 ## The World
 

@@ -110,6 +110,32 @@ public class ExportContext {
         return getID(entry, null);
     }
 
+    /**
+     * Get a mapping of model IDs and the blockstate they belong to. For use in
+     * <code>meta.json</code>
+     * 
+     * @param map Map to add to.
+     * @see ExportContext#getIDMapping()
+     */
+    public void getIDMapping(Map<String, String> map) {
+        for (ModelEntry entry : models.keySet()) {
+            map.put(models.get(entry), Registry.BLOCK.getId(entry.blockState.getBlock()).toString());
+        }
+    }
+
+    /**
+     * Get a mapping of model IDs and the blockstate they belong to. For use in
+     * <code>meta.json</code>
+     * 
+     * @return The generated map.
+     * @see ExportContext#getIDMapping(Map)
+     */
+    public Map<String, String> getIDMapping() {
+        Map<String, String> map = new HashMap<>();
+        getIDMapping(map);
+        return map;
+    }
+
     private static Pattern lastIntPattern = Pattern.compile("[^0-9]+([0-9]+)$");
 
     private String iterateName(String name) {
