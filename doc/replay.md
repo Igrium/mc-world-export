@@ -16,7 +16,7 @@ Replay files store world data using Vcap technology. In the root of archive is a
 
 The meat of the Replay file comes in its entity animation. This presents an interesting challenge for the exporter given that, unlike blocks, Minecraft has no universal model management system for entities. Instead, every entity registers a renderer class that writes directly to viewport vertex buffers. Therefore, export code has to be written individually for each entity type.
 
-Furthermore, the majority of entity renderers rely on a system of individual "model parts" rather than an armature with joints. This means that entity rigs have no concept of a "bind pose", and instead store individual bone positions (relative to the entity root) on a per-frame basis. In order to retrofit this into a typical armature-based system, a typical implementation will capture the entity's pose on the first frame of the animation and use that as its bind pose. This, however, is finicky and can lead to many issues. As such, Replay files support two types of rig representation: `armature` (default) and `parts`. More details to follow.
+Furthermore, the majority of entity renderers rely on a system of individual "model parts" rather than an armature with joints. This means that entity rigs have no concept of a "bind pose", and instead store individual bone positions (relative to the entity root) on a per-frame basis. In order to retrofit this into a typical armature-based system, a typical implementation will capture the entity's pose on the first frame of the animation and use that as its bind pose. This, however, is finicky and can lead to many issues. As such, Replay files support two types of rig representation: `armature` (default) and `multipart`. More details to follow.
 
 ## Entity Files
 
@@ -56,13 +56,14 @@ If `rig-type` is set to `armature`, `<model>` can support the following elements
 
 ```xml
 <model rig-type="armature">
-    <bone len="0.16" name="head" pos="0.0,1.5,-1.83E-16" rot="6.12E-17,1.0,0.0,0.0"/>
+    <bone len="0.16" name="head" pos="0.0,1.5,-1.83E-16" rot="6.12E-17,1.0,0.0,0.0">
+        <bone len="0.16" name="hat" ...>
+    </bone>
     <bone len="0.16" name="torso" pos="-0.3125,1.375,-1.685E-16" rot="0.656,0.754,0.00534,-0.01382"/>
     <bone len="0.16" name="left_arm" pos="0.3125,1.375,-1.68E-16" rot="0.629,0.776,-0.00315,0.0159"/>
     <bone len="0.16" name="right_arm" pos="-0.118,0.75,-0.00625" rot="-0.200,0.979,0.0,0.0"/>
     <bone len="0.16" name="left_leg" pos="0.118,0.75,-0.00625" rot="0.200,0.979,0.0,0.0"/>
     <bone len="0.16" name="right_leg" pos="0.0,1.5,-1.83E-16" rot="6.12E-17,0.999,-7.51E-19,-0.0122"/>
-    <bone len="0.16" name="hat" pos="0.0,1.5,-1.83E-16" rot="6.12E-17,0.999,-7.51E-19,-0.0122"/>
     <mesh>
         [obj data...]
     </mesh>
@@ -71,7 +72,61 @@ If `rig-type` is set to `armature`, `<model>` can support the following elements
 
 ### Multipart Rigs
 
-*[tbd]*
+Rather than a traditional armature structure, multipart rigs work similar to Minecraft's native system, where every model part is stored individually relative to the entity root (or their parent), rather than relative to their bind pose.
+
+If `rig-type` is set to `multipart`, `<model>` can support the following elements:
+
+- `<part>`: Represents a single model part.
+  
+  - `name`: The name of the part.
+  
+  - `<mesh>`: Contains the actual mesh data for the part. The same as in armature rigs, except each part has an individual mesh instead of there being one for the entire model.
+
+Multipart parts don't have any transformation data because said data is defined in animations.
+
+***Example:***
+
+```xml
+<model rig-type="multipart">
+    <part name="torso">
+        <mesh>
+            [obj data...]
+        </mesh>
+    </part>
+    <part name="right_arm">
+        <mesh>
+            [obj data...]
+        </mesh>
+    </part>
+    <part name="left_arm">
+        <mesh>
+            [obj data...]
+        </mesh>
+    </part>
+    <part name="right_leg">
+        <mesh>
+            [obj data...]
+        </mesh>
+    </part>
+    <part name="left_leg">
+        <mesh>
+            [obj data...]
+        </mesh>
+    </part>
+    <part name="head">
+        <mesh>
+            [obj data...]
+        </mesh>
+        <part name="hat">
+            <mesh>
+                [obj data...]
+            </mesh>
+        </part>
+    </part>
+</model>
+```
+
+
 
 ## Animation
 
