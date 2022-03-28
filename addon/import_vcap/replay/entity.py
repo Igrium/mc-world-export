@@ -34,7 +34,7 @@ def _simple_load_obj(context: Context, file_contents: str, unique_materials: dic
     obj = BytesIO(bytes(file_contents, 'utf-8'))
     return load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True, unique_materials=unique_materials)
 
-def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}):
+def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}, separate_parts = False):
     """Load a replay entity into Blender
 
     Args:
@@ -45,9 +45,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     Raises:
         Exception: If the XML is malformatted
     """
-    
-    def convert_vector(input=(0, 0, 0)):
-       return Vector((input[0], -input[2], input[1]))
     
     start_time = time.time()
     tree = ET.parse(file)
@@ -70,7 +67,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         armature_obj, bone_def, meshes = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials)
 
         for mesh in meshes.keys():
-            obj = bpy.data.objects.new(f'{name}.mesh', mesh)
+            obj = bpy.data.objects.new(f'{name}.{bone_def[meshes[mesh]]}.mesh', mesh)
             collection.objects.link(obj)
 
             group = obj.vertex_groups.new(name=bone_def[meshes[mesh]])
@@ -99,9 +96,24 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     
     # Parent mesh to armature
 
-    for obj in parsed_objs:
-        obj.parent = armature_obj
-        obj.parent_type = 'ARMATURE'  
+    if len(parsed_objs) > 0:
+        if separate_parts:
+            for obj in parsed_objs:
+                obj.parent = armature_obj
+                obj.parent_type = 'ARMATURE'
+        else:
+            bpy.ops.object.select_all(action='DESELECT')
+            context.view_layer.objects.active = parsed_objs[0]
+            for obj in parsed_objs:
+                obj.select_set(True)
+
+            bpy.ops.object.join()
+
+            parsed_objs[0].parent = armature_obj
+            parsed_objs[0].parent_type = 'ARMATURE'
+            parsed_objs[0].name = f'{name}.mesh'
+    else:
+        print(f"Entity {name} has no meshes!")
     
     # ANIMATION
     anim = entity.find('anim')

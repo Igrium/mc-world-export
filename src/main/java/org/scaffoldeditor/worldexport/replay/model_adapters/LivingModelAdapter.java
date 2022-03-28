@@ -84,6 +84,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         Material mat = new Material();
         mat.color = new Field(texName);
         mat.transparent = isTransparent(entity);
+        mat.roughness = new Field(1);
         file.materials.put(texName, mat);
 
         RenderSystem.recordRenderCall(() -> {

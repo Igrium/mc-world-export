@@ -139,6 +139,12 @@ class ImportReplayOperator(Operator, ImportHelper):
         description="Import Minecraft entities and their animations.",
         default=True
     )
+
+    separate_parts: BoolProperty(
+        name="Separate Entity Parts",
+        description="Import every ModelPart in an entity as a seperate object. Only works on multipart entities.",
+        default=False
+    )
     
     use_vertex_colors: BoolProperty(
         name="Use Block Colors",
@@ -156,6 +162,8 @@ class ImportReplayOperator(Operator, ImportHelper):
         settings = replay_file.ReplaySettings(
             world=self.import_world,
             entities=self.import_entities,
+            separate_parts=self.separate_parts,
+
             vcap_settings=VCAPSettings(
                 use_vertex_colors=self.use_vertex_colors,
                 merge_verts=self.merge_verts

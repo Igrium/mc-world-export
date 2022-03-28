@@ -188,7 +188,7 @@ public class VcapExporter {
         // MATERIALS
         Material opaque = new Material();
         opaque.color = new Material.Field("world");
-        opaque.roughness = new Material.Field(.7);
+        opaque.roughness = new Material.Field(1);
         opaque.useVertexColors = false;
         
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
@@ -197,7 +197,7 @@ public class VcapExporter {
 
         Material transparent = new Material();
         transparent.color = new Material.Field("world");
-        transparent.roughness = new Material.Field(.7);
+        transparent.roughness = new Material.Field(1);
         transparent.transparent = true;
         transparent.useVertexColors = false;
 
@@ -207,7 +207,7 @@ public class VcapExporter {
 
         Material opaque_tinted = new Material();
         opaque_tinted.color = new Material.Field("world");
-        opaque_tinted.roughness = new Material.Field(.7);
+        opaque_tinted.roughness = new Material.Field(1);
         opaque_tinted.useVertexColors = true;
 
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
@@ -216,7 +216,7 @@ public class VcapExporter {
 
         Material transparent_tinted = new Material();
         transparent_tinted.color = new Material.Field("world");
-        transparent_tinted.roughness = new Material.Field(.7);
+        transparent_tinted.roughness = new Material.Field(1);
         transparent_tinted.transparent = true;
         transparent_tinted.useVertexColors = true;
 
