@@ -17,9 +17,15 @@ import com.replaymod.render.rendering.Pipeline;
 public final class CustomPipelines {
     private CustomPipelines() {};
 
+    /**
+     * A horrible, temporary, global storage if the replay export settings to allow
+     * it to be passed through mixins.
+     */
+    public static ReplayExportSettings replaySettings = new ReplayExportSettings();
+
     public static Pipeline<BitmapFrame, BitmapFrame> newReplayPipeline(RenderInfo info) {
         WorldRenderer renderer = new EntityRendererHandler(info.getRenderSettings(), info);
-        FrameCapturer<BitmapFrame> capturer = new ReplayFrameCapturer(info);
+        FrameCapturer<BitmapFrame> capturer = new ReplayFrameCapturer(info, replaySettings);
         FrameConsumer<BitmapFrame> consumer = new FrameConsumer<>() {
 
             @Override

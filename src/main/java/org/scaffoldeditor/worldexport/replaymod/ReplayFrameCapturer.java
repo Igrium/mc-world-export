@@ -37,6 +37,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     protected int framesDone;
     protected RenderInfo renderInfo;
+    protected ReplayExportSettings settings;
     protected ReplayFile exporter;
 
     protected Map<BlockPos, BlockState> blockUpdateCache = new HashMap<>();
@@ -46,8 +47,9 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     private float tickDelta = 0;
     private MinecraftClient client = MinecraftClient.getInstance();
 
-    public ReplayFrameCapturer(RenderInfo renderInfo) {
+    public ReplayFrameCapturer(RenderInfo renderInfo, ReplayExportSettings settings) {
         this.renderInfo = renderInfo;
+        this.settings = settings;
     }
 
     protected ClientBlockPlaceCallback blockUpdateListener = new ClientBlockPlaceCallback() {
@@ -70,7 +72,8 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     protected void setup() {
         if (exporter == null) {
-            int viewDistance = client.options.viewDistance;
+            // int viewDistance = client.options.viewDistance;
+            int viewDistance = settings.getViewDistance();
             ChunkPos centerPos = client.getCameraEntity().getChunkPos();
             exporter = new ReplayFile(client.world, 
                     new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
@@ -78,7 +81,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         }
         
         exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
-        exporter.getWorldExporter().getSettings().exportFluids(false).setLowerDepth(0);
+        exporter.getWorldExporter().getSettings().exportFluids(false).setLowerDepth(settings.getLowerDepth());
         LogManager.getLogger().info("Capturing initial world");
         exporter.getWorldExporter().captureIFrame(0);
         ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);

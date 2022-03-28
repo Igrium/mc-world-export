@@ -63,13 +63,22 @@ public interface Frame {
         public final double timestamp;
         public final WorldAccess world;
 
+        private static boolean isInBBox(BlockPos pos, ChunkPos minChunk, ChunkPos maxChunk) {
+            return (minChunk.getStartX() <= pos.getX()) && (pos.getX() < maxChunk.getStartX())
+                && (minChunk.getStartZ() <= pos.getZ()) && (pos.getZ() < maxChunk.getStartZ());
+        }
+
         /**
          * Capture a predicted frame.
          * 
          * @param world     World to capture.
          * @param blocks    A set of blocks to include data for in the frame.
          *                  All ajacent blocks will be queried, and if they are found to
-         *                  have changed, they are also included in the frame.
+         *                  have changed, they are also included in the frame. Note that
+         *                  only blocks within the export context's bounding box are
+         *                  captured. See
+         *                  {@link VcapSettings#setBBox(ChunkPos, ChunkPos)} for more
+         *                  info.
          * @param timestamp Time stamp of the frame, in seconds since the beginning
          *                  of the animation.
          * @param previous  The previous frame in the file.
@@ -84,12 +93,20 @@ public interface Frame {
 
             Map<BlockPos, String> updates = new HashMap<>();
             Map<BlockPos, BlockState> states = new HashMap<>();
+            ChunkPos minChunk = context.getSettings().getMinChunk();
+            ChunkPos maxChunk = context.getSettings().getMaxChunk();
+
+            int lowerDepth = context.getSettings().getLowerDepth() * 16; // In blocks, not chunks.
+
             for (BlockPos pos : blocks) {
+                if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+
                 updates.put(pos, BlockExporter.exportBlock(world, pos, context));
                 states.put(pos, world.getBlockState(pos));
                 // Check adjacent blocks.
                 for (Direction dir : Direction.values()) {
                     BlockPos adjacent = pos.offset(dir);
+                    if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
                     if (updates.containsKey(adjacent)) continue;
 
                     String old;

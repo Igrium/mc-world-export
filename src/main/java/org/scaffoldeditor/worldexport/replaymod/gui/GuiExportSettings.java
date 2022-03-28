@@ -12,6 +12,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
@@ -31,7 +32,10 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.replaymod.CustomPipelines;
+import org.scaffoldeditor.worldexport.replaymod.ReplayExportSettings;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashReport;
 
 public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
@@ -46,6 +50,12 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     private ReplayHandler replayHandler;
     private Timeline timeline;
     private AbstractGuiScreen<?> screen;
+
+    private MinecraftClient client = MinecraftClient.getInstance();
+
+    private int minLowerDepth = 0;
+    private int maxLowerDepth = 16;
+    private final int minViewDistance = 1;
     
     private File outputFile;
 
@@ -54,6 +64,11 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         RenderSettings settings = new RenderSettings(RenderMethod.BLEND, EncodingPreset.BLEND, 1920, 1080, 20, 100,
                 outputFile, false, false, false, false, null, 360, 180, false, false, false, AntiAliasing.NONE, "", "",
                 false);
+
+        CustomPipelines.replaySettings = new ReplayExportSettings()
+                .setViewDistance(getViewDistance())
+                .setLowerDepth(getLowerDepth());
+        
         try {
             VideoRenderer videoRenderer = new VideoRenderer(settings, replayHandler, timeline);
             videoRenderer.renderVideo();
@@ -77,6 +92,18 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         }
     });
 
+    public final GuiSlider viewDistanceSlider = new GuiSlider().onValueChanged(new Runnable() {
+        public void run() {
+            viewDistanceSlider.setText("Radius (Chunks): " + getViewDistance());
+        };
+    }).setSize(122, 20).setSteps(32 - minViewDistance);
+
+    public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(new Runnable() {
+        public void run() {
+            lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
+        };
+    }).setSize(122, 20).setSteps(32);
+
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setLabel("Export")
             .setSize(100, 20)
@@ -89,7 +116,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
-                    new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton)
+                    new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
+                    viewDistanceSlider, lowerDepthSlider)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
     
     {
@@ -106,6 +134,23 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public void setOutputFile(File outputFile) {
         this.outputFile = outputFile;
         outputFileButton.setLabel(outputFile.getName());
+    }
+
+    public void setLowerDepth(int lowerSectionCoord) {
+        lowerDepthSlider.setSteps(maxLowerDepth - minLowerDepth);
+        lowerDepthSlider.setValue(lowerSectionCoord - minLowerDepth);
+    }
+    
+    public int getLowerDepth() {
+        return lowerDepthSlider.getValue() + minLowerDepth;
+    }
+
+    public void setViewDistance(int viewDistance) {
+        viewDistanceSlider.setValue(viewDistance - minViewDistance);
+    }
+
+    public int getViewDistance() {
+        return viewDistanceSlider.getValue() + minViewDistance;
     }
 
     public GuiExportSettings(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Timeline timeline) {
@@ -131,7 +176,12 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             
         });
 
+        minLowerDepth = client.world.getBottomSectionCoord();
+        maxLowerDepth = client.world.getTopSectionCoord();
+
         setOutputFile(generateOutputFile());
+        setViewDistance(client.options.getViewDistance());
+        setLowerDepth(minLowerDepth);
     }
     @Override
     protected GuiExportSettings getThis() {

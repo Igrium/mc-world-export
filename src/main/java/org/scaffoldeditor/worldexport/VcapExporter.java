@@ -59,8 +59,7 @@ public class VcapExporter {
      * The world this exporter is exporting.
      */
     public final WorldAccess world;
-    private ChunkPos minChunk;
-    private ChunkPos maxChunk;
+
     public final List<Frame> frames = new ArrayList<>();
     public final ExportContext context;
     
@@ -76,10 +75,10 @@ public class VcapExporter {
      * @param maxChunk Bounding box max (exclusive).
      */
     public VcapExporter(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk) {
-        setBBox(minChunk, maxChunk);
         this.world = world;
+        context = new ExportContext();        
+        setBBox(minChunk, maxChunk);
 
-        context = new ExportContext();
     }
 
     /**
@@ -87,7 +86,7 @@ public class VcapExporter {
      * @return Bounding box min (inclusive)
      */
     public ChunkPos getMinChunk() {
-        return minChunk;
+        return getSettings().getMinChunk();
     }
     
     /**
@@ -95,7 +94,7 @@ public class VcapExporter {
      * @return Bounding box max (exclusive).
      */
     public ChunkPos getMaxChunk() {
-        return maxChunk;
+        return getSettings().getMaxChunk();
     }
     
     /**
@@ -104,12 +103,7 @@ public class VcapExporter {
      * @param maxChunk Bounding box max (exclusive).
      */
     public void setBBox(ChunkPos minChunk, ChunkPos maxChunk) {
-        if (minChunk.x > maxChunk.x || minChunk.z > maxChunk.z) {
-            throw new IllegalArgumentException("Min chunk "+minChunk+" must be less than max chunk "+maxChunk);
-        }
-
-        this.minChunk = minChunk;
-        this.maxChunk = maxChunk;
+        getSettings().setBBox(minChunk, maxChunk);
     }
 
     /**
@@ -280,7 +274,7 @@ public class VcapExporter {
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
-        IFrame iFrame = IFrame.capture(world, minChunk, maxChunk, context, time);
+        IFrame iFrame = IFrame.capture(world, getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
         frames.add(iFrame);
         return iFrame;
     }
