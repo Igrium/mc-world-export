@@ -5,6 +5,7 @@ import javax.annotation.Nullable;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
@@ -14,6 +15,7 @@ import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
+import org.scaffoldeditor.worldexport.util.MathUtils;
 
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerModelPart;
@@ -45,6 +47,11 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     
     public abstract void animateModel(float limbAngle, float limbDistance, float tickDelta);
     public abstract void setAngles(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+
+    /**
+     * For quaternion compatibility
+     */
+    private Quaterniondc prevRotation;
 
     public LivingModelAdapter(T entity) {
         this.entity = entity;
@@ -185,10 +192,17 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         Vec3d mcPos = entity.getPos();
         pos.add(mcPos.x, mcPos.y, mcPos.z);
 
+        Quaterniond rotation = new Quaterniond(pose.root.rotation);
+
         Transform transform = prepareTransform(animProgress, bodyYaw, tickDelta, pos,
-                new Quaterniond(pose.root.rotation), new Vector3d(pose.root.scale));
+                rotation, new Vector3d(pose.root.scale));
+        
+        if (prevRotation != null) {
+            MathUtils.makeQuatsCompatible(rotation, prevRotation, .2, rotation); // Transform still references rotation.
+        }
 
         pose.root = transform;
+        prevRotation = rotation;
         return pose;
     }
 

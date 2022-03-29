@@ -16,6 +16,7 @@ import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
+import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
 
 import net.minecraft.client.MinecraftClient;
@@ -46,6 +47,11 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
 
     protected float yOffset = 0;
     protected Identifier texture;
+
+    /**
+     * Keep track of the previous frame's pose for quaternion compatibility.
+     */
+    protected Pose<ReplayModelPart> lastPose;
 
     /**
      * Construct an animal model wrapper.
@@ -127,14 +133,20 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
                 return;
             }
 
-            Quaterniond rotation = transform.getNormalizedRotation(new Quaterniond());
             Vector3d translation = transform.getTranslation(new Vector3d());
             Vector3d scale = transform.getScale(new Vector3d());
+
+            Quaterniond rotation = transform.getUnnormalizedRotation(new Quaterniond());
+            if (lastPose != null) {
+                Transform lastBone = lastPose.bones.get(bone);
+                if (lastBone != null) MathUtils.makeQuatsCompatible(rotation, lastBone.rotation, .2, rotation);
+            }
 
             pose.bones.put(bone, new Transform(translation, rotation, scale));
 
         });
 
+        lastPose = pose;
         return pose;
     }
 
