@@ -3,6 +3,7 @@ import math
 import time
 import itertools
 from typing import IO, Generic, Sequence, TypeVar
+from winreg import QueryInfoKey
 from bmesh import new
 from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone
 from mathutils import Euler, Matrix, Quaternion, Vector
@@ -141,6 +142,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             framerate = scene_framerate
         
         animtext = anim.text # cache the text for optimization
+        prev_rot = None
         for index, frame in enumerate(animtext.splitlines()):
             frame = frame.strip()
             
@@ -158,7 +160,11 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 if length >= 4:
                     rotation = Quaternion(root_vals[0:4])
                     rotation.rotate(Euler((math.radians(90), 0, 0)))
+                    if prev_rot is not None:
+                        rotation.make_compatible(prev_rot)
+
                     root_rot.keyframes[scene_frame] = rotation
+                    prev_rot = rotation
                 
                 if length >= 7:
                     location = root_vals[4:7]
@@ -167,9 +173,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 
                 if length >= 10:
                     root_scale.keyframes[scene_frame] = root_vals[7:10]
-                    # armature_obj.scale = convert_vector(root_vals[7:10])
-                    # armature_obj.keyframe_insert('scale', frame=scene_frame )
             
+            prev_rot = None
             for def_index, bone_str in enumerate(bones[1:]):
                 bone_str = bone_str.strip()
                 if (len(bone_str) == 0): continue
@@ -187,9 +192,12 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         channel = AnimChannel(bone.name, f'pose.bones["{bone.name}"].rotation_quaternion')
                         rot_channels[bone] = channel
                     
-                    channel.keyframes[scene_frame] = bone_vals[0:4]
-                    # bone.rotation_quaternion = bone_vals[0:4]
-                    # bone.keyframe_insert('rotation_quaternion', frame=scene_frame)
+                    rotation = Quaternion(bone_vals[0:4])
+                    if prev_rot is not None:
+                        rotation.make_compatible(prev_rot)
+
+                    channel.keyframes[scene_frame] = rotation
+                    prev_rot = rotation
                 
                 if len(bone_vals) >= 7:
                     if bone in pos_channels:
@@ -199,8 +207,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         pos_channels[bone] = channel
                     
                     channel.keyframes[scene_frame] = bone_vals[4:7]      
-                    # bone.location = bone_vals[4:7]
-                    # bone.keyframe_insert('location', frame=scene_frame)
                 
                 if len(bone_vals) >= 10:
                     if bone in scale_channels:
@@ -211,8 +217,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         scale_channels[bone] = channel
                     
                     channel.keyframes[scene_frame] = bone_vals[7:10]
-                    # bone.scale = bone_vals[7:10]
-                    # bone.keyframe_insert('scale', frame=scene_frame)
                     
         anim_data = armature_obj.animation_data_create()
         action = bpy.data.actions.new(name=f"{name}_action")
