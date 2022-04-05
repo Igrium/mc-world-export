@@ -119,6 +119,10 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     protected boolean isTransparent(T entity) {
         return true;
     }
+
+    protected float getAnimationProgress(float tickDelta) {
+        return entity.age + tickDelta;
+    }
     
 
     @Override
@@ -129,7 +133,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         this.child = entity.isBaby();
         updateValues(handSwingProgress, riding, child);
 
-        float animProgress = entity.age + tickDelta;
+        float animProgress = getAnimationProgress(tickDelta);
 
         float bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevBodyYaw, entity.bodyYaw);
         float headYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevHeadYaw, entity.headYaw);

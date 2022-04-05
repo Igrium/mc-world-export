@@ -3,10 +3,12 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.passive.ChickenEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -103,23 +105,29 @@ public final class ReplayModels {
         // TODO: Axolotl's varients make implementation non-trivial
 
         ReplayModelAdapter.REGISTRY.put(new Identifier("bee"),
-                new AnimalModelFactory(new Identifier("textures/entity/bee/bee.png"), 0));
+                new AnimalModelFactory(new Identifier("textures/entity/bee/bee.png"), QUADRUPED_Y_OFFSET));
         
-        ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"),
-                new AnimalModelFactory(new Identifier("textures/entity/chicken.png"), 0));
+        ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"), new ReplayModelAdapterFactory<ChickenEntity, MultipartReplayModel>() {
+
+                @Override
+                public ChickenModelAdapter create(ChickenEntity entity) {
+                        return new ChickenModelAdapter(entity);
+                }
+                
+        });
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("fox"),
-                new AnimalModelFactory(new Identifier("textures/entity/fox/fox.png"), 0));
+                new AnimalModelFactory(new Identifier("textures/entity/fox/fox.png"), QUADRUPED_Y_OFFSET));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("hoglin"), 
-                new AnimalModelFactory(new Identifier("textures/entity/hoglin/hoglin.png"), 0));
+                new AnimalModelFactory(new Identifier("textures/entity/hoglin/hoglin.png"), QUADRUPED_Y_OFFSET));
 
         // TODO: Horse variant types
         ReplayModelAdapter.REGISTRY.put(new Identifier("horse"),
-                new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), 0));
+                new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), QUADRUPED_Y_OFFSET));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("donkey"),
-                new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), 0));
+                new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), QUADRUPED_Y_OFFSET));
 
     }
 }
