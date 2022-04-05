@@ -1,9 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
-import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -23,7 +20,7 @@ public final class ReplayModels {
     static MinecraftClient client = MinecraftClient.getInstance();
 
 
-    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T, ArmatureReplayModel> {
+    public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T> {
 
         public Identifier tex;
         public float y_offset;
@@ -43,11 +40,7 @@ public final class ReplayModels {
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
-        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), new ReplayModelAdapterFactory<AbstractClientPlayerEntity, MultipartReplayModel>() {
-            public ReplayModelAdapter<AbstractClientPlayerEntity, MultipartReplayModel> create(AbstractClientPlayerEntity entity) {
-                return PlayerModelAdapter.newInstance(entity);
-            }   
-        });
+        ReplayModelAdapter.REGISTRY.put(new Identifier("player"), entity -> PlayerModelAdapter.newInstance((AbstractClientPlayerEntity) entity));
 
         /**
          * QUADRIPEDS
@@ -106,15 +99,10 @@ public final class ReplayModels {
 
         ReplayModelAdapter.REGISTRY.put(new Identifier("bee"),
                 new AnimalModelFactory(new Identifier("textures/entity/bee/bee.png"), QUADRUPED_Y_OFFSET));
-        
-        ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"), new ReplayModelAdapterFactory<ChickenEntity, MultipartReplayModel>() {
 
-                @Override
-                public ChickenModelAdapter create(ChickenEntity entity) {
-                        return new ChickenModelAdapter(entity);
-                }
-                
-        });
+        ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"), entity -> new ChickenModelAdapter((ChickenEntity) entity));
+
+        // ReplayModelAdapter.REGISTRY.put(new Identifier("chicken"), entity -> new ChickenModelAdapter(entity));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("fox"),
                 new AnimalModelFactory(new Identifier("textures/entity/fox/fox.png"), QUADRUPED_Y_OFFSET));

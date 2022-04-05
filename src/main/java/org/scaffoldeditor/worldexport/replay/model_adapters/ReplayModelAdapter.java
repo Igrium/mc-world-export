@@ -19,8 +19,8 @@ import net.minecraft.util.Identifier;
  */
 public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> {
 
-    public static interface ReplayModelAdapterFactory<T extends Entity, M extends ReplayModel<?>> {
-        public ReplayModelAdapter<T, ? extends ReplayModel<?>> create(T entity);
+    public static interface ReplayModelAdapterFactory<T extends Entity> {
+        public ReplayModelAdapter<? extends T, ?> create(T entity);
     }
 
     /**
@@ -49,7 +49,7 @@ public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> 
         }
     }
 
-    public static final Map<Identifier, ReplayModelAdapterFactory<?, ?>> REGISTRY = new HashMap<>();
+    public static final Map<Identifier, ReplayModelAdapterFactory<?>> REGISTRY = new HashMap<>();
 
     /**
      * Create a model adapter for a given entity.
@@ -60,12 +60,12 @@ public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> 
     @SuppressWarnings("unchecked")
     public static <E extends Entity> ReplayModelAdapter<E, ?> getModelAdapter(E entity) throws ModelNotFoundException {
         Identifier id = EntityType.getId(entity.getType());
-        ReplayModelAdapterFactory<E, ?> factory = (ReplayModelAdapterFactory<E, ?>) REGISTRY.get(id);
+        ReplayModelAdapterFactory<E> factory = (ReplayModelAdapterFactory<E>) REGISTRY.get(id);
         if (factory == null) {
             throw new ModelNotFoundException(id);
         }
-
-        return factory.create(entity);
+        // Unchecked cast is okay because model adapters have no writable fields that use generics.
+        return (ReplayModelAdapter<E, ?>) factory.create(entity);
     }
 
 
