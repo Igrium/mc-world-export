@@ -14,7 +14,7 @@ import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 
 import net.minecraft.client.render.entity.EntityRenderer;

@@ -36,5 +36,10 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
         
         return element;
     }
+
+    @Override
+    public boolean allowVisibility() {
+        return true;
+    }
     
 }

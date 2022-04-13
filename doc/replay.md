@@ -157,11 +157,13 @@ Like `<mesh>`, `<anim>` contains raw text which efficiently makes up the animati
 
 Each transform entry contains a set of stringified floats separated by spaces. The data itself is as follows:
 
-1. WXYZ (quaternion) rotation.
+1. WXYZ (quaternion) rotation. 
 
 2. XYZ position.
 
 3. XYZ scale (in local space of rotated element).
+
+4. Part visibility (`1` or `0`). *Multipart only!* 
 
 ```
 [w rotation] [x rotation] [y rotation] [z rotation] [x translation] [y translation] [z translation] [x scale] [y scale] [z scale];
@@ -169,7 +171,7 @@ Each transform entry contains a set of stringified floats separated by spaces. T
 
 For `armature` rigs, these values are defined relative to the bind pose, and in `multipart` rigs, they are defined relative to the entity root. *The exception to this is the transform entry for the entity root, which is defined in world space.*
 
-Any of these values may be omitted, but due to the fact that *what* a number represents is determined by its position the list, if a value is omitted, none of the data after it may be defined. For instance, if translation is omitted, the entry cannot contain a scale value.
+Any of these values may be omitted, but due to the fact that *what* a number represents is determined by its position the list, if a value is omitted, none of the data after it may be defined. For instance, if translation is omitted, the entry cannot contain a scale value. When parsed, omitted values fall back to the previous frame, or if  they haven't been specified at all, the identity value (true for visibility).
 
 ***Transform entry example:***
 

@@ -17,6 +17,7 @@ public class Transform {
     public final Vector3dc translation;
     public final Quaterniondc rotation;
     public final Vector3dc scale;
+    public final boolean visible;
 
     /**
      * If this transform was created with a matrix, store the original matrix to
@@ -24,9 +25,13 @@ public class Transform {
      */
     private Matrix4d matrix = new Matrix4d();
 
-    public static final Transform NEUTRAL = new Transform(new Vector3d(), new Quaterniond(), new Vector3d(1d));
+    public static final Transform NEUTRAL = new Transform(new Vector3d(), new Quaterniond(), new Vector3d(1d), true);
 
     public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
+        this(translation, rotation, scale, true);
+    }
+
+    public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale, boolean visible) {
         this.translation = translation;
         this.rotation = rotation;
         this.scale = scale;
@@ -34,14 +39,20 @@ public class Transform {
         this.matrix.scale(scale);
         this.matrix.rotate(rotation);
         this.matrix.translate(translation);
+        this.visible = visible;
     }
 
     public Transform(Matrix4dc matrix) {
+        this(matrix, true);
+    }
+
+    public Transform(Matrix4dc matrix, boolean visible) {
         this.translation = matrix.getTranslation(new Vector3d());
         this.rotation = matrix.getUnnormalizedRotation(new Quaterniond());
         this.scale = matrix.getScale(new Vector3d());
 
         this.matrix.set(matrix);
+        this.visible = visible;
     }
 
     /**
@@ -50,12 +61,20 @@ public class Transform {
      * 
      * @param useTranslation Whether to include translation in the string.
      * @param useScale       Whether to include scale in the string. Can only be
-     *                       if <code>useTranslation</code> is true!
+     *                       used if <code>useTranslation</code> is true!
+     * @param useVisibility  Whether to include visibility in the string. Can only
+     *                       be used if <code>useTranslation</code> AND
+     *                       <code>useScale</code> are true. Make sure to check the
+     *                       model's <code>allowVisibility()</code> function to make
+     *                       sure this is permitted in the first place!
      * @throws IllegalArgumentException If you attempt to include scale without
      *                                  including translation.
      * @return Stringified object.
      */
-    public String toString(boolean useTranslation, boolean useScale) {
+    public String toString(boolean useTranslation, boolean useScale, boolean useVisibility) {
+        if (useVisibility && (!useScale || !useTranslation)) {
+            throw new IllegalArgumentException("Translation and scale MUST be written for visibility to be written!");
+        }
         if (useScale && !useTranslation) {
             throw new IllegalArgumentException("Translation MUST be written in order for scale to be written!");
         }
@@ -77,6 +96,9 @@ public class Transform {
             strings.add(String.valueOf(scale.y()));
             strings.add(String.valueOf(scale.z()));
         }
+        if (useVisibility) {
+            strings.add(visible ? "1" : "0");
+        }
 
         return String.join(" ", strings) + ";";
     }
@@ -88,7 +110,7 @@ public class Transform {
      */
     @Override
     public String toString() {
-        return toString(true, true);
+        return toString(true, true, false);
     }
 
     /**

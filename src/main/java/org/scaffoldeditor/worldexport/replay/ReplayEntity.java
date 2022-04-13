@@ -9,8 +9,8 @@ import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
 import org.scaffoldeditor.worldexport.util.UtilFunctions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -190,7 +190,7 @@ public class ReplayEntity<T extends Entity> {
                     transform = Transform.NEUTRAL;
                 }
 
-                writer.write(transform.toString());
+                writer.write(transform.toString(true, true, model.allowVisibility()));
             }
 
             if (frames.hasNext()) writer.write(System.lineSeparator());

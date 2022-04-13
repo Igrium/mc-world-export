@@ -14,7 +14,7 @@ import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.mixins.QuadrupedModelAccessor;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Transform;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
