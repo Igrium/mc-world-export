@@ -8,6 +8,19 @@ from mathutils import Vector
 from .context import VCAPContext
 from . import util
 
+COLOR = 0
+ALPHA = 21
+ROUGHNESS = 9
+METALLIC = 6
+NORMAL = 22
+
+# They shifted the input IDs in 3.0
+if bpy.app.version[0] < 3:
+    ALPHA = 19
+    ROUGHNESS = 7
+    METALLIC = 4
+    NORMAL = 20
+
 def load_texture(tex_id: str, context: VCAPContext, is_data=False):
     if tex_id in context.textures:
         return context.textures[tex_id]
@@ -176,11 +189,11 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
 
                 node_tree.links.new(tex.outputs[0], mix.inputs[1]) # Tex to mix
                 node_tree.links.new(vcolor.outputs[0], mix.inputs[2]) # Vertex color to mix
-                node_tree.links.new(mix.outputs[0], principled_node.inputs[0]) # Mix to principled
+                node_tree.links.new(mix.outputs[0], principled_node.inputs[COLOR]) # Mix to principled
             else:
-                node_tree.links.new(tex.outputs[0], principled_node.inputs[0])
+                node_tree.links.new(tex.outputs[0], principled_node.inputs[COLOR])
 
-            node_tree.links.new(tex.outputs[1], principled_node.inputs[19]) # Alpha
+            node_tree.links.new(tex.outputs[1], principled_node.inputs[ALPHA]) # Alpha
             tex.image = image_provider(color, False)
             tex.interpolation = 'Closest'
             tex.parent = frame
@@ -193,12 +206,12 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
             parse_field(color, principled_node, 0)
 
     if 'roughness' in obj:
-        parse_field(obj['roughness'], principled_node, 7, True)
+        parse_field(obj['roughness'], principled_node, ROUGHNESS, True)
     if 'metallic' in obj:
-        parse_field(obj['metallic'], principled_node, 4, True)
+        parse_field(obj['metallic'], principled_node, METALLIC, True)
     if 'normal' in obj and isinstance(obj['normal'], str):
         normal = node_tree.nodes.new('ShaderNodeNormalMap')
-        node_tree.links.new(normal.outputs[0], principled_node.inputs[20])
+        node_tree.links.new(normal.outputs[0], principled_node.inputs[NORMAL])
         normal.parent = frame
 
         tex = node_tree.nodes.new('ShaderNodeTexImage')
