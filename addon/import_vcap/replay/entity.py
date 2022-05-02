@@ -1,10 +1,9 @@
+from email.mime import base
 from io import BytesIO
 import math
 import time
 import itertools
-from typing import IO, Generic, Sequence, TypeVar
-from winreg import QueryInfoKey
-from bmesh import new
+from typing import IO, Generic, Iterable, Sequence, TypeVar
 from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone
 from mathutils import Euler, Matrix, Quaternion, Vector
 
@@ -46,13 +45,15 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     Raises:
         Exception: If the XML is malformatted
     """
-    
     start_time = time.time()
     tree = ET.parse(file)
     entity = tree.getroot()
     name = entity.get('name')
     if not name:
         name = 'entity'
+        
+    anim = entity.find('anim')
+    animtext = anim.text
     
     # MODELS
     model = entity.find('model')
@@ -63,9 +64,13 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     parsed_objs: list[Object] = []
 
     multipart = ('rig-type' in model.attrib) and (model.attrib['rig-type'] == 'multipart')
+    seperate = set()
+    
+    # An optional mapping between meshes and the bone indices they belong to. 
+    object_mapping: dict[Object, int] = {}
     
     if multipart:
-        armature_obj, bone_def, meshes = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials)
+        armature_obj, bone_def, meshes, seperate = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials, animtext=animtext)
 
         for mesh in meshes.keys():
             obj = bpy.data.objects.new(f'{name}.{bone_def[meshes[mesh]]}.mesh', mesh)
@@ -75,6 +80,10 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             group.add(range(0, len(mesh.vertices)), 1, type='REPLACE')
 
             parsed_objs.append(obj)
+            
+            # Only transfer into object mapping if it's marked as seperate and won't be deleted later.
+            if mesh in seperate:
+                object_mapping[obj] = meshes[mesh]
             ...
         
     else:
@@ -83,8 +92,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         if mesh_tag is not None:
             meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
             
-            for mesh in meshes:
-                new_object = bpy.data.objects.new(f'{name}.mesh', mesh)
+            for obj in meshes:
+                new_object = bpy.data.objects.new(f'{name}.mesh', obj)
                 collection.objects.link(new_object)
                 # new_object.rotation_euler[0] = math.radians(90) // Armature handles this
                 
@@ -103,21 +112,31 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 obj.parent = armature_obj
                 obj.parent_type = 'ARMATURE'
         else:
+            final_objects = []
+            
+            base_mesh = bpy.data.meshes.new(f'{name}.mesh')
+            base_object = bpy.data.objects.new(f'{name}.mesh', base_mesh)
+            collection.objects.link(base_object)
+            final_objects.append(base_object)
+            
             bpy.ops.object.select_all(action='DESELECT')
-            context.view_layer.objects.active = parsed_objs[0]
+            base_object.select_set(True)
+            context.view_layer.objects.active = base_object
             for obj in parsed_objs:
-                obj.select_set(True)
+                if obj.data in seperate:
+                    final_objects.append(obj)
+                else:
+                    obj.select_set(True)
 
             bpy.ops.object.join()
-
-            parsed_objs[0].parent = armature_obj
-            parsed_objs[0].parent_type = 'ARMATURE'
-            parsed_objs[0].name = f'{name}.mesh'
+            
+            for obj in final_objects:
+                obj.parent = armature_obj
+                obj.parent_type = 'ARMATURE'
     else:
         print(f"Entity {name} has no meshes!")
     
     # ANIMATION
-    anim = entity.find('anim')
     if (anim is not None):
         root_pos = AnimChannel('ROOT', 'location')
         root_rot = AnimChannel('ROOT', 'rotation_quaternion')
@@ -128,6 +147,9 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         pos_channels: dict[PoseBone, AnimChannel] = {}
         rot_channels: dict[PoseBone, AnimChannel] = {}
         scale_channels: dict[PoseBone, AnimChannel] = {}
+        
+        vis_channels: dict[Object, list[tuple[float, float]]] = {}
+        object_cache: dict[PoseBone, Object] = {} # Cache of objects for vis animation
         
         armature_obj.rotation_mode = 'QUATERNION'
         render = context.scene.render
@@ -141,14 +163,13 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         else:
             framerate = scene_framerate
         
-        animtext = anim.text # cache the text for optimization
         prev_rot = None
         for index, frame in enumerate(animtext.splitlines()):
             frame = frame.strip()
+            scene_frame = (index / framerate + anim_start_time) * scene_framerate
             
             # scene_frame = index / framerate * scene_framerate
             # Note: gonna have to support framerate matching later.
-            scene_frame = index
             
             bones = frame.split(';')
             
@@ -163,16 +184,16 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                     if prev_rot is not None:
                         rotation.make_compatible(prev_rot)
 
-                    root_rot.keyframes[scene_frame] = rotation
+                    root_rot.keyframes[index] = rotation
                     prev_rot = rotation
                 
                 if length >= 7:
                     location = root_vals[4:7]
                     # Switch coordinate space
-                    root_pos.keyframes[scene_frame] = (location[0], -location[2], location[1])
+                    root_pos.keyframes[index] = (location[0], -location[2], location[1])
                 
                 if length >= 10:
-                    root_scale.keyframes[scene_frame] = root_vals[7:10]
+                    root_scale.keyframes[index] = root_vals[7:10]
             
             prev_rot = None
             for def_index, bone_str in enumerate(bones[1:]):
@@ -196,7 +217,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                     if prev_rot is not None:
                         rotation.make_compatible(prev_rot)
 
-                    channel.keyframes[scene_frame] = rotation
+                    channel.keyframes[index] = rotation
                     prev_rot = rotation
                 
                 if len(bone_vals) >= 7:
@@ -206,7 +227,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         channel = AnimChannel(bone.name, f'pose.bones["{bone.name}"].location')
                         pos_channels[bone] = channel
                     
-                    channel.keyframes[scene_frame] = bone_vals[4:7]      
+                    channel.keyframes[index] = bone_vals[4:7]      
                 
                 if len(bone_vals) >= 10:
                     if bone in scale_channels:
@@ -216,7 +237,30 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         channel.keyframes[0] = (1, 1, 1) # If the bone doesn't have have any scale keyframes.
                         scale_channels[bone] = channel
                     
-                    channel.keyframes[scene_frame] = bone_vals[7:10]
+                    channel.keyframes[index] = bone_vals[7:10]
+                
+                # Part visibility
+                if len(bone_vals) >= 11:
+                    obj = None
+                    
+                    # Find bone mesh
+                    if bone in object_cache:
+                        obj = object_cache[bone]
+                    else:
+                        for c_obj, index in object_mapping.items():
+                            if index == def_index:
+                                obj = c_obj
+                                break
+                        object_cache[bone] = obj
+                    
+                    if obj is not None:
+                        if obj not in vis_channels:
+                            vis_channels[obj] = []
+                        
+                        vis_channels[obj].append((scene_frame, 1 - bone_vals[10]))
+                        
+                        ...
+                    
                     
         anim_data = armature_obj.animation_data_create()
         action = bpy.data.actions.new(name=f"{name}_action")
@@ -250,6 +294,26 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             
         for channel in scale_channels.values():
             for i in range(0, 3): add_curve(channel, i)
+        
+        # Deal with visibility animation
+        for obj, keys in vis_channels.items():
+            anim_data = obj.animation_data_create()
+            action = bpy.data.actions.new(name=f'{obj.name}_action')
+            anim_data.action = action
+            
+            curve_render = action.fcurves.new('hide_render', index=0)
+            curve_viewport = action.fcurves.new('hide_viewport', index=1)
+            
+            curve_render.keyframe_points.add(len(keys))
+            curve_viewport.keyframe_points.add(len(keys))
+            
+            bkeys = list(itertools.chain.from_iterable(keys))
+            
+            curve_render.keyframe_points.foreach_set('co', bkeys)
+            curve_viewport.keyframe_points.foreach_set('co', bkeys)
+            
+            curve_render.keyframe_points.foreach_set('interpolation', [0] * len(keys))
+            curve_viewport.keyframe_points.foreach_set('interpolation', [0] * len(keys))
         
     print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
 
@@ -323,19 +387,28 @@ def parse_armature(model: ET.Element, context: Context, collection: Collection, 
     obj.rotation_euler[0] = math.radians(90)
     return (obj, definition_order)
     
-def parse_multipart(model: ET.Element, context: Context, collection: Collection, name="entity", materials: dict[str, Material] = {}) -> tuple[Object, list[str], dict[Mesh, int]]:
+def parse_multipart(model: ET.Element,
+                    context: Context,
+                    collection: Collection,
+                    name="entity",
+                    materials: dict[str, Material] = {},
+                    animtext: str="") -> tuple[Object, list[str], dict[Mesh, int], set[Mesh]]:
     """Load an armature from a multipart model XML element.
 
     Args:
-        model (ET.Element): Element to load (should be `model` element)
+        model (fET.Element): Element to load (should be `model` element)
         context (Context): Blender context.
+        collection (Collection): Collection to load into.
         name (str, optional): Name of the armature. Defaults to "entity".
+        materials (dict[str, Material], optional): A mapping of material names and their (parsed) Material objects. Defaults to {}.
+        animtext (str, optional): The unparsed text of this object's animation. Required for visibility animation. Defaults to "".
 
     Returns:
-        tuple[Armature, list[str], list[Mesh]]: The generated armature object,
-        the bone names in definition order, and mapping of parsed meshes and the
-        bone indices they belong to.
+        tuple[Object, list[str], dict[Mesh, int], set[Mesh]]: The generated armature object,
+        the bone names in definition order, a mapping of parsed meshes and the
+        bone indices they belong to, and a set of meshes that need to remain as seperate objects.
     """
+
 
     armature = bpy.data.armatures.new(name)
     obj = bpy.data.objects.new(name, armature)
@@ -345,11 +418,16 @@ def parse_multipart(model: ET.Element, context: Context, collection: Collection,
 
     definition_order: list[str] = []
     meshes: dict[Mesh, int] = {}
+    seperate: set[Mesh] = set()
 
     bpy.ops.object.mode_set(mode = 'EDIT')
     edit_bones = armature.edit_bones
     id = 0
-
+    
+    frames: list[list[str]] = []
+    for frame in animtext.strip().splitlines():
+        frames.append(frame.strip().split(';'))
+        
     def load_bone(element: ET.Element):
         if element.tag != 'part': return
         nonlocal id
@@ -364,6 +442,8 @@ def parse_multipart(model: ET.Element, context: Context, collection: Collection,
         length = 0.16
 
         bone = edit_bones.new(name)
+        name = bone.name
+        
         bone.head = [0, 0, 0]
         bone.tail = [0, length, 0]
 
@@ -376,7 +456,17 @@ def parse_multipart(model: ET.Element, context: Context, collection: Collection,
                 meshes[mesh] = id
         else:
             print(f'Model part {name} is missing a mesh!')
-
+        
+        # Check if visibility gets changed
+        for frame in frames:
+            if len(frame) <= id + 1: continue
+            transform = frame[id + 1].split(' ')
+            if len(transform) <= 10: continue
+            if transform[10] == '0':
+                seperate.add(mesh)
+                continue
+        
+        
         id += 1
         for child in element:
             load_bone(child)
@@ -387,5 +477,5 @@ def parse_multipart(model: ET.Element, context: Context, collection: Collection,
     
     bpy.ops.object.mode_set(mode='OBJECT')
     obj.rotation_euler[0] = math.radians(90)
-    return (obj, definition_order, meshes)
+    return (obj, definition_order, meshes, seperate)
 

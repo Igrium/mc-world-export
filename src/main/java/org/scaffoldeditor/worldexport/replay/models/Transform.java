@@ -55,6 +55,14 @@ public class Transform {
         this.visible = visible;
     }
 
+    public Transform(boolean visible) {
+        this.translation = new Vector3d();
+        this.rotation = new Quaterniond();
+        this.scale = new Vector3d(1d, 1d, 1d);
+
+        this.visible = visible;
+    }
+
     /**
      * Get a string representation of this bone transform, as defined by the Replay
      * file specification (for use in the Entity XML.)
