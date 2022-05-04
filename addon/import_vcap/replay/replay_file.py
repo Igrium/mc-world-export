@@ -1,5 +1,6 @@
 import io
 import json
+from logging import warn, warning
 import os
 from re import S
 import sys
@@ -77,6 +78,10 @@ def load_replay(file: Union[str, IO[bytes]],
                 return textures[tex_name]
 
             filename = f'tex/{tex_name}.png'
+            if filename not in archive.namelist():
+                warning(f'{tex_name} missing from replay archive!')
+                return None
+            
             with archive.open(filename) as file:
                 image = util.import_image(file, os.path.basename(tex_name), is_data=is_data)
                 textures[tex_name] = image

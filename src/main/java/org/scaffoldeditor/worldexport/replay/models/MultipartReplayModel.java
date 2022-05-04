@@ -41,5 +41,16 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
     public boolean allowVisibility() {
         return true;
     }
-    
+
+    /**
+     * Get the model part with a particular name from the model.
+     * @param name The name to search for.
+     * @return The first model part with that name, or <code>null</code> if none was found.
+     */
+    public ReplayModelPart getBone(String name) {
+        for (ReplayModelPart bone : getBones()) {
+            if (bone.getName().equals(name)) return bone;
+        }
+        return null;
+    }
 }

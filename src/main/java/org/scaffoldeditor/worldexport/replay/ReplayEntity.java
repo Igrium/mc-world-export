@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
@@ -80,9 +81,12 @@ public class ReplayEntity<T extends Entity> {
         }
 
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
-        modelAdapter.generateMaterials(file);
-        
         return modelAdapter;
+    }
+
+    public void generateMaterials(MaterialConsumer file) {
+        assertModelAdapter();
+        modelAdapter.generateMaterials(file);
     }
 
     /**
@@ -186,14 +190,15 @@ public class ReplayEntity<T extends Entity> {
             for (Object bone : model.getBones()) {
                 Transform transform = pose.bones.get(bone);
                 if (transform == null) {
-                    LogManager.getLogger().warn("Frame {} on {} is missing bone: {}.", i, entity.getName(), bone);
-                    transform = Transform.NEUTRAL;
+                    // LogManager.getLogger().warn("Frame {} on {} is missing bone: {}.", i, entity.getName(), bone);
+                    transform = i == 0 ? new Transform(false) : Transform.EMPTY; // Parts are disabled if they don't have anim on frame 1
                 }
 
                 writer.write(transform.toString(true, true, model.allowVisibility()));
             }
 
             if (frames.hasNext()) writer.write(System.lineSeparator());
+            i++;
         }
 
         animNode.appendChild(doc.createTextNode(writer.toString()));

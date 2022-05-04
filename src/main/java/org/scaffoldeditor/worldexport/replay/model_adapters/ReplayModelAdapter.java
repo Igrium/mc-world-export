@@ -4,6 +4,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
@@ -77,11 +78,12 @@ public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> 
     
     /**
      * Generate the materials for this model. Doesn't do anything if the materials
-     * already exist.
+     * already exist. Because of potential OpenGL calls, should only be called on the
+     * render thread.
      * 
      * @param file Replay file to put materials/textures into.
      */
-    public void generateMaterials(ReplayFile file);
+    public void generateMaterials(MaterialConsumer file);
 
     /**
      * Get an entity's current pose .

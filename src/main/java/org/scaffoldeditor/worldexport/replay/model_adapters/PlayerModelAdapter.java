@@ -18,7 +18,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
 import net.minecraft.util.math.Matrix4f;
 
-public class PlayerModelAdapter extends AnimalModelAdapter<AbstractClientPlayerEntity> {
+public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEntity> {
 
     static MinecraftClient client = MinecraftClient.getInstance();
 

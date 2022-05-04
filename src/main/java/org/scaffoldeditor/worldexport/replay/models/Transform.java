@@ -27,6 +27,16 @@ public class Transform {
 
     public static final Transform NEUTRAL = new Transform(new Vector3d(), new Quaterniond(), new Vector3d(1d), true);
 
+    /**
+     * A transform which will never output any values to the animation.
+     */
+    public static final Transform EMPTY = new Transform(true) {
+        @Override
+        public String toString(boolean useTranslation, boolean useScale, boolean useVisibility) {
+            return " ;";
+        }
+    };
+
     public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
         this(translation, rotation, scale, true);
     }

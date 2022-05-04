@@ -45,7 +45,7 @@ def read(file: IO, name: str, context: VCAPContext):
     obj = json.load(file)
     return parse(obj, name, context)
 
-def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Image]) -> Material:
+def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Image | None]) -> Material:
     """Parse a vcap material entry without attaching it to a Vcap Context.
 
     Args:
@@ -131,7 +131,7 @@ def parse(obj, name: str, context: VCAPContext):
     mat.use_backface_culling = True
     return mat
 
-def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool], Image], name: str = 'vcap_mat', uv_input: NodeSocket = None):
+def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool], Image | None], name: str = 'vcap_mat', uv_input: NodeSocket = None):
     """Read a Vcap material and generate a node structure from it.
 
     Args:
@@ -148,7 +148,7 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
         if isinstance(value, numbers.Number):
             target.inputs[index].default_value = value
         elif isinstance(value, str):
-            tex = node_tree.nodes.new('ShaderNodeTexImage')
+            tex: Node = node_tree.nodes.new('ShaderNodeTexImage')
             node_tree.links.new(tex.outputs[0], target.inputs[index])
 
             tex.image = image_provider(value, is_data)

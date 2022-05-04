@@ -4,7 +4,7 @@ import math
 import time
 import itertools
 from typing import IO, Generic, Iterable, Sequence, TypeVar
-from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone
+from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone, EditBone
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
@@ -428,7 +428,7 @@ def parse_multipart(model: ET.Element,
     for frame in animtext.strip().splitlines():
         frames.append(frame.strip().split(';'))
         
-    def load_bone(element: ET.Element):
+    def load_bone(element: ET.Element, parent: EditBone | None = None):
         if element.tag != 'part': return
         nonlocal id
 
@@ -443,6 +443,8 @@ def parse_multipart(model: ET.Element,
 
         bone = edit_bones.new(name)
         name = bone.name
+        
+        bone.parent = parent
         
         bone.head = [0, 0, 0]
         bone.tail = [0, length, 0]
@@ -469,7 +471,7 @@ def parse_multipart(model: ET.Element,
         
         id += 1
         for child in element:
-            load_bone(child)
+            load_bone(child, bone)
 
     
     for element in model:

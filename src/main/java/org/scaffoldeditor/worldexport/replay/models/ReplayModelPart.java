@@ -73,4 +73,9 @@ public class ReplayModelPart implements TreeNode<ReplayModelPart> {
 
         return element;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

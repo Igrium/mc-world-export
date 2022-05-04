@@ -2,16 +2,14 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import javax.annotation.Nullable;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
-import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.Material.Field;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
-import org.scaffoldeditor.worldexport.replay.ReplayFile;
+import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
@@ -84,21 +82,19 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     abstract Identifier getTexture();
 
     @Override
-    public void generateMaterials(ReplayFile file) {
+    public void generateMaterials(MaterialConsumer file) {
         Identifier texture = getTexture();
         String texName = getTexName(texture);
-        if (file.materials.containsKey(texName)) return;
+        if (file.getMaterial(texName) != null) return;
+        
         Material mat = new Material();
         mat.color = new Field(texName);
         mat.transparent = isTransparent(entity);
         mat.roughness = new Field(1);
-        file.materials.put(texName, mat);
+        file.putMaterial(texName, mat);
 
-        RenderSystem.recordRenderCall(() -> {
-            if (file.textures.containsKey(texName)) return;
-            NativeImage tex = TextureExtractor.getTexture(texture);
-            file.textures.put(texName, new NativeImageReplayTexture(tex));
-        });
+        NativeImage tex = TextureExtractor.getTexture(texture);
+        file.addTexture(texName, new NativeImageReplayTexture(tex));
     }
 
     /**

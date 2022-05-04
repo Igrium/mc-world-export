@@ -22,14 +22,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.VcapExporter;
 import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
+import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.Material.Field;
 import org.scaffoldeditor.worldexport.mat.Material.Field.FieldType;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
 
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
 
-public class ReplayFile {
+public class ReplayFile implements MaterialConsumer {
     protected ClientWorld world;
     protected VcapExporter worldExporter;
 
@@ -58,6 +61,26 @@ public class ReplayFile {
             throw new IllegalArgumentException(
                     "Replay file cannot be constructed using an exporter with a different world instance.");
         }
+    }
+
+    @Override
+    public void putMaterial(String name, Material mat) {
+        materials.put(name, mat);
+    }
+
+    @Override
+    public Material getMaterial(String name) {
+        return materials.get(name);
+    }
+
+    @Override
+    public void putTexture(String name, ReplayTexture texture) {
+        this.textures.put(name, texture);
+    }
+
+    @Override
+    public ReplayTexture getTexture(String name) {
+        return this.textures.get(name);
     }
 
     public final ClientWorld getWorld() {
@@ -114,10 +137,11 @@ public class ReplayFile {
         LOGGER.info("Writing world...");
         out.putNextEntry(new ZipEntry("world.vcap"));
         worldExporter.save(out);
-        out.closeEntry();
+        out.closeEntry();        
 
         LOGGER.info("Serializing entities...");
         for (ReplayEntity<?> ent : entities) {
+            ent.generateMaterials(this);
             out.putNextEntry(new ZipEntry("entities/"+ent.getName()+".xml"));
             ReplayIO.serializeEntity(ent, new OutputStreamWriter(out));
             out.closeEntry();
@@ -144,14 +168,22 @@ public class ReplayFile {
             out.closeEntry();
         }
 
+        // Dump world texture into replay
+        NativeImageReplayTexture worldTex = new NativeImageReplayTexture(TextureExtractor.getAtlas());
+        out.putNextEntry(new ZipEntry("tex/world.png"));
+        worldTex.save(out);
+        out.closeEntry();
+
         LOGGER.info("Finished writing replay file.");
         out.finish();
     }
 
     private boolean checkForTexture(Field field, String matName) {
-        if (field != null && field.mode == FieldType.TEXTURE && !this.textures.containsKey(field.getTexture())) {
-            LogManager.getLogger().warn("Material: '{}' references missing texture: {}", matName, field.getTexture());
-            return false;
+        if (field != null && field.mode == FieldType.TEXTURE) {
+            if (!field.getTexture().equals("world") && !this.textures.containsKey(field.getTexture())) {
+                LogManager.getLogger().warn("Material: '{}' references missing texture: {}", matName, field.getTexture());
+                return false;
+            }
         }
         return true;
     }

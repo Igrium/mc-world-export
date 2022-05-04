@@ -33,6 +33,11 @@ public class ObjVertexConsumer implements VertexConsumer {
         this.transform = transform;
     }
 
+    public ObjVertexConsumer(Obj baseObj) {
+        this.baseObj = baseObj;
+        this.transform = new Matrix4d();
+    }
+
     public Matrix4dc getTransform() {
         return transform;
     }
