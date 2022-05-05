@@ -2,6 +2,9 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
+
+import com.replaymod.lib.org.apache.commons.lang3.ObjectUtils.Null;
 
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
@@ -53,8 +56,10 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
     protected Map<Item, ReplayModelPart> leftHandModels = new HashMap<>();
     protected Map<Item, ReplayModelPart> rightHandModels = new HashMap<>();
 
-    private ItemStack lastLeftHand = ItemStack.EMPTY;
-    private ItemStack lastRightHand = ItemStack.EMPTY;
+    private Map<ReplayModelPart, Transform> prevTransforms = new HashMap<>();
+
+    private ReplayModelPart lastLeftHand = null;
+    private ReplayModelPart lastRightHand = null;
 
     private MaterialCache materialCache = new MaterialCache();
     
@@ -67,27 +72,38 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
         ItemStack leftHand = invert ? entity.getMainHandStack() : entity.getOffHandStack();
         ItemStack rightHand = invert ? entity.getOffHandStack() : entity.getMainHandStack();
 
-        // Clean up from last frame
-        if (!leftHand.isItemEqual(lastLeftHand)) {
-            if (!lastLeftHand.isEmpty()) {
-                pose.bones.put(leftHandModels.get(lastLeftHand.getItem()), new Transform(false));
-            }
-            lastLeftHand = ItemStack.EMPTY;
+        // Clean up from last frame. This will be overridden if item didn't change.
+        if (lastLeftHand != null) {
+            pose.bones.put(lastLeftHand, getHidden(lastLeftHand));
         }
 
-        if (!rightHand.isItemEqual(lastRightHand)) {
-            if (!lastRightHand.isEmpty()) {
-                pose.bones.put(leftHandModels.get(lastRightHand.getItem()), new Transform(false));
-            }
-            lastRightHand = ItemStack.EMPTY;
+        if (lastRightHand != null) {
+            pose.bones.put(lastRightHand, getHidden(lastRightHand));
         }
+
+        // for (ReplayModelPart part : leftHandModels.values()) {
+        //     if 
+        //     pose.bones.put(part, new Transform(false));
+        // }
+        // for (ReplayModelPart part : rightHandModels.values()) {
+        //     pose.bones.put(part, new Transform(false));
+        // }
+        // Stream.concat(leftHandModels.values().stream(), rightHandModels.values().stream()).forEach(part -> {
+        //     pose.bones.put(part, getHidden(part));
+        // });
         
         if (!leftHand.isEmpty()) {
             ReplayModelPart leftHandModel = leftHandModels.get(leftHand.getItem());
             if (leftHandModel == null) {
                 leftHandModel = genItemModel(leftHand, Arm.LEFT);
             }
-            pose.bones.put(leftHandModel, new Transform(leftItemOffset, true));
+            Transform trans = new Transform(leftItemOffset, true);
+            pose.bones.put(leftHandModel, trans);
+
+            prevTransforms.put(leftHandModel, trans);
+            lastLeftHand = leftHandModel;
+        } else {
+            lastLeftHand = null;
         }
 
         if (!rightHand.isEmpty()) {
@@ -95,13 +111,21 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
             if (rightHandModel == null) {
                 rightHandModel = genItemModel(rightHand, Arm.RIGHT);
             }
-            pose.bones.put(rightHandModel, new Transform(rightItemOffset, true));
+            Transform trans = new Transform(rightItemOffset, true);
+            pose.bones.put(rightHandModel, trans);
+
+            prevTransforms.put(rightHandModel, trans);
+            lastRightHand = rightHandModel;
+        } else {
+            lastLeftHand = null;
         }
-        
-        lastLeftHand = leftHand;
-        lastRightHand = rightHand;
 
         return pose;
+    }
+
+    private Transform getHidden(ReplayModelPart part) {
+        Transform prev = prevTransforms.get(part);
+        return prev != null ? new Transform(prev, false) : new Transform(false);
     }
 
     private ReplayModelPart genItemModel(ItemStack item, Arm arm) {

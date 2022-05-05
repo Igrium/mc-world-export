@@ -65,6 +65,15 @@ public class Transform {
         this.visible = visible;
     }
 
+    public Transform(Transform other, boolean visible) {
+        this.translation = other.translation;
+        this.rotation = other.rotation;
+        this.scale = other.scale;
+        this.matrix = other.matrix;
+
+        this.visible = visible;
+    }
+
     public Transform(boolean visible) {
         this.translation = new Vector3d();
         this.rotation = new Quaterniond();
