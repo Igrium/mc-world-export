@@ -1,0 +1,15 @@
+{
+    "required": false,
+    "minVersion": "0.8",
+    "package": "com.igrium.replay_debugger.mixins",
+    "compatibilityLevel": "JAVA_16",
+    "mixins": [
+    ],
+    "client": [
+        "TitleScreenMixin"
+    ],
+    "injectors": {
+      "defaultRequire": 1
+    }
+  }
+  

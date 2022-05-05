@@ -25,7 +25,8 @@
     ]
   },
   "mixins": [
-    "worldexport.mixins.json"
+    "worldexport.mixins.json",
+    "debugger.mixins.json"
   ],
 
   "depends": {
