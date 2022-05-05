@@ -2,16 +2,20 @@ package org.scaffoldeditor.worldexport.replay;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
+import org.joml.Quaterniond;
+import org.joml.Quaterniondc;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
+import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.UtilFunctions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -181,17 +185,38 @@ public class ReplayEntity<T extends Entity> {
         animNode.setAttribute("start-time", String.valueOf(entity.startTime));
         StringWriter writer = new StringWriter();
 
+        Map<Object, Quaterniondc> prevRotation = new HashMap<>();
+        Quaterniondc prevRootRot = null;
+
         Iterator<Pose<?>> frames = entity.frames.iterator();
         int i = 0;
         while (frames.hasNext()) {
             Pose<?> pose = frames.next();
-            writer.write(pose.root.toString());
+
+            // ROOT
+            Transform root = pose.root;
+            if (prevRootRot != null) {
+                root = new Transform(root.translation,
+                        MathUtils.makeQuatsCompatible(root.rotation, prevRootRot, new Quaterniond()),
+                        root.scale, root.visible);
+            }
+            writer.write(root.toString());
+            prevRootRot = root.rotation;
             
             for (Object bone : model.getBones()) {
                 Transform transform = pose.bones.get(bone);
                 if (transform == null) {
                     // LogManager.getLogger().warn("Frame {} on {} is missing bone: {}.", i, entity.getName(), bone);
-                    transform = i == 0 ? new Transform(false) : Transform.EMPTY; // Parts are disabled if they don't have anim on frame 1
+                    transform = i == 0 ? new Transform(false) : Transform.EMPTY; // Hidden on frame 0
+                } else {
+                    Quaterniondc prev = prevRotation.get(bone);
+                    if (prev != null) {
+                        transform = new Transform(transform.translation,
+                                MathUtils.makeQuatsCompatible(transform.rotation, prev, new Quaterniond()),
+                                transform.scale, transform.visible);
+                    }
+
+                    prevRotation.put(bone, transform.rotation);
                 }
 
                 writer.write(transform.toString(true, true, model.allowVisibility()));

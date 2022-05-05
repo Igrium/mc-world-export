@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
-import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 

@@ -46,6 +46,21 @@ public final class MathUtils {
         return dest;
     }
 
+    /**
+     * Given any rotation, there are two possible quaternions that can represent
+     * that rotation. This function ensures that two quaternions are "compatible",
+     * meaning they use similar numbers that won't spaz out when interpolated.
+     * 
+     * @param src    Quaternion to check the compatibility of.
+     * @param target Quaternion to check <code>src</code>'s compatibility with.
+     * @param dest   Quaternion to store the result: a modified version of
+     *               <code>src</code> that is compatible with <code>target</code>.
+     * @return <code>dest</code>
+     */
+    public static Quaterniond makeQuatsCompatible(Quaterniondc src, Quaterniondc target, Quaterniond dest) {
+        return makeQuatsCompatible(src, target, .25, dest);
+    }
+
     private static boolean absWithinRange(double a, double b, double margin) {
         return Math.abs(Math.abs(a) - Math.abs(b)) <= margin;
     }
