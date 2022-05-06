@@ -1,18 +1,26 @@
 package org.scaffoldeditor.worldexport.mat;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import net.minecraft.util.math.Vec3d;
+import org.apache.commons.io.IOUtils;
+import org.joml.Vector3d;
+import org.joml.Vector3dc;
 
 /**
  * Represents a simple material that can be imported into Blender.
@@ -22,7 +30,7 @@ public class Material {
         public enum FieldType { SCALAR, VECTOR, TEXTURE }
 
         private double scalar;
-        private Vec3d vector;
+        private Vector3dc vector;
         private String texture;
         public final FieldType mode;
 
@@ -31,7 +39,7 @@ public class Material {
             this.scalar = scalar;
         }
 
-        public Field(Vec3d vector) {
+        public Field(Vector3dc vector) {
             this.mode = FieldType.VECTOR;
             this.vector = vector;
         }
@@ -46,7 +54,7 @@ public class Material {
             return this.scalar;
         }
 
-        public Vec3d getVector() {
+        public Vector3dc getVector() {
             if (mode != FieldType.VECTOR) throw new IllegalStateException("Tried to access a vector on a field of type "+mode);
             return this.vector;
         }
@@ -65,8 +73,8 @@ public class Material {
                     return new JsonPrimitive(src.getScalar());
                 case VECTOR:
                     JsonArray array = new JsonArray();
-                    Vec3d vec = src.getVector();
-                    array.add(vec.x); array.add(vec.y); array.add(vec.z);
+                    Vector3dc vec = src.getVector();
+                    array.add(vec.x()); array.add(vec.y()); array.add(vec.z());
 
                     return array;
                 case TEXTURE:
@@ -75,6 +83,32 @@ public class Material {
                     throw new RuntimeException("Somehow, the field has an unknown value type.");
             }
         }
+    }
+
+    private static class FieldDeserializer implements JsonDeserializer<Field> {
+
+        @Override
+        public Field deserialize(JsonElement src, Type typeOfSrc, JsonDeserializationContext context)
+                throws JsonParseException {
+            if (src.isJsonArray()) {
+                JsonArray array = src.getAsJsonArray();
+                return new Field(
+                    new Vector3d(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble())
+                );
+            }
+            if (!src.isJsonPrimitive()) {
+                throw new JsonParseException("Field must be an array, a string, or a number.");
+            }
+
+            if (src.getAsJsonPrimitive().isNumber()) {
+                return new Field(src.getAsDouble());
+            } else if (src.getAsJsonPrimitive().isString()) {
+                return new Field(src.getAsString());
+            } else {
+                throw new JsonParseException("Field must be an array, a string, or a number.");
+            }
+        }
+        
     }
 
     public Field color;
@@ -92,10 +126,10 @@ public class Material {
     
     public String serialize() {
         Gson gson = new GsonBuilder()
-            .registerTypeAdapter(Field.class, new FieldSerializer())
-            .setPrettyPrinting()
-            .create();
-        
+                .registerTypeAdapter(Field.class, new FieldSerializer())
+                .setPrettyPrinting()
+                .create();
+
         return gson.toJson(this);
     }
 
@@ -103,5 +137,17 @@ public class Material {
         PrintWriter writer = new PrintWriter(out);
         writer.print(serialize());
         writer.flush();
+    }
+
+    public static Material load(String src) throws JsonParseException {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Field.class, new FieldDeserializer())
+                .create();
+        
+        return gson.fromJson(src, Material.class);
+    }
+
+    public static Material load(InputStream is) throws IOException, JsonParseException {
+        return load(IOUtils.toString(is, Charset.forName("UTF-8")));
     }
 }

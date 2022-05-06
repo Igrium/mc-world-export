@@ -22,11 +22,12 @@ import org.w3c.dom.Element;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.util.Identifier;
 
 /**
  * Represents an entity in the concept of a replay export.
  */
-public class ReplayEntity<T extends Entity> {
+public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
     /**
      * The base entity that this replay entity represents.
      */
@@ -158,6 +159,22 @@ public class ReplayEntity<T extends Entity> {
         this.startTime = startTime;
     }
 
+    @Override
+    public Identifier getMinecraftID() {
+        return EntityType.getId(entity.getType());
+    }
+
+    @Override
+    public float getFPS() {
+        return getFile().getFps();
+    }
+
+    @Override
+    public List<Pose<?>> getFrames() {
+        return frames;
+    }
+    
+
     protected void assertModelAdapter() {
         if (this.modelAdapter == null) {
             throw new IllegalStateException("Model adapter has not been generated. Generate first it with genAdapter()");
@@ -170,10 +187,12 @@ public class ReplayEntity<T extends Entity> {
      * @param doc XML document.
      * @return The root <entity> tag of the XML.
      */
-    public static Element writeToXML(ReplayEntity<?> entity, Document doc) {
+    public static Element writeToXML(BaseReplayEntity entity, Document doc) {
         Element node = doc.createElement("entity");
         node.setAttribute("name", entity.getName());
-        node.setAttribute("class", EntityType.getId(entity.entity.getType()).toString());
+        if (entity.getMinecraftID() != null) {
+            node.setAttribute("class", entity.getMinecraftID().toString());
+        }
 
         ReplayModel<?> model = entity.getModel();
 
@@ -181,14 +200,14 @@ public class ReplayEntity<T extends Entity> {
         node.appendChild(modelNode);
 
         Element animNode = doc.createElement("anim");
-        animNode.setAttribute("fps", String.valueOf(entity.getFile().getFps()));
-        animNode.setAttribute("start-time", String.valueOf(entity.startTime));
+        animNode.setAttribute("fps", String.valueOf(entity.getFPS()));
+        animNode.setAttribute("start-time", String.valueOf(entity.getStartTime()));
         StringWriter writer = new StringWriter();
 
         Map<Object, Quaterniondc> prevRotation = new HashMap<>();
         Quaterniondc prevRootRot = null;
 
-        Iterator<Pose<?>> frames = entity.frames.iterator();
+        Iterator<Pose<?>> frames = entity.getFrames().iterator();
         int i = 0;
         while (frames.hasNext()) {
             Pose<?> pose = frames.next();
@@ -230,5 +249,10 @@ public class ReplayEntity<T extends Entity> {
         node.appendChild(animNode);
 
         return node;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 }

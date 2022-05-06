@@ -1,17 +1,23 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.management.modelmbean.XMLParseException;
+
+import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.util.TreeNode;
+import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import de.javagl.obj.Obj;
+import de.javagl.obj.ObjReader;
 import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
 
@@ -77,5 +83,32 @@ public class ReplayModelPart implements TreeNode<ReplayModelPart> {
     @Override
     public String toString() {
         return name;
+    }
+
+    public static ReplayModelPart parse(Element xml) throws XMLParseException {
+        String name = xml.getAttribute("name");
+        if (name.length() == 0) {
+            throw new XMLParseException("Replay model part is missing a name!");
+        }
+        ReplayModelPart part = new ReplayModelPart(name);
+        List<Element> mesh = XMLUtils.getChildrenByTagName(xml, "mesh");
+        if (mesh.size() == 1) {
+            String objString = mesh.get(0).getTextContent();
+            try {
+                part.mesh = ObjReader.read(new StringReader(objString));
+            } catch (IOException e) {
+                throw new XMLParseException(e, "Improperly formatted OBJ in part "+name);
+            }
+        } else {
+            LogManager.getLogger().error("Model part {} has {} meshes!", name, mesh.size());
+            part.mesh = Objs.create();
+        }
+
+        List<Element> children = XMLUtils.getChildrenByTagName(xml, "part");
+        for (Element child : children) {
+            part.children.add(parse(child));
+        }
+
+        return part;
     }
 }

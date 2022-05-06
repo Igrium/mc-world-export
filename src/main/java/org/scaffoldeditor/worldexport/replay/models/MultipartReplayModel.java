@@ -3,7 +3,10 @@ package org.scaffoldeditor.worldexport.replay.models;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.management.modelmbean.XMLParseException;
+
 import org.scaffoldeditor.worldexport.util.TreeIterator;
+import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -52,5 +55,22 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
             if (bone.getName().equals(name)) return bone;
         }
         return null;
+    }
+
+    /**
+     * Parse a multipart replay model from XML.
+     * @param xml XML model element.
+     * @return Parsed model.
+     * @throws XMLParseException
+     */
+    public static MultipartReplayModel parse(Element xml) throws XMLParseException {
+        MultipartReplayModel model = new MultipartReplayModel();
+        List<Element> parts = XMLUtils.getChildrenByTagName(xml, "part");
+        
+        for (Element part : parts) {
+            model.bones.add(ReplayModelPart.parse(part));
+        }
+
+        return model;
     }
 }

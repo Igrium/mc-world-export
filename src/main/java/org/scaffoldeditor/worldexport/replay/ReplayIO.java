@@ -21,7 +21,7 @@ public final class ReplayIO {
      * @param entity Entity to serialize.
      * @param target Writer to write the XML into.
      */
-    public static void serializeEntity(ReplayEntity<?> entity, Writer target) {
+    public static void serializeEntity(BaseReplayEntity entity, Writer target) {
         DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder;
         try {
