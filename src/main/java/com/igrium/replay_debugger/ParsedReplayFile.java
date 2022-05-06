@@ -14,12 +14,12 @@ import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import javax.annotation.Nullable;
 import javax.management.modelmbean.XMLParseException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.igrium.replay_debugger.ReplayParseException.ParseStage;
+import com.igrium.replay_debugger.ui.ParsingUpdateListener;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -70,31 +70,33 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
         vcapData = in.readAllBytes();
     }
 
-    public static ParsedReplayFile load(File file, @Nullable Consumer<ReplayParseException> handler) throws IOException, ReplayParseException {
-        FileInputStream in = new FileInputStream(file);
-        ParsedReplayFile replay = load(in, handler);
+    public static ParsedReplayFile load(File file, ParsingUpdateListener listener) throws IOException, ReplayParseException {
+        InputStream in = new FileInputStream(file);
+        ParsedReplayFile replay = load(in, listener);
         in.close();
         return replay;
     }
     
-    public static ParsedReplayFile load(InputStream is, @Nullable Consumer<ReplayParseException> handler)
+    public static ParsedReplayFile load(InputStream is, ParsingUpdateListener listener)
             throws IOException, ReplayParseException {
         ZipInputStream archive = new ZipInputStream(new BufferedInputStream(is));
         ZipEntry entry;
         ParsedReplayFile replay = new ParsedReplayFile();
 
         Gson gson = new Gson();
-
+        
         while ((entry = archive.getNextEntry()) != null) {
-            LogManager.getLogger().info("Parsing file: "+entry.getName());
             if (entry.isDirectory()) continue;
+            LogManager.getLogger().info("Parsing file: "+entry.getName());
             String filename = entry.getName();
+            listener.setInfoText("Parsing file: "+filename);
+
             if (filename.equals("meta.json")) {
                 try {
                     String meta = IOUtils.toString(archive, "UTF-8");
                     replay.meta = gson.fromJson(meta, ReplayMeta.class);
                 } catch (JsonParseException e) {
-                    handle(new ReplayParseException(ParseStage.GENERAL, "meta.json", e), handler);
+                    throw new ReplayParseException(ParseStage.GENERAL, "meta.json", e);
                 }
             } else if (filename.equals("world.vcap")) {
                 replay.loadWorld(archive);
@@ -102,7 +104,7 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
                 try {
                     replay.entities.add(ParsedReplayEntity.load(archive));
                 } catch (XMLParseException e) {
-                    handle(new ReplayParseException(ParseStage.ENTITY, filename, e), handler);
+                    handle(new ReplayParseException(ParseStage.ENTITY, filename, e), listener::handle);
                 }
             } else if (filename.startsWith("mat/") && filename.endsWith(".json")) {
                 String basename = FilenameUtils.removeExtension(filename);
@@ -110,7 +112,7 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
                 try {
                     replay.materials.put(basename, Material.load(archive));
                 } catch (JsonParseException e) {
-                    handle(new ReplayParseException(ParseStage.MATERIAL, basename, e), handler);
+                    handle(new ReplayParseException(ParseStage.MATERIAL, basename, e), listener::handle);
                 }
             } else if (filename.startsWith("tex/") && filename.endsWith(".json")) {
                 String basename = FilenameUtils.removeExtension(filename);
@@ -118,7 +120,7 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
                 try {
                     replay.textures.put(basename, new ImageReplayTexture(archive));
                 } catch (IOException e) {
-                    handle(new ReplayParseException(ParseStage.TEXTURE, basename, e), handler);
+                    handle(new ReplayParseException(ParseStage.TEXTURE, basename, e), listener::handle);
                 }
             }
         }
@@ -128,6 +130,9 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
 
     private static void handle(ReplayParseException e, Consumer<ReplayParseException> exceptionHandler)
             throws ReplayParseException {
+        if (e.getCause() != null) {
+            e.setStackTrace(e.getCause().getStackTrace());
+        }
         if (exceptionHandler != null) {
             exceptionHandler.accept(e);
         } else {

@@ -1,7 +1,12 @@
 package com.igrium.replay_debugger;
 
 import java.awt.HeadlessException;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -9,13 +14,16 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.igrium.replay_debugger.ui.ExceptionDialog;
 import com.igrium.replay_debugger.ui.Outliner;
+import com.igrium.replay_debugger.ui.ProgressDialog;
 
 import org.apache.logging.log4j.LogManager;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import java.awt.BorderLayout;
+import java.awt.EventQueue;
 
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
@@ -81,9 +89,30 @@ public class ReplayDebugger {
 
     public void loadReplayFile(ParsedReplayFile file) {
         outliner.clear();
-        for (ParsedReplayEntity entity : file.getEntities()) {
+        List<ParsedReplayEntity> entities = new ArrayList<>(file.getEntities());
+        Collections.sort(entities, (o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));
+        for (ParsedReplayEntity entity : entities) {
             outliner.addReplayEntity(entity);
         }
+        outliner.getTree().expandRow(0);
+        this.file = file;
+    }
+
+    public void parseFile(File file) {
+        CompletableFuture<ParsedReplayFile> future = ProgressDialog.openAndExecute((listener) -> {
+            try {
+                return ParsedReplayFile.load(file, listener);
+            } catch (IOException e) {
+                throw new ReplayParseException("An unexpected IO exception occured while parsing the file.");
+            }
+        });
+
+        future.exceptionallyAsync((e) -> {
+            ExceptionDialog.showExceptionMessage(frame, e);
+            return null;
+        }, EventQueue::invokeLater);
+
+        future.thenAcceptAsync(this::loadReplayFile, EventQueue::invokeLater);
     }
 
     public void browseFile() {
@@ -92,12 +121,7 @@ public class ReplayDebugger {
 
         int returnVal = chooser.showOpenDialog(frame);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            try {
-                ParsedReplayFile replay = ParsedReplayFile.load(chooser.getSelectedFile(), null);
-                loadReplayFile(replay);
-            } catch (ReplayParseException | IOException e) {
-                LogManager.getLogger().error("Error loading replay file.", e);
-            }
+            parseFile(chooser.getSelectedFile());
         }
     }
 

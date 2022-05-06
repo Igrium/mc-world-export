@@ -50,7 +50,7 @@ public class Outliner extends JPanel {
 
     public void clear() {
         entities.clear();
-        tree.removeAll();
+        base.removeAllChildren();
     }
 
     public DefaultMutableTreeNode addReplayEntity(BaseReplayEntity entity) {
