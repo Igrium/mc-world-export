@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.Nullable;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
@@ -17,29 +18,38 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import com.igrium.replay_debugger.ui.ExceptionDialog;
 import com.igrium.replay_debugger.ui.Outliner;
 import com.igrium.replay_debugger.ui.ProgressDialog;
+import com.igrium.replay_debugger.ui.Outliner.ModelPartTreeNode;
+import com.igrium.replay_debugger.ui.graph.Graph;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.replay.BaseReplayEntity;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
+import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
 
-import javax.swing.JLabel;
-import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.JMenuBar;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.event.TreeSelectionEvent;
 
 @Environment(EnvType.CLIENT)
 public class ReplayDebugger {
     private JFrame frame;
     private Outliner outliner;
     private ParsedReplayFile file;
+    private Graph graph;
     
     /**
      * @wbp.parser.entryPoint
@@ -59,6 +69,17 @@ public class ReplayDebugger {
         frame.getContentPane().setLayout(new BorderLayout(0, 0));
 
         outliner = new Outliner();
+        outliner.getTree().addTreeSelectionListener(new TreeSelectionListener() {
+            public void valueChanged(TreeSelectionEvent e) {
+                Object bNode = outliner.getTree().getLastSelectedPathComponent();
+                if (bNode instanceof ModelPartTreeNode) {
+                    ModelPartTreeNode node = (ModelPartTreeNode) bNode;
+                    loadAnimChannel(node.getEntity(), node.getPart());
+                } else {
+                    graph.clear();
+                }
+            }
+        });
         outliner.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -67,9 +88,8 @@ public class ReplayDebugger {
         });
         frame.getContentPane().add(outliner, BorderLayout.EAST);
         
-        JLabel lblOpenFile = new JLabel("Click to Open File");
-        lblOpenFile.setHorizontalAlignment(SwingConstants.CENTER);
-        frame.getContentPane().add(lblOpenFile, BorderLayout.CENTER);
+        graph = new Graph();
+        frame.getContentPane().add(graph, BorderLayout.CENTER);
         
         JMenuBar menuBar = new JMenuBar();
         frame.setJMenuBar(menuBar);
@@ -85,6 +105,13 @@ public class ReplayDebugger {
         });
         mnFile.add(mntmOpen);
         frame.setVisible(true);
+    }
+
+    public void closeFile() {
+        outliner.clear();
+        graph.getChannels().clear();
+        this.file = null;
+        SwingUtilities.updateComponentTreeUI(frame);
     }
 
     public void loadReplayFile(ParsedReplayFile file) {
@@ -127,5 +154,68 @@ public class ReplayDebugger {
 
     public Outliner getOutliner() {
         return outliner;
+    }
+
+    public void loadAnimChannel(BaseReplayEntity entity, @Nullable Object bone) {
+        graph.clear();
+
+        List<Point2D> rotW = new ArrayList<>();
+        List<Point2D> rotX = new ArrayList<>();
+        List<Point2D> rotY = new ArrayList<>();
+        List<Point2D> rotZ = new ArrayList<>();
+
+        List<Point2D> posX = new ArrayList<>();
+        List<Point2D> posY = new ArrayList<>();
+        List<Point2D> posZ = new ArrayList<>();
+
+        List<Point2D> scaleX = new ArrayList<>();
+        List<Point2D> scaleY = new ArrayList<>();
+        List<Point2D> scaleZ = new ArrayList<>();
+
+        List<Point2D> visible = new ArrayList<>();
+
+        int i = 0;
+        for (Pose<?> pose : entity.getFrames()) {
+            Transform trans;
+            if (bone == null) {
+                trans = pose.root;
+            } else {
+                trans = pose.bones.get(bone);
+                if (trans == null) {
+                    LogManager.getLogger().warn("Bone: {} doesn't have a transform on frame {}!", bone, i);
+                    trans = Transform.NEUTRAL;
+                }
+            }
+
+            rotW.add(new Point2D.Double(i, trans.rotation.w()));
+            rotX.add(new Point2D.Double(i, trans.rotation.x()));
+            rotY.add(new Point2D.Double(i, trans.rotation.y()));
+            rotZ.add(new Point2D.Double(i, trans.rotation.z()));
+
+            posX.add(new Point2D.Double(i, trans.translation.x()));
+            posY.add(new Point2D.Double(i, trans.translation.y()));
+            posZ.add(new Point2D.Double(i, trans.translation.z()));
+
+            scaleX.add(new Point2D.Double(i, trans.scale.x()));
+            scaleY.add(new Point2D.Double(i, trans.scale.y()));
+            scaleZ.add(new Point2D.Double(i, trans.scale.z()));
+
+            visible.add(new Point2D.Float(i, trans.visible ? 1f : 0f));
+            i++;
+        }
+
+        graph.addChannel(rotW);
+        graph.addChannel(rotX);
+        graph.addChannel(rotY);
+        graph.addChannel(rotZ);
+
+        graph.addChannel(posX);
+        graph.addChannel(posY);
+        graph.addChannel(posZ);
+
+        graph.addChannel(scaleX);
+        graph.addChannel(scaleY);
+        graph.addChannel(scaleZ);
+        SwingUtilities.updateComponentTreeUI(graph);
     }
 }

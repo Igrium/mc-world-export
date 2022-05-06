@@ -5,10 +5,13 @@ import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nullable;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTree;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.MutableTreeNode;
 
 import org.scaffoldeditor.worldexport.replay.BaseReplayEntity;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
@@ -16,14 +19,32 @@ import org.scaffoldeditor.worldexport.replay.models.Bone;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
 
 public class Outliner extends JPanel {
     private JTree tree;
     protected final DefaultMutableTreeNode base;
 
-    protected Map<BaseReplayEntity, DefaultMutableTreeNode> entities = new HashMap<>();
+    protected Map<BaseReplayEntity, ModelPartTreeNode> entities = new HashMap<>();
+    protected Map<Object, BaseReplayEntity> partOwners = new HashMap<>();
+
+    public static class ModelPartTreeNode extends DefaultMutableTreeNode {
+        private BaseReplayEntity entity;
+        private Object part;
+
+        public ModelPartTreeNode(BaseReplayEntity entity, @Nullable Object part) {
+            super(part == null ? entity : part);
+            this.entity = entity;
+            this.part = part;
+        }
+
+        public BaseReplayEntity getEntity() {
+            return entity;
+        }
+
+        public Object getPart() {
+            return part;
+        }
+    }
 
     /**
      * Create the panel.
@@ -50,13 +71,16 @@ public class Outliner extends JPanel {
 
     public void clear() {
         entities.clear();
+        partOwners.clear();
         base.removeAllChildren();
+
+        SwingUtilities.updateComponentTreeUI(this);
     }
 
-    public DefaultMutableTreeNode addReplayEntity(BaseReplayEntity entity) {
-        DefaultMutableTreeNode node = entities.get(entity);
+    public ModelPartTreeNode addReplayEntity(BaseReplayEntity entity) {
+        ModelPartTreeNode node = entities.get(entity);
         if (node == null) {
-            node = new DefaultMutableTreeNode(entity);
+            node = new ModelPartTreeNode(entity, null);
             entities.put(entity, node);
             base.add(node);
         }
@@ -77,8 +101,8 @@ public class Outliner extends JPanel {
         return node;
     }
 
-    private MutableTreeNode parseReplayModelPart(BaseReplayEntity entity, ReplayModelPart part) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(part);
+    private ModelPartTreeNode parseReplayModelPart(BaseReplayEntity entity, ReplayModelPart part) {
+        ModelPartTreeNode node = new ModelPartTreeNode(entity, part);
         for (ReplayModelPart child : part.children) {
             node.add(parseReplayModelPart(entity, child));
         }
@@ -86,8 +110,8 @@ public class Outliner extends JPanel {
         return node;
     }
 
-    private MutableTreeNode parseArmatureBone(BaseReplayEntity entity, Bone bone) {
-        DefaultMutableTreeNode node = new DefaultMutableTreeNode(bone);
+    private ModelPartTreeNode parseArmatureBone(BaseReplayEntity entity, Bone bone) {
+        ModelPartTreeNode node = new ModelPartTreeNode(entity, bone);
         for (Bone child : bone.children) {
             node.add(parseArmatureBone(entity, child));
         }
