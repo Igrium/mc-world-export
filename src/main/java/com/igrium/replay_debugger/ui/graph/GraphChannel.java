@@ -1,16 +1,17 @@
 package com.igrium.replay_debugger.ui.graph;
 
 import java.awt.Color;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.joml.Vector2dc;
+
 
 public class GraphChannel {
     private Color color;
-    private List<Point2D> points = new ArrayList<>();
+    private List<Vector2dc> points = new ArrayList<>();
 
     public GraphChannel() {
         Random rand = new Random();
@@ -29,13 +30,13 @@ public class GraphChannel {
         this.color = color;
     }
 
-    public List<Point2D> getPoints() {
+    public List<Vector2dc> getPoints() {
         return points;
     }
 
     public void sort() {
         Collections.sort(points, (o1, o2) -> {
-            return (int) ((o1.getX() - o2.getX()) * 100);
+            return (int) ((o1.x() - o2.y() * 100));
         });
     }
 }

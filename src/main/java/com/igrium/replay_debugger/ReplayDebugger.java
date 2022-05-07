@@ -22,6 +22,8 @@ import com.igrium.replay_debugger.ui.Outliner.ModelPartTreeNode;
 import com.igrium.replay_debugger.ui.graph.Graph;
 
 import org.apache.logging.log4j.LogManager;
+import org.joml.Vector2d;
+import org.joml.Vector2dc;
 import org.scaffoldeditor.worldexport.replay.BaseReplayEntity;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
@@ -35,7 +37,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.JMenuBar;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Point2D;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -159,20 +160,20 @@ public class ReplayDebugger {
     public void loadAnimChannel(BaseReplayEntity entity, @Nullable Object bone) {
         graph.clear();
 
-        List<Point2D> rotW = new ArrayList<>();
-        List<Point2D> rotX = new ArrayList<>();
-        List<Point2D> rotY = new ArrayList<>();
-        List<Point2D> rotZ = new ArrayList<>();
+        List<Vector2dc> rotW = new ArrayList<>();
+        List<Vector2dc> rotX = new ArrayList<>();
+        List<Vector2dc> rotY = new ArrayList<>();
+        List<Vector2dc> rotZ = new ArrayList<>();
 
-        List<Point2D> posX = new ArrayList<>();
-        List<Point2D> posY = new ArrayList<>();
-        List<Point2D> posZ = new ArrayList<>();
+        List<Vector2dc> posX = new ArrayList<>();
+        List<Vector2dc> posY = new ArrayList<>();
+        List<Vector2dc> posZ = new ArrayList<>();
 
-        List<Point2D> scaleX = new ArrayList<>();
-        List<Point2D> scaleY = new ArrayList<>();
-        List<Point2D> scaleZ = new ArrayList<>();
+        List<Vector2dc> scaleX = new ArrayList<>();
+        List<Vector2dc> scaleY = new ArrayList<>();
+        List<Vector2dc> scaleZ = new ArrayList<>();
 
-        List<Point2D> visible = new ArrayList<>();
+        List<Vector2dc> visible = new ArrayList<>();
 
         int i = 0;
         for (Pose<?> pose : entity.getFrames()) {
@@ -187,20 +188,20 @@ public class ReplayDebugger {
                 }
             }
 
-            rotW.add(new Point2D.Double(i, trans.rotation.w()));
-            rotX.add(new Point2D.Double(i, trans.rotation.x()));
-            rotY.add(new Point2D.Double(i, trans.rotation.y()));
-            rotZ.add(new Point2D.Double(i, trans.rotation.z()));
+            rotW.add(new Vector2d(i, trans.rotation.w()));
+            rotX.add(new Vector2d(i, trans.rotation.x()));
+            rotY.add(new Vector2d(i, trans.rotation.y()));
+            rotZ.add(new Vector2d(i, trans.rotation.z()));
 
-            posX.add(new Point2D.Double(i, trans.translation.x()));
-            posY.add(new Point2D.Double(i, trans.translation.y()));
-            posZ.add(new Point2D.Double(i, trans.translation.z()));
+            posX.add(new Vector2d(i, trans.translation.x()));
+            posY.add(new Vector2d(i, trans.translation.y()));
+            posZ.add(new Vector2d(i, trans.translation.z()));
 
-            scaleX.add(new Point2D.Double(i, trans.scale.x()));
-            scaleY.add(new Point2D.Double(i, trans.scale.y()));
-            scaleZ.add(new Point2D.Double(i, trans.scale.z()));
+            scaleX.add(new Vector2d(i, trans.scale.x()));
+            scaleY.add(new Vector2d(i, trans.scale.y()));
+            scaleZ.add(new Vector2d(i, trans.scale.z()));
 
-            visible.add(new Point2D.Float(i, trans.visible ? 1f : 0f));
+            visible.add(new Vector2d(i, trans.visible ? 1f : 0f));
             i++;
         }
 
