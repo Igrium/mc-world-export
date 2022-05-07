@@ -21,21 +21,8 @@ public final class MathUtils {
      * @return <code>dest</code>
      */
     public static Quaterniond makeQuatsCompatible(Quaterniondc src, Quaterniondc target, double margin, Quaterniond dest) {
-        boolean similar = absWithinRange(src.w(), target.w(), margin)
-                && absWithinRange(src.x(), target.x(), margin)
-                && absWithinRange(src.y(), target.y(), margin)
-                && absWithinRange(src.z(), target.z(), margin);
-        
-        if (!similar) {
-            dest.set(src);
-            return dest;
-        }
-
-        // Ensure all values are on the same side of zero.
-        boolean compatible = ((src.w() >= 0 && target.w() >= 0) || (src.w() < 0 && target.w() < 0))
-                && ((src.x() >= 0 && target.x() >= 0) || (src.x() < 0 && target.x() < 0))
-                && ((src.y() >= 0 && target.y() >= 0) || (src.y() < 0 && target.y() < 0))
-                && ((src.z() >= 0 && target.z() >= 0) || (src.z() < 0 && target.z() < 0));
+        Quaterniond diff = src.difference(target, new Quaterniond());
+        boolean compatible = Math.abs(diff.angle()) <= Math.PI;
 
         if (compatible) {
             dest.set(src);
@@ -59,9 +46,5 @@ public final class MathUtils {
      */
     public static Quaterniond makeQuatsCompatible(Quaterniondc src, Quaterniondc target, Quaterniond dest) {
         return makeQuatsCompatible(src, target, .25, dest);
-    }
-
-    private static boolean absWithinRange(double a, double b, double margin) {
-        return Math.abs(Math.abs(a) - Math.abs(b)) <= margin;
     }
 }

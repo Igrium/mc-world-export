@@ -163,7 +163,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         else:
             framerate = scene_framerate
         
-        prev_rot = None
         for index, frame in enumerate(animtext.splitlines()):
             frame = frame.strip()
             scene_frame = (index / framerate + anim_start_time) * scene_framerate
@@ -181,11 +180,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 if length >= 4:
                     rotation = Quaternion(root_vals[0:4])
                     rotation.rotate(Euler((math.radians(90), 0, 0)))
-                    if prev_rot is not None:
-                        rotation.make_compatible(prev_rot)
 
                     root_rot.keyframes[index] = rotation
-                    prev_rot = rotation
                 
                 if length >= 7:
                     location = root_vals[4:7]
@@ -195,7 +191,6 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 if length >= 10:
                     root_scale.keyframes[index] = root_vals[7:10]
             
-            prev_rot = None
             for def_index, bone_str in enumerate(bones[1:]):
                 bone_str = bone_str.strip()
                 if (len(bone_str) == 0): continue
@@ -214,11 +209,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                         rot_channels[bone] = channel
                     
                     rotation = Quaternion(bone_vals[0:4])
-                    if prev_rot is not None:
-                        rotation.make_compatible(prev_rot)
 
                     channel.keyframes[index] = rotation
-                    prev_rot = rotation
                 
                 if len(bone_vals) >= 7:
                     if bone in pos_channels:
