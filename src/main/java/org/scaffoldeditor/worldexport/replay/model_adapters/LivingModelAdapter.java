@@ -35,7 +35,7 @@ import net.minecraft.util.math.Vec3f;
  * @param <T> The type of entity this is an adapter for.
  * @param <M> The type of model that this adapter will use.
  */
-public abstract class LivingModelAdapter<T extends LivingEntity, M extends ReplayModel<?>> implements ReplayModelAdapter<T, M> {
+public abstract class LivingModelAdapter<T extends LivingEntity, M extends ReplayModel<?>> implements ReplayModelAdapter<M> {
 
     private T entity;
     

@@ -17,10 +17,10 @@ import net.minecraft.util.Identifier;
  * @param <T> The type of entity this is an adapter for.
  * @param <M> The type of model that this adapter will use.
  */
-public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> {
+public interface ReplayModelAdapter<M extends ReplayModel<?>> {
 
     public static interface ReplayModelAdapterFactory<T extends Entity> {
-        public ReplayModelAdapter<? extends T, ?> create(T entity);
+        public ReplayModelAdapter<?> create(T entity);
     }
 
     /**
@@ -58,14 +58,14 @@ public interface ReplayModelAdapter<T extends Entity, M extends ReplayModel<?>> 
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
     @SuppressWarnings("unchecked")
-    public static <E extends Entity> ReplayModelAdapter<E, ?> getModelAdapter(E entity) throws ModelNotFoundException {
+    public static <E extends Entity> ReplayModelAdapter<?> getModelAdapter(E entity) throws ModelNotFoundException {
         Identifier id = EntityType.getId(entity.getType());
         ReplayModelAdapterFactory<E> factory = (ReplayModelAdapterFactory<E>) REGISTRY.get(id);
         if (factory == null) {
             throw new ModelNotFoundException(id);
         }
         // Unchecked cast is okay because model adapters have no writable fields that use generics.
-        return (ReplayModelAdapter<E, ?>) factory.create(entity);
+        return factory.create(entity);
     }
 
 

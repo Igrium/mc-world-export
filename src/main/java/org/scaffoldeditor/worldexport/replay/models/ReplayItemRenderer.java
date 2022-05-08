@@ -30,18 +30,28 @@ public class ReplayItemRenderer {
     private static NativeImageReplayTexture worldTex;
 
     public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model, MaterialConsumer materials) {
-        if (stack.isEmpty()) return;
+        renderItem(stack, renderMode, leftHanded, matrices, obj, model);
+        addMaterials(materials);
+    }
 
+    public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model) {
+        if (stack.isEmpty()) return;
+        
+        obj.setActiveMaterialGroupName("item");
+        VertexConsumerProvider vertices = MeshUtils.wrapVertexConsumer(new ObjVertexConsumer(obj));
+        MinecraftClient.getInstance().getItemRenderer().renderItem(stack, renderMode, leftHanded, matrices, vertices, 255, 0, model);
+    }
+
+    /**
+     * Add the materials required to render items to a material consumer.
+     * @param materials Material consumer to add to.
+     */
+    public static void addMaterials(MaterialConsumer materials) {
         if (worldTex == null) {
             worldTex = new NativeImageReplayTexture(TextureExtractor.getAtlas());
         }
 
-        // Add material
         materials.addMaterial("item", ITEM_MAT);
-        obj.setActiveMaterialGroupName("item");
         materials.addTexture("world", worldTex);
-
-        VertexConsumerProvider vertices = MeshUtils.wrapVertexConsumer(new ObjVertexConsumer(obj));
-        MinecraftClient.getInstance().getItemRenderer().renderItem(stack, renderMode, leftHanded, matrices, vertices, 255, 0, model);
     }
 }

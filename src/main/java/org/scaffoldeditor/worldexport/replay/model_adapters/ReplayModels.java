@@ -4,6 +4,7 @@ import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.R
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.ChickenEntity;
 import net.minecraft.util.Identifier;
@@ -116,6 +117,8 @@ public final class ReplayModels {
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("donkey"),
                 new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), QUADRUPED_Y_OFFSET));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("item"), ent -> new ItemModelAdapter((ItemEntity) ent));
 
     }
 }
