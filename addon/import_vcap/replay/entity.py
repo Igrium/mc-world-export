@@ -1,10 +1,13 @@
 from email.mime import base
+from enum import auto
 from io import BytesIO
 import math
 import time
 import itertools
 from typing import IO, Generic, Iterable, Sequence, TypeVar
-from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone, EditBone
+
+from numpy import true_divide
+from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone, EditBone, Action
 from mathutils import Euler, Matrix, Quaternion, Vector
 
 from ..vcap.import_obj import load as load_obj
@@ -34,7 +37,7 @@ def _simple_load_obj(context: Context, file_contents: str, unique_materials: dic
     obj = BytesIO(bytes(file_contents, 'utf-8'))
     return load_obj(context, obj, use_split_objects=False, use_split_groups=False, use_groups_as_vgroups=True, unique_materials=unique_materials)
 
-def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}, separate_parts = False):
+def load_entity(file: IO[str], context: Context, collection: Collection, materials: dict[str, Material] = {}, separate_parts = False, autohide = True):
     """Load a replay entity into Blender
 
     Args:
@@ -111,6 +114,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             for obj in parsed_objs:
                 obj.parent = armature_obj
                 obj.parent_type = 'ARMATURE'
+            final_objects = parsed_objs
         else:
             final_objects = []
             
@@ -163,9 +167,14 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         else:
             framerate = scene_framerate
         
+        def convert_frame(frame: float):
+            return (frame / framerate + anim_start_time) * scene_framerate
+        
+        total_frames = 0
         for index, frame in enumerate(animtext.splitlines()):
+            total_frames += 1
             frame = frame.strip()
-            scene_frame = (index / framerate + anim_start_time) * scene_framerate
+            scene_frame = convert_frame(index)
             
             # scene_frame = index / framerate * scene_framerate
             # Note: gonna have to support framerate matching later.
@@ -288,6 +297,24 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             for i in range(0, 3): add_curve(channel, i)
         
         # Deal with visibility animation
+        if autohide:
+            start_frame = anim_start_time * scene_framerate
+            end_frame = convert_frame(total_frames)
+
+            for obj in final_objects:
+                use_start = False
+                if obj not in vis_channels:
+                    vis_channels[obj] = []
+                    use_start = True
+                if start_frame != 0:
+                    vis_channels[obj].append((0, 1))
+
+                # Objects with visibility anim handle this already.
+                if use_start:
+                    vis_channels[obj].append((start_frame, 0))
+                    
+                vis_channels[obj].append((end_frame, 1))
+
         for obj, keys in vis_channels.items():
             anim_data = obj.animation_data_create()
             action = bpy.data.actions.new(name=f'{obj.name}_action')
@@ -306,7 +333,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             
             curve_render.keyframe_points.foreach_set('interpolation', [0] * len(keys))
             curve_viewport.keyframe_points.foreach_set('interpolation', [0] * len(keys))
-        
+            
+
     print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
 
 def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity") -> tuple[Object, list[str]]:

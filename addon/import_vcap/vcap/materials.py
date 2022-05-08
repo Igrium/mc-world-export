@@ -1,6 +1,6 @@
 import json
 import numbers
-from typing import IO, Callable, Type
+from typing import IO, Callable, Type, Union
 
 import bpy
 from bpy.types import Image, Material, Node, NodeSocket, NodeTree
@@ -45,7 +45,7 @@ def read(file: IO, name: str, context: VCAPContext):
     obj = json.load(file)
     return parse(obj, name, context)
 
-def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Image | None]) -> Material:
+def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Union[Image, None]]) -> Material:
     """Parse a vcap material entry without attaching it to a Vcap Context.
 
     Args:

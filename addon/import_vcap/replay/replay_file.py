@@ -26,19 +26,22 @@ class ReplaySettings:
         'world',
         'entities',
         'separate_parts',
-        'vcap_settings'
+        'vcap_settings',
+        'hide_entities'
     )
 
     world: bool
     entities: bool
     separate_parts: bool
     vcap_settings: VCAPSettings
+    hide_entities: bool
 
-    def __init__(self, world=True, entities=True, vcap_settings=VCAPSettings(merge_verts=False), separate_parts = False) -> None:
+    def __init__(self, world=True, entities=True, vcap_settings=VCAPSettings(merge_verts=False), separate_parts=False, hide_entities=True) -> None:
         self.world = world
         self.entities = entities
         self.vcap_settings = vcap_settings
         self.separate_parts = separate_parts
+        self.hide_entities = hide_entities
 
 
 def load_replay(file: Union[str, IO[bytes]],
@@ -112,7 +115,7 @@ def load_replay(file: Union[str, IO[bytes]],
             for index, entry in enumerate(entity_files):
                 context.window_manager.progress_update((.5 * index / len(entity_files)) + .5)
                 with entry.open('r') as e:
-                    entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts)
+                    entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
 
         print(f"Imported replay in {time.time() - start_time} seconds.")
         context.window_manager.progress_end()

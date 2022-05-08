@@ -158,11 +158,18 @@ class ImportReplayOperator(Operator, ImportHelper):
         default=False
     )
 
+    hide_entities: BoolProperty(
+        name="Auto-hide Entities",
+        description="Hide entities before they've been spawned and after they've been killed.",
+        default=True
+    )
+
     def execute(self, context: Context):
         settings = replay_file.ReplaySettings(
             world=self.import_world,
             entities=self.import_entities,
             separate_parts=self.separate_parts,
+            hide_entities=self.hide_entities,
 
             vcap_settings=VCAPSettings(
                 use_vertex_colors=self.use_vertex_colors,
