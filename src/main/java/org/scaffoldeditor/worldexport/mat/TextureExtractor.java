@@ -16,6 +16,7 @@ import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.Identifier;
 
 public final class TextureExtractor {
@@ -80,7 +81,7 @@ public final class TextureExtractor {
      * @return The atlas texture.
      */
     public static NativeImage getAtlas() {
-        return getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
+        return getAtlas(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE);
     }
 
     /**
