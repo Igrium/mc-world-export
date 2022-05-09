@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
+import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter.BipedModelFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 
 import net.minecraft.client.MinecraftClient;
@@ -75,22 +76,22 @@ public final class ReplayModels {
          */
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:zombie"),
-                new AnimalModelFactory(new Identifier("textures/entity/zombie/zombie.png"), BIPED_Y_OFFSET));
+                new BipedModelFactory(new Identifier("textures/entity/zombie/zombie.png")));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:drowned"),
-                new AnimalModelFactory(new Identifier("textures/entity/zombie/drowned.png"), BIPED_Y_OFFSET));
+                new BipedModelFactory(new Identifier("textures/entity/zombie/drowned.png")));
 
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:enderman"), 
                 new AnimalModelFactory(new Identifier("textures/entity/enderman/enderman.png"), BIPED_Y_OFFSET));
             
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
-                new AnimalModelFactory(new Identifier("textures/entity/skeleton/skeleton.png"), BIPED_Y_OFFSET));
+                new BipedModelFactory(new Identifier("textures/entity/skeleton/skeleton.png")));
 
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:vex"), 
-                new AnimalModelFactory(new Identifier("textures/entity/illager/vex.png"), BIPED_Y_OFFSET));
+                new BipedModelFactory(new Identifier("textures/entity/illager/vex.png")));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("zombie_villager"), 
-                new AnimalModelFactory(new Identifier("textures/entity/zombie_villager/zombie_villager.png"), BIPED_Y_OFFSET));
+                new BipedModelFactory(new Identifier("textures/entity/zombie_villager/zombie_villager.png")));
 
         /**
          * MISC
