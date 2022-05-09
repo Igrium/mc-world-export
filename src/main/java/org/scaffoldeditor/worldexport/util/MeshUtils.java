@@ -1,9 +1,13 @@
 package org.scaffoldeditor.worldexport.util;
 
+import javax.annotation.Nullable;
+
+import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
 
 import de.javagl.obj.Obj;
+import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.model.ModelPart.Cuboid;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
@@ -13,6 +17,8 @@ import net.minecraft.client.util.math.MatrixStack;
 public final class MeshUtils {
     private MeshUtils() {};
 
+    public static final Matrix4dc NEUTRAL_TRANSFORM = new Matrix4d();
+
     /**
      * A Minecraft matrix stack entry representing an identity matrix.
      */
@@ -21,6 +27,25 @@ public final class MeshUtils {
     public static void appendCuboid(Cuboid cuboid, Obj target, Matrix4dc transform) {
         ObjVertexConsumer consumer = new ObjVertexConsumer(target, transform);
         cuboid.renderCuboid(IDENTITY_ENTRY, consumer, 255, 0, 255, 255, 255, 255);
+    }
+    
+    /**
+     * Append a Minecraft model part (including all cuboids) to an obj.
+     * 
+     * @param part      Model part to append.
+     * @param target    Obj to add to.
+     * @param mask      Mask the operation to only <i>this</code> model part. If
+     *                  false, children will be included as well.
+     * @param transform Transform to apply to the appended vertices.
+     */
+    public static void appendModelPart(ModelPart part, Obj target, boolean mask, @Nullable Matrix4dc transform) {
+        if (transform == null) transform = NEUTRAL_TRANSFORM;
+        ObjVertexConsumer consumer = new ObjVertexConsumer(target, transform);
+
+        part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
+            if (mask && !path.equals("")) return;
+            cuboid.renderCuboid(IDENTITY_ENTRY, consumer, 255, 0, 255, 255, 255, 255);
+        });
     }
 
     /**

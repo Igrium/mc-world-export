@@ -55,7 +55,7 @@ public final class TextureExtractor {
      * @return The texture.
      */
     public static NativeImage getTexture(Identifier textureID) {
-        LogManager.getLogger().info("Fetching texture from GPU...");
+        LogManager.getLogger().info("Fetching texture from GPU: "+textureID);
         AbstractTexture texture = MinecraftClient.getInstance().getTextureManager().getTexture(textureID);
 
         return getTexture(texture);
@@ -68,7 +68,6 @@ public final class TextureExtractor {
      * @return The atlas texture.
      */
     public static NativeImage getAtlas(Identifier atlasID) {
-        LogManager.getLogger().info("Fetching atlas texture...");
         SpriteAtlasTexture atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(atlasID);
         
         return getTexture(atlas);

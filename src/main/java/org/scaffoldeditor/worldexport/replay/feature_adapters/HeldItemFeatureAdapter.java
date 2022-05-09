@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replay.model_adapters;
+package org.scaffoldeditor.worldexport.replay.feature_adapters;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +24,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.Arm;
 import net.minecraft.util.registry.Registry;
 
-public class HeldItemFeatureAdapter {
+public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart> {
 
     LivingEntity entity;
 
