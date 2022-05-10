@@ -9,12 +9,10 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.scaffoldeditor.worldexport.mat.Material;
-import org.scaffoldeditor.worldexport.mat.Material.Field;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.MaterialUtils;
+import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
-import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
-import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
@@ -150,11 +148,12 @@ public class ArmorFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart
             String texName = MaterialUtils.getTexName(texture);
 
             Material material = new Material();
-            material.color = new Field(texName);
-            material.roughness = new Field(1);
-            material.transparent = true;
+            material.setColor(texName);
+            material.setRoughness(1);
+            material.setTransparent(true);
+            material.addOverride("metallic", "metal_test");
 
-            ReplayTexture rTexture = new NativeImageReplayTexture(TextureExtractor.getTexture(texture));
+            ReplayTexture rTexture = new PromisedReplayTexture(texture);
 
             consumer.addTexture(texName, rTexture);
             consumer.addMaterial(texName, material);

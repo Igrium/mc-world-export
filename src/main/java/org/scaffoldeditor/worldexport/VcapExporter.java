@@ -181,38 +181,36 @@ public class VcapExporter {
 
         // MATERIALS
         Material opaque = new Material();
-        opaque.color = new Material.Field("world");
-        opaque.roughness = new Material.Field(1);
-        opaque.useVertexColors = false;
+        opaque.setColor("world");
+        opaque.setRoughness(1);
         
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
         opaque.serialize(out);
         out.closeEntry();
 
         Material transparent = new Material();
-        transparent.color = new Material.Field("world");
-        transparent.roughness = new Material.Field(1);
-        transparent.transparent = true;
-        transparent.useVertexColors = false;
+        transparent.setColor("world");
+        transparent.setRoughness(1);
+        transparent.setTransparent(true);
 
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
         transparent.serialize(out);
         out.closeEntry();
 
         Material opaque_tinted = new Material();
-        opaque_tinted.color = new Material.Field("world");
-        opaque_tinted.roughness = new Material.Field(1);
-        opaque_tinted.useVertexColors = true;
+        opaque_tinted.setColor("world");
+        opaque_tinted.setRoughness(1);
+        opaque_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
 
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
         opaque_tinted.serialize(out);
         out.closeEntry();
 
         Material transparent_tinted = new Material();
-        transparent_tinted.color = new Material.Field("world");
-        transparent_tinted.roughness = new Material.Field(1);
-        transparent_tinted.transparent = true;
-        transparent_tinted.useVertexColors = true;
+        transparent_tinted.setColor("world");
+        transparent_tinted.setRoughness(1);
+        transparent_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
+        transparent_tinted.setTransparent(true);
 
         out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_TINTED_MAT+".json"));
         transparent_tinted.serialize(out);

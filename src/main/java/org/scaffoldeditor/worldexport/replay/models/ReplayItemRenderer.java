@@ -1,9 +1,9 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
 import org.scaffoldeditor.worldexport.mat.Material;
-import org.scaffoldeditor.worldexport.mat.Material.Field;
-import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
@@ -18,16 +18,9 @@ import net.minecraft.item.ItemStack;
 
 public class ReplayItemRenderer {
 
-    public static final Material ITEM_MAT;
+    public static final Material ITEM_MAT = new Material().setColor("world").setRoughness(1).setTransparent(true);
 
-    static {
-        ITEM_MAT = new Material();
-        ITEM_MAT.color = new Field("world"); // Should be provided by Vcap
-        ITEM_MAT.roughness = new Field(1);
-        ITEM_MAT.transparent = true;
-    }
-
-    private static NativeImageReplayTexture worldTex;
+    private static ReplayTexture worldTex;
 
     public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model, MaterialConsumer materials) {
         renderItem(stack, renderMode, leftHanded, matrices, obj, model);
@@ -48,7 +41,7 @@ public class ReplayItemRenderer {
      */
     public static void addMaterials(MaterialConsumer materials) {
         if (worldTex == null) {
-            worldTex = new NativeImageReplayTexture(TextureExtractor.getAtlas());
+            worldTex = new PromisedReplayTexture(TextureExtractor.getAtlasTexture());
         }
 
         materials.addMaterial("item", ITEM_MAT);

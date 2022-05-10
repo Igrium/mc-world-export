@@ -4,125 +4,149 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 import org.apache.commons.io.IOUtils;
-import org.joml.Vector3d;
 import org.joml.Vector3dc;
+import org.scaffoldeditor.worldexport.mat.Field.FieldDeserializer;
+import org.scaffoldeditor.worldexport.mat.Field.FieldSerializer;
 
 /**
  * Represents a simple material that can be imported into Blender.
  */
 public class Material {
-    public static class Field {
-        public enum FieldType { SCALAR, VECTOR, TEXTURE }
+    public static final class DEFAULT_OVERRIDES {
+        private DEFAULT_OVERRIDES() {};
 
-        private double scalar;
-        private Vector3dc vector;
-        private String texture;
-        public final FieldType mode;
-
-        public Field(double scalar) {
-            this.mode = FieldType.SCALAR;
-            this.scalar = scalar;
-        }
-
-        public Field(Vector3dc vector) {
-            this.mode = FieldType.VECTOR;
-            this.vector = vector;
-        }
-
-        public Field(String texture) {
-            this.mode = FieldType.TEXTURE;
-            this.texture = texture;
-        }
-
-        public double getScalar() {
-            if (mode != FieldType.SCALAR) throw new IllegalStateException("Tried to access a scalar on a field of type "+mode);
-            return this.scalar;
-        }
-
-        public Vector3dc getVector() {
-            if (mode != FieldType.VECTOR) throw new IllegalStateException("Tried to access a vector on a field of type "+mode);
-            return this.vector;
-        }
-
-        public String getTexture() {
-            if (mode != FieldType.TEXTURE) throw new IllegalStateException("Tried to access a texture on a field of type "+mode);
-            return this.texture;
-        }
+        /**
+         * The vertex color or the vcap block color of a given pixel.
+         */
+        public static final String VERTEX_COLOR = "$VERTEX_COLOR";
     }
 
-    private static class FieldSerializer implements JsonSerializer<Field> {
+    private Field color;
+    /**
+     * If present, will be multiplied with color
+     */
+    private Field color2;
 
-        public JsonElement serialize(Field src, Type typeOfSrc, JsonSerializationContext context) {
-            switch(src.mode) {
-                case SCALAR:
-                    return new JsonPrimitive(src.getScalar());
-                case VECTOR:
-                    JsonArray array = new JsonArray();
-                    Vector3dc vec = src.getVector();
-                    array.add(vec.x()); array.add(vec.y()); array.add(vec.z());
+    private Field roughness;
+    private Field metallic;
+    private Field normal;
 
-                    return array;
-                case TEXTURE:
-                    return new JsonPrimitive(src.getTexture());
-                default:
-                    throw new RuntimeException("Somehow, the field has an unknown value type.");
-            }
-        }
+    private Set<String> tags = new HashSet<>();
+    private Map<String, String> overrides = new HashMap<>();
+
+    public Set<String> getTags() {
+        return tags;
     }
 
-    private static class FieldDeserializer implements JsonDeserializer<Field> {
-
-        @Override
-        public Field deserialize(JsonElement src, Type typeOfSrc, JsonDeserializationContext context)
-                throws JsonParseException {
-            if (src.isJsonArray()) {
-                JsonArray array = src.getAsJsonArray();
-                return new Field(
-                    new Vector3d(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble())
-                );
-            }
-            if (!src.isJsonPrimitive()) {
-                throw new JsonParseException("Field must be an array, a string, or a number.");
-            }
-
-            if (src.getAsJsonPrimitive().isNumber()) {
-                return new Field(src.getAsDouble());
-            } else if (src.getAsJsonPrimitive().isString()) {
-                return new Field(src.getAsString());
-            } else {
-                throw new JsonParseException("Field must be an array, a string, or a number.");
-            }
-        }
-        
+    public Map<String, String> getOverrides() {
+        return overrides;
     }
 
-    public Field color;
-    public Field roughness;
-    public Field metallic;
-    public Field normal;
+    /**
+     * Add a material override to this material. Material overrides allow attributes to be controlled per-object.
+     * @param field The field to add the override to.
+     * @param value The 
+     * @return
+     */
+    public Material addOverride(String field, String value) {
+        overrides.put(field, value);
+        return this;
+    }
+    
     /**
      * Whether this material should be rendered with transparent shading (alpha hashed)
      */
-    public boolean transparent;
-    /**
-     * If enabled, shader will multiply texture with vertex color.
-     */
-    public boolean useVertexColors;
+    private boolean transparent;
+
+    public Field getColor() {
+        return color;
+    }
+
+    public Material setColor(Field color) {
+        this.color = color;
+        return this;
+    }
+
+    public Material setColor(String texture) {
+        return setColor(new Field(texture));
+    }
+
+    public Material setColor(Vector3dc vector) {
+        return setColor(new Field(vector));
+    }
+
+    public Field getColor2() {
+        return color2;
+    }
+
+    public Material setColor2(Field color2) {
+        this.color2 = color2;
+        return this;
+    }
+
+    public Material setColor2(String texture) {
+        return setColor2(new Field(texture));
+    }
+
+    public Material setColor2(Vector3dc vector) {
+        return setColor2(new Field(vector));
+    }
+
+    public Field getRoughness() {
+        return roughness;
+    }
+
+    public Material setRoughness(Field roughness) {
+        this.roughness = roughness;
+        return this;
+    }
+
+    public Material setRoughness(String texture) {
+        return setRoughness(new Field(texture));
+    }
+
+    public Material setRoughness(float scalar) {
+        return setRoughness(new Field(scalar));
+    }
+
+    public Field getMetallic() {
+        return metallic;
+    }
+
+    public Material setMetallic(Field metallic) {
+        this.metallic = metallic;
+        return this;
+    }
+
+    public Field getNormal() {
+        return normal;
+    }
+
+    public Material setNormal(Field normal) {
+        this.normal = normal;
+        return this;
+    }
+
+    public boolean getTransparent() {
+        return transparent;
+    }
+
+    public Material setTransparent(boolean transparent) {
+        this.transparent = transparent;
+        return this;
+    }
+    
     
     public String serialize() {
         Gson gson = new GsonBuilder()

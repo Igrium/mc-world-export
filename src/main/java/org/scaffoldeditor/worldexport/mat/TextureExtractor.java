@@ -60,6 +60,14 @@ public final class TextureExtractor {
 
         return getTexture(texture);
     }
+    
+    public static SpriteAtlasTexture getAtlasTexture(Identifier id) {
+        return MinecraftClient.getInstance().getBakedModelManager().getAtlas(id);
+    }
+    
+    public static SpriteAtlasTexture getAtlasTexture() {
+        return getAtlasTexture(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE);
+    }
 
     /**
      * <p>Obtain an atlas texture in a native image.</p>
@@ -68,7 +76,7 @@ public final class TextureExtractor {
      * @return The atlas texture.
      */
     public static NativeImage getAtlas(Identifier atlasID) {
-        SpriteAtlasTexture atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(atlasID);
+        SpriteAtlasTexture atlas = getAtlasTexture(atlasID);
         
         return getTexture(atlas);
     }

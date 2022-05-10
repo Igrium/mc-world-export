@@ -6,10 +6,8 @@ import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
-import org.scaffoldeditor.worldexport.mat.Material.Field;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
-import org.scaffoldeditor.worldexport.mat.ReplayTexture.NativeImageReplayTexture;
-import org.scaffoldeditor.worldexport.mat.TextureExtractor;
+import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
@@ -17,7 +15,6 @@ import org.scaffoldeditor.worldexport.util.MathUtils;
 
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerModelPart;
-import net.minecraft.client.texture.NativeImage;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -88,13 +85,12 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         if (file.getMaterial(texName) != null) return;
         
         Material mat = new Material();
-        mat.color = new Field(texName);
-        mat.transparent = isTransparent(entity);
-        mat.roughness = new Field(1);
+        mat.setColor(texName);
+        mat.setRoughness(1);
+        mat.setTransparent(isTransparent(entity));
         file.putMaterial(texName, mat);
 
-        NativeImage tex = TextureExtractor.getTexture(texture);
-        file.addTexture(texName, new NativeImageReplayTexture(tex));
+        file.addTexture(texName, new PromisedReplayTexture(texture));
     }
 
     /**
