@@ -12,8 +12,10 @@ import org.joml.Quaterniondc;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replay.models.OverrideChannel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
+import org.scaffoldeditor.worldexport.replay.models.OverrideChannel.OverrideChannelFrame;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.UtilFunctions;
@@ -239,6 +241,15 @@ public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
                 }
 
                 writer.write(transform.toString(true, true, model.allowVisibility()));
+            }
+
+            for (OverrideChannel override : model.getOverrideChannels()) {
+                OverrideChannelFrame frame = pose.overrideChannels.get(override);
+                if (frame == null) {
+                    writer.write(";");
+                } else {
+                    writer.write(frame.toString()+";");
+                }
             }
 
             if (frames.hasNext()) writer.write(System.lineSeparator());

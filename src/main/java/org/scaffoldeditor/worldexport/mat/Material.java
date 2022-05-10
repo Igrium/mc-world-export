@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
@@ -23,6 +24,38 @@ import org.scaffoldeditor.worldexport.mat.Field.FieldSerializer;
  * Represents a simple material that can be imported into Blender.
  */
 public class Material {
+    public enum BlendMode {
+        MULTIPLY("multiply"),
+        MIX("mix"),
+        DARKEN("darken"),
+        BURN("burn"),
+        LIGHTEN("lighten"),
+        SCREEN("screen"),
+        DODGE("dodge"),
+        ADD("add"),
+        OVERLAY("overlay"),
+        SOFT_LIGHT("soft_light"),
+        LINEAR_LIGHT("linear_light"),
+        DIFFERENCE("difference"),
+        SUBTRACT("subtract"),
+        DIVIDE("divide"),
+        HUE("hue"),
+        SATURATION("saturation"),
+        COLOR("color"),
+        VALUE("value");
+        
+
+        private final String name;
+
+        private BlendMode(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
     public static final class DEFAULT_OVERRIDES {
         private DEFAULT_OVERRIDES() {};
 
@@ -37,6 +70,7 @@ public class Material {
      * If present, will be multiplied with color
      */
     private Field color2;
+    private BlendMode color2BlendMode;
 
     private Field roughness;
     private Field metallic;
@@ -103,6 +137,15 @@ public class Material {
         return setColor2(new Field(vector));
     }
 
+    public BlendMode getColor2BlendMode() {
+        return color2BlendMode == null ? BlendMode.MULTIPLY : color2BlendMode;
+    }
+
+    public Material setColor2BlendMode(BlendMode color2BlendMode) {
+        this.color2BlendMode = color2BlendMode;
+        return this;
+    }
+
     public Field getRoughness() {
         return roughness;
     }
@@ -152,6 +195,7 @@ public class Material {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Field.class, new FieldSerializer())
                 .setPrettyPrinting()
+                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
                 .create();
 
         return gson.toJson(this);

@@ -5,12 +5,17 @@ import javax.annotation.Nullable;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
+import org.scaffoldeditor.worldexport.mat.Material.BlendMode;
+import org.scaffoldeditor.worldexport.replay.models.OverrideChannel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
+import org.scaffoldeditor.worldexport.replay.models.OverrideChannel.OverrideChannelFrame;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 
 import net.minecraft.client.render.entity.EntityRenderer;
@@ -42,6 +47,8 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     
     public abstract void animateModel(float limbAngle, float limbDistance, float tickDelta);
     public abstract void setAngles(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch);
+
+    protected final OverrideChannel tint = new OverrideChannel("tint", OverrideChannel.Mode.VECTOR);
 
     /**
      * For quaternion compatibility
@@ -88,6 +95,8 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         mat.setColor(texName);
         mat.setRoughness(1);
         mat.setTransparent(isTransparent(entity));
+        mat.setColor2BlendMode(BlendMode.SOFT_LIGHT);
+        mat.addOverride("color2", tint.getName());
         file.putMaterial(texName, mat);
 
         file.addTexture(texName, new PromisedReplayTexture(texture));
@@ -120,6 +129,19 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     @Override
     public Pose<?> getPose(float tickDelta) {
 
+        // Add override channel.
+        boolean hasTint = false;
+        for (OverrideChannel channel : getModel().getOverrideChannels()) {
+            if (channel.equals(tint)) {
+                hasTint = true;
+                break;
+            }
+        }
+
+        if (!hasTint) {
+            getModel().addOverrideChannel(tint);
+        }
+
         this.handSwingProgress = entity.getHandSwingProgress(tickDelta);
         this.riding = entity.hasVehicle();
         this.child = entity.isBaby();
@@ -147,19 +169,6 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
 
             headYawFinal = headYaw - bodyYaw;
         }
-
-        // if (entity.getPose() == EntityPose.SLEEPING) {
-        //     Direction direction = entity.getSleepingDirection();
-        //     if (direction != null) {
-        //         float height = entity.getEyeHeight(EntityPose.STANDING) - .1f;
-        //         transform.multiplyByTranslation(-direction.getOffsetX() * height, 0, -direction.getOffsetZ() * height);
-        //     }
-        // }
-
-        // prepareTransforms(entity, transform, animProgress, bodyYaw, tickDelta);
-        // transform.multiply(Matrix4f.scale(-1, -1, 1));
-        // scale(entity, transform, tickDelta);
-        // transform.multiplyByTranslation(0, -1.5010000467300415f, 0);
 
         // POSE
         float limbAngle = 0;
@@ -199,6 +208,8 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
 
         pose.root = transform;
         prevRotation = rotation;
+
+        pose.overrideChannels.put(tint, new OverrideChannelFrame(getTint()));
         return pose;
     }
 
@@ -208,6 +219,15 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
 
     protected float getLyingAngle() {
         return 90.0F;
+    }
+
+    /**
+     * Get this entity's current tint color, applied with a "soft light" blending mode.
+     * @return Tint color, represented as an RGB vector.
+     */
+    protected Vector3fc getTint() {
+        boolean hurt = entity.hurtTime > 0 || entity.deathTime > 0;
+        return hurt ? new Vector3f(2, 0, 0) : new Vector3f(1, 1, 1);
     }
 
     private static float getYaw(Direction direction) {
