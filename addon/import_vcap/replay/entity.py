@@ -108,6 +108,10 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         else:
             print("Warning: no mesh found in entity XML.")
     
+    override_channel_types = {}
+    for channel, type in override_channels:
+        override_channel_types[channel] = type
+    
     # Parent mesh to armature
 
     if len(parsed_objs) > 0:
@@ -363,9 +367,13 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             
         # Override channels
         for obj, action in actions.items():
-            for override_name, channel in bl_override_channels.items():
-                obj[f'replay.{override_name}'] = 0
-                add_curve(action, channel, index=2)
+            for override_name, channel, in bl_override_channels.items():
+                if override_channel_types[override_name] == 'vector':
+                    obj[f'replay.{override_name}'] = [0.0, 0.0, 0.0]
+                    for i in range(0, 3): add_curve(action, channel, index=i)
+                else:
+                    obj[f'replay.{override_name}'] = 0.0
+                    add_curve(action, channel, index=0)
                 ...
 
     print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
