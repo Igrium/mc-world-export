@@ -227,7 +227,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
      */
     protected Vector3fc getTint() {
         boolean hurt = entity.hurtTime > 0 || entity.deathTime > 0;
-        return hurt ? new Vector3f(2, 0, 0) : new Vector3f(1, 1, 1);
+        return hurt ? new Vector3f(2, 0, 0) : new Vector3f(.5f);
     }
 
     private static float getYaw(Direction direction) {

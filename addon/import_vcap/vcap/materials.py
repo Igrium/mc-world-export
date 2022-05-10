@@ -219,6 +219,9 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
     mix.parent = frame
     mix.location = Vector((-300, 150))
 
+    if 'color2_blend_mode' in obj:
+        mix.blend_type = str.upper(obj['color2_blend_mode'])
+
     node_tree.links.new(mix.outputs[0], principled_node.inputs[COLOR])
 
     color_tex = load_field('color', mix, 1, False)
