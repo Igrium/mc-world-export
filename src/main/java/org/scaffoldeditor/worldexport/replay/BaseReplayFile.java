@@ -20,8 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
-import org.scaffoldeditor.worldexport.mat.Material.Field;
-import org.scaffoldeditor.worldexport.mat.Material.Field.FieldType;
+import org.scaffoldeditor.worldexport.mat.Field;
+import org.scaffoldeditor.worldexport.mat.Field.FieldType;
 
 public abstract class BaseReplayFile<T extends BaseReplayEntity> {
     public abstract Set<T> getEntities();
@@ -81,10 +81,10 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
         LOGGER.info("Saving Materials...");
         for (String id : getMaterials().keySet()) {
             Material mat = getMaterials().get(id);
-            checkForTexture(mat.color, id);
-            checkForTexture(mat.metallic, id);
-            checkForTexture(mat.normal, id);
-            checkForTexture(mat.roughness, id);
+            checkForTexture(mat.getColor(), id);
+            checkForTexture(mat.getMetallic(), id);
+            checkForTexture(mat.getNormal(), id);
+            checkForTexture(mat.getRoughness(), id);
 
             out.putNextEntry(new ZipEntry("mat/"+id+".json"));
             mat.serialize(out);

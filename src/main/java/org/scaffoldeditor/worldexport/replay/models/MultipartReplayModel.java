@@ -18,10 +18,21 @@ import org.w3c.dom.Element;
 public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
 
     public final List<ReplayModelPart> bones = new ArrayList<>();
+    protected final List<OverrideChannel> overrideChannels = new ArrayList<>();
 
     @Override
     public Iterable<ReplayModelPart> getBones() {
         return () -> new TreeIterator<>(bones.iterator());
+    }
+
+    @Override
+    public List<OverrideChannel> getOverrideChannels() {
+        return overrideChannels;
+    }
+
+    @Override
+    public void addOverrideChannel(OverrideChannel channel) {
+        overrideChannels.add(channel);
     }
 
     @Override
@@ -36,7 +47,10 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
         for (ReplayModelPart bone : bones) {
             element.appendChild(bone.serialize(dom));
         }
-        
+        for (OverrideChannel channel : overrideChannels) {
+            element.appendChild(channel.serialize(dom));
+        }
+
         return element;
     }
 

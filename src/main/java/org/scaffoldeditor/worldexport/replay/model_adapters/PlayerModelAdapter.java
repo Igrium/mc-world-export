@@ -52,6 +52,11 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
         matrix.multiply(g);
     }
 
+    @Override
+    public boolean isSlim() {
+        return getEntity().getModel().equals("slim");
+    }
+
     private void setModelPose() {
         PlayerEntityModel<AbstractClientPlayerEntity> model = (PlayerEntityModel<AbstractClientPlayerEntity>) getEntityModel();
         AbstractClientPlayerEntity player = getEntity();

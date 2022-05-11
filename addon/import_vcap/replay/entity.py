@@ -5,6 +5,7 @@ import math
 import time
 import itertools
 from typing import IO, Generic, Iterable, Sequence, TypeVar
+from collections import OrderedDict
 
 from numpy import true_divide
 from bpy.types import Mesh, Collection, Context, Material, Object, PoseBone, EditBone, Action
@@ -73,7 +74,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
     object_mapping: dict[Object, int] = {}
     
     if multipart:
-        armature_obj, bone_def, meshes, seperate = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials, animtext=animtext)
+        armature_obj, bone_def, meshes, seperate, override_channels = parse_multipart(model, context, collection, name=f'{name}.bones', materials=materials, animtext=animtext)
 
         for mesh in meshes.keys():
             obj = bpy.data.objects.new(f'{name}.{bone_def[meshes[mesh]]}.mesh', mesh)
@@ -90,7 +91,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             ...
         
     else:
-        armature_obj, bone_def = parse_armature(model, context, collection, name=f'{name}.bones')
+        armature_obj, bone_def, override_channels = parse_armature(model, context, collection, name=f'{name}.bones')
 
         if mesh_tag is not None:
             meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
@@ -106,6 +107,10 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 parsed_objs.append(new_object)
         else:
             print("Warning: no mesh found in entity XML.")
+    
+    override_channel_types = {}
+    for channel, type in override_channels:
+        override_channel_types[channel] = type
     
     # Parent mesh to armature
 
@@ -154,6 +159,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         
         vis_channels: dict[Object, list[tuple[float, float]]] = {}
         object_cache: dict[PoseBone, Object] = {} # Cache of objects for vis animation
+
+        bl_override_channels: dict[str, AnimChannel] = {}
         
         armature_obj.rotation_mode = 'QUATERNION'
         render = context.scene.render
@@ -201,11 +208,28 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                     root_scale.keyframes[index] = root_vals[7:10]
             
             for def_index, bone_str in enumerate(bones[1:]):
+                
                 bone_str = bone_str.strip()
                 if (len(bone_str) == 0): continue
                 
                 bone_vals = [float(i) for i in bone_str.split(' ')]
                 if len(bone_vals) == 0: continue
+
+                # Override Channels
+                if (def_index >= len(bone_def)):
+                    channel_name, channel_mode = override_channels[def_index - len(bone_def)]
+                    if (channel_name in bl_override_channels):
+                        channel = bl_override_channels[channel_name]
+                    else:
+                        channel = AnimChannel(channel_name, f'["replay.{channel_name}"]')
+                        bl_override_channels[channel_name] = channel
+                    
+                    if (channel_mode == 'vector'):
+                        channel.keyframes[index] = bone_vals[0:3]
+                    else:
+                        channel.keyframes[index] = [bone_vals[0]]
+                    
+                    continue    
                 
                 # Get the pose bone based on the definition order.
                 bone = armature_obj.pose.bones[bone_def[def_index]]
@@ -268,7 +292,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         anim_data.action = action
         
         # Add F curves
-        def add_curve(channel: AnimChannel, index: int):
+        def add_curve(action: Action, channel: AnimChannel, index: int = 0):
             curve = action.fcurves.new(data_path=channel.datapath, index=index)
             keyframe_points = curve.keyframe_points
             
@@ -283,20 +307,29 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             keyframe_points.foreach_set('co', list(itertools.chain.from_iterable(keyframes)))
             keyframe_points.foreach_set('interpolation', [1] * len(keyframes))
         
-        for i in range(0, 3): add_curve(root_pos, i)
-        for i in range(0, 4): add_curve(root_rot, i)
-        for i in range(0, 3): add_curve(root_scale, i)
+        for i in range(0, 3): add_curve(action, root_pos, i)
+        for i in range(0, 4): add_curve(action, root_rot, i)
+        for i in range(0, 3): add_curve(action, root_scale, i)
         
         for channel in pos_channels.values():
-            for i in range(0, 3): add_curve(channel, i)
+            for i in range(0, 3): add_curve(action, channel, i)
         
         for channel in rot_channels.values():
-            for i in range(0, 4): add_curve(channel, i)
+            for i in range(0, 4): add_curve(action, channel, i)
             
         for channel in scale_channels.values():
-            for i in range(0, 3): add_curve(channel, i)
+            for i in range(0, 3): add_curve(action, channel, i)
         
-        # Deal with visibility animation
+        actions: dict[Object, Action] = {}
+
+        # MESH ACTIONS
+        for obj in final_objects:
+            obj: Object
+            anim_data = obj.animation_data_create()
+            actions[obj] = bpy.data.actions.new(name=f'{obj.name}_action')
+            anim_data.action = actions[obj]
+
+        # Deal with visibility
         if autohide:
             start_frame = anim_start_time * scene_framerate
             end_frame = convert_frame(total_frames)
@@ -316,9 +349,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 vis_channels[obj].append((end_frame, 1))
 
         for obj, keys in vis_channels.items():
-            anim_data = obj.animation_data_create()
-            action = bpy.data.actions.new(name=f'{obj.name}_action')
-            anim_data.action = action
+            action = actions[obj]
             
             curve_render = action.fcurves.new('hide_render', index=0)
             curve_viewport = action.fcurves.new('hide_viewport', index=1)
@@ -334,10 +365,20 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             curve_render.keyframe_points.foreach_set('interpolation', [0] * len(keys))
             curve_viewport.keyframe_points.foreach_set('interpolation', [0] * len(keys))
             
+        # Override channels
+        for obj, action in actions.items():
+            for override_name, channel, in bl_override_channels.items():
+                if override_channel_types[override_name] == 'vector':
+                    obj[f'replay.{override_name}'] = [0.0, 0.0, 0.0]
+                    for i in range(0, 3): add_curve(action, channel, index=i)
+                else:
+                    obj[f'replay.{override_name}'] = 0.0
+                    add_curve(action, channel, index=0)
+                ...
 
     print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
 
-def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity") -> tuple[Object, list[str]]:
+def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity"):
     """Load an armature from a model XML element.
 
     Args:
@@ -349,12 +390,13 @@ def parse_armature(model: ET.Element, context: Context, collection: Collection, 
         tuple[Armature, list[str]]: The generated armature object and the bone names in definition order.
     """
     armature = bpy.data.armatures.new(name)
-    obj = bpy.data.objects.new(name, armature)
+    obj: Object = bpy.data.objects.new(name, armature)
 
     collection.objects.link(obj)
     context.view_layer.objects.active = obj
     
     definition_order: list[str] = []
+    override_channels: list[tuple[str, str]] = []
 
     bpy.ops.object.mode_set(mode='EDIT')
     edit_bones = armature.edit_bones
@@ -401,18 +443,21 @@ def parse_armature(model: ET.Element, context: Context, collection: Collection, 
         
         
     for element in model:
-        load_bone(element)
+        if (element.tag == 'override_channel'):
+            override_channels.append((element.attrib['name'], element.attrib['type']))
+        else:
+            load_bone(element)
 
     bpy.ops.object.mode_set(mode='OBJECT')
     obj.rotation_euler[0] = math.radians(90)
-    return (obj, definition_order)
+    return (obj, definition_order, override_channels)
     
 def parse_multipart(model: ET.Element,
                     context: Context,
                     collection: Collection,
                     name="entity",
                     materials: dict[str, Material] = {},
-                    animtext: str="") -> tuple[Object, list[str], dict[Mesh, int], set[Mesh]]:
+                    animtext: str=""):
     """Load an armature from a multipart model XML element.
 
     Args:
@@ -431,7 +476,7 @@ def parse_multipart(model: ET.Element,
 
 
     armature = bpy.data.armatures.new(name)
-    obj = bpy.data.objects.new(name, armature)
+    obj: Object = bpy.data.objects.new(name, armature)
 
     collection.objects.link(obj)
     context.view_layer.objects.active = obj
@@ -439,6 +484,8 @@ def parse_multipart(model: ET.Element,
     definition_order: list[str] = []
     meshes: dict[Mesh, int] = {}
     seperate: set[Mesh] = set()
+
+    override_channels: list[tuple[str, str]] = []
 
     bpy.ops.object.mode_set(mode = 'EDIT')
     edit_bones = armature.edit_bones
@@ -495,9 +542,12 @@ def parse_multipart(model: ET.Element,
 
     
     for element in model:
-        load_bone(element)
+        if (element.tag == 'override_channel'):
+            override_channels.append((element.attrib['name'], element.attrib['type']))
+        else:
+            load_bone(element)
     
     bpy.ops.object.mode_set(mode='OBJECT')
     obj.rotation_euler[0] = math.radians(90)
-    return (obj, definition_order, meshes, seperate)
+    return (obj, definition_order, meshes, seperate, override_channels)
 

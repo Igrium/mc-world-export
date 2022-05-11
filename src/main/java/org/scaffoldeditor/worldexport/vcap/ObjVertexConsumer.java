@@ -16,6 +16,7 @@ public class ObjVertexConsumer implements VertexConsumer {
     
     public final Obj baseObj;
     private Matrix4dc transform;
+    private Vector3d posCache = new Vector3d();
 
     float[][] vertCache = new float[4][];
     float[][] normalCache = new float[4][];
@@ -44,8 +45,8 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     @Override
     public ObjVertexConsumer vertex(double x, double y, double z) {
-        Vector3d pos = new Vector3d(x, y, z).mulPosition(transform);
-        vertCache[head] = new float[] { (float) pos.x(), (float) pos.y(), (float) pos.z() };
+        posCache.set(x, y, z).mulPosition(transform);
+        vertCache[head] = new float[] { (float) posCache.x(), (float) posCache.y(), (float) posCache.z() };
         return this;
     }
 

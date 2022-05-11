@@ -35,6 +35,7 @@ public class ArmatureReplayModel implements ReplayModel<Bone> {
      * All the bones in this model. Write to this list to build the armature.
      */
     public final List<Bone> bones = new ArrayList<>();
+    protected final List<OverrideChannel> overrideChannels = new ArrayList<>();
 
     public ArmatureReplayModel(Obj mesh) {
         this.mesh = mesh;
@@ -42,6 +43,15 @@ public class ArmatureReplayModel implements ReplayModel<Bone> {
 
     public Iterable<Bone> getBones() {
         return () -> new TreeIterator<>(bones.iterator());
+    }
+
+    public List<OverrideChannel> getOverrideChannels() {
+        return overrideChannels;
+    }
+
+    @Override
+    public void addOverrideChannel(OverrideChannel channel) {
+        overrideChannels.add(channel);
     }
 
     /**
@@ -67,6 +77,10 @@ public class ArmatureReplayModel implements ReplayModel<Bone> {
         Element meshNode = dom.createElement("mesh");
         meshNode.appendChild(dom.createTextNode(writer.toString()));
         element.appendChild(meshNode);
+        for (OverrideChannel channel : overrideChannels) {
+            element.appendChild(channel.serialize(dom));
+        }
+
         return element;
     }
 
