@@ -186,6 +186,10 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
     else:
         overrides = {}
     
+    # Backwards compatibility
+    if 'useVertexColors' in obj and obj['useVertexColors']:
+        overrides['color2'] = VERTEX_COLOR
+    
     def parse_override(id: str, target: Node, index: int, is_data = False):
         if (id == VERTEX_COLOR):
             node = node_tree.nodes.new('ShaderNodeVertexColor')
