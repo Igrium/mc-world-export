@@ -201,7 +201,7 @@ If the entity has any override channels, the value of the override(s) get insert
 0.5, 0.5, 1.0;
 ```
 
-*All whitespace at the beginning of an entry is discarded.*
+*All whitespace at the beginning and end of an entry is discarded.*
 
 ***Animation example:***
 
