@@ -71,7 +71,10 @@ def parse_raw(obj, name: str, image_provider: Callable[[str, bool], Union[Image,
     mat_output = node_tree.nodes.get('Material Output')
     node_tree.links.new(node.outputs[0], mat_output.inputs[0])
     
-    if transparent:
+    if ('blend_mode' in obj):
+        mat.blend_method = str.upper(obj['blend_mode'])
+    elif 'transparent' in obj and obj['transparent']:
+        # Backwards compatibility
         mat.blend_method = 'HASHED'
         
     return mat
@@ -85,20 +88,11 @@ def parse(obj, name: str, context: VCAPContext):
         name (str): Material name.
     """
 
-    transparent: bool = False
-    if 'transparent' in obj:
-        transparent = obj['transparent']
-
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
 
     node_tree = mat.node_tree
     node_tree.nodes.remove(node_tree.nodes.get('Principled BSDF'))
-
-    # frame, node, tex = generate_node(obj, node_tree, context, name=name)
-
-    # material_output = node_tree.nodes.get('Material Output')
-    # node_tree.links.new(node.outputs[0], material_output.inputs[0])
 
     group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
     group_inputs = group.nodes.new('NodeGroupInput')
@@ -130,8 +124,10 @@ def parse(obj, name: str, context: VCAPContext):
     material_output = node_tree.nodes.get('Material Output')
     node_tree.links.new(group_node.outputs[0], material_output.inputs[0])
 
-
-    if transparent:
+    if ('blend_mode' in obj):
+        mat.blend_method = str.upper(obj['blend_mode'])
+    elif 'transparent' in obj and obj['transparent']:
+        # Backwards compatibility
         mat.blend_method = 'HASHED'
     
     mat.use_backface_culling = True

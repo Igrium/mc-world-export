@@ -30,6 +30,10 @@ As of this specification, the attributes available to control the material are a
 
 - `normal` (field, default: `[0.5, 0.5, 1.0]`): The material's OpenGL-formatted normal map.
 
+- `blend_mode` (string, default: `"opaque"`): The alpha blending mode to use on this material. Implementation depends on render engine.
+  
+  - Must be one of `opaque`, `clip`, `hashed` or `blend`.
+
 - `transparent` (boolean, default: `false`): Whether this material should be rendered using transparent shading (alpha hashed).
 
 More attributes may be added in the future.
@@ -60,5 +64,5 @@ Sometimes, a material effect is impossible to represent with the Unified Materia
     "color2": "tint"
   },
   "transparent": true
-}
+}    
 ```

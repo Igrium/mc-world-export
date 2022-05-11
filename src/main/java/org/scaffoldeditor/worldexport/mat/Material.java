@@ -56,6 +56,10 @@ public class Material {
         }
     }
 
+    public enum AlphaMode {
+        OPAQUE, CLIP, HASHED, BLEND
+    }
+
     public static final class DEFAULT_OVERRIDES {
         private DEFAULT_OVERRIDES() {};
 
@@ -98,10 +102,7 @@ public class Material {
         return this;
     }
     
-    /**
-     * Whether this material should be rendered with transparent shading (alpha hashed)
-     */
-    private boolean transparent;
+    private AlphaMode blendMode;
 
     public Field getColor() {
         return color;
@@ -181,15 +182,24 @@ public class Material {
         return this;
     }
 
+    @Deprecated
     public boolean getTransparent() {
-        return transparent;
+        return blendMode != AlphaMode.OPAQUE;
     }
 
     public Material setTransparent(boolean transparent) {
-        this.transparent = transparent;
+        this.blendMode = transparent ? AlphaMode.HASHED : AlphaMode.OPAQUE;
         return this;
     }
     
+    public AlphaMode getBlendMode() {
+        return blendMode;
+    }
+
+    public Material setBlendMode(AlphaMode blendMode) {
+        this.blendMode = blendMode;
+        return this;
+    }
     
     public String serialize() {
         Gson gson = new GsonBuilder()
