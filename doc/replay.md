@@ -142,6 +142,18 @@ Multipart parts don't have any transformation data because said data is defined 
 </model>
 ```
 
+## Override Channels
+
+No matter the format, at the end of the `model` element is a series of elements tagged "`override_channel`" These provide a way for animations to control [material overrides](materials.md#material-overrides) on a per-entity basis. There are two types of override channels: `vector` channels and `scalar` channels. `vector` channels contain a three-axis float value such as an RGB color or an XYZ vector. `scalar` channels, on the other hand, only contain a single, scalar float value. 
+
+The name of the override channel must be the same as the material override which it should apply to.
+
+***Example:***
+
+```xml
+<override_channel name="tint" type="vector">
+```
+
 ## Animation
 
 The other major part of entity files are animations. Except for a minor detail regarding coordinate spaces, animations look exactly the same for both `armature` and `multipart` rigs.
@@ -180,6 +192,14 @@ Any of these values may be omitted, but due to the fact that *what* a number rep
 ```
 
 The order of the entries themselves within a frame is determined by the order in which the bones were defined in the file, starting with the entity root. (Remember: unlike JSON, the order in which elements are defined in XML matters.)
+
+If the entity has any override channels, the value of the override(s) get inserted as additional transform entries at the end of the frame. These special transform entries either have one value or three values, depending on the type of override they correspond to. While they are placed in definition order relative to the other override channels, they are *always* placed at the end of the frame, regardless of where the override channels are defined in the model.
+
+***Override channel entry:***
+
+```xml
+0.5, 0.5, 1.0;
+```
 
 *All whitespace at the beginning of an entry is discarded.*
 
@@ -221,4 +241,4 @@ The order of the entries themselves within a frame is determined by the order in
 
 # Textures and Materials
 
-Replay files use the exact same texture and material system as Vcap files. [Read about it here.](vcap.md#textures-and-materials)
+Just like the world, replay entities use the Unified Material System. Inside the `mat` and `tex` folders of the archive are a series of materials and textures (Json and PNG respectively). The format of these files is specified in the [Unified Material System spec document.](materials.md)

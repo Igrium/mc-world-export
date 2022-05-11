@@ -34,9 +34,7 @@ As of this specification, the attributes available to control the material are a
   
   - Must be one of `opaque`, `clip`, `hashed` or `blend`.
 
-- `transparent` (boolean, default: `false`): Whether this material should be rendered using transparent shading (alpha hashed).
-
-More attributes may be added in the future.
+- More attributes may be added in the future.
 
 ## Material Overrides
 

@@ -94,38 +94,4 @@ The OBJ specification allows for different "face groups" within a file. If a fac
 ## Textures and Materials
 
 When parsing obj files, a `usemtl` line is often encountered. Unlike traditional obj files however, this does not reference an external `mtl` file.
-Instead, it refers to a material definition within the archive.
-
-Within the `mat` folder is a series of Json files, each named `[material_id].json`, which describe the materials found in the world. Within each file is a single Json object with a set of *fields*. Each field controls an aspect of the material, and is represented by an object key followed by one of the following Json types:
-
-* `number`: A value that acts as a grayscale scalar across the entire image.
-* `array`: A three-number array that, like `number`, acts across the entire image. The difference is that this can represent RGB and XYZ values.
-* `string`: A string that references a packed texture. Textures are loaded using a color space determined by the field in which they are used.
-
-All textures can be found as PNG files within the `tex` folder, using the name that the material refers to them with (`[tex_id].png`). It's common for multiple materials to reference the same texture, and texture data should not be duplicated when this happens.
-
-The fields themselves follow standard PBR conventions:
-
-* `color`: The base albedo map.
-* `roughness`: The material's roughness / reflectivity, where black is fully reflective and white is fully matte. (default: `.5`)
-* `metallic`: A value between 0 and 1 determining the material's metalness. [Read about PBR metalness here.](https://www.chaosgroup.com/blog/understanding-metalness) (default: `0`)
-* `normal`: The material's normal map. (default: neutral)
-
-There are also additional two boolean values that provide material metadata:
-
-* `transparent`: Whether this material should be rendered with transparent shading (alpha hashed). (default: `false`)
-* `useVertexColors`: If enabled, the shader will multiply the texture with the block's corresponding color from the world data. Typically implemented using vertex colors. (default: `false`) 
-
-All fields are optional, and the exclusion of one will lead to its default value being used.
-
-### Example material:
-
-```json
-{
-  "color": "world",
-  "roughness": 0.7,
-  "metallic": 0,
-  "transparent": true,
-  "useVertexColors": true
-}
-```
+Instead, it refers to the Unified Material System. Inside the `mat` and `tex` folders of the archive are a series of materials and textures (Json and PNG respectively). The format of these files is specified in the [Unified Material System spec document.](materials.md)
