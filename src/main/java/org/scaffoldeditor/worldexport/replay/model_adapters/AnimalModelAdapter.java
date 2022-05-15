@@ -1,7 +1,10 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.joml.Matrix4d;
@@ -47,6 +50,8 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
 
     protected float yOffset = 0;
     protected Identifier texture;
+
+    final Matrix4d NEUTRAL_TRANSFORM = new Matrix4d();
 
     /**
      * Keep track of the previous frame's pose for quaternion compatibility.
@@ -196,7 +201,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     protected MultipartReplayModel captureBaseModel(AnimalModel<T> model) {
         // ArmatureReplayModel replayModel = new ArmatureReplayModel();
         MultipartReplayModel replayModel = new MultipartReplayModel();
-        final Matrix4d NEUTRAL_TRANSFORM = new Matrix4d();
 
         // Reset pose
         animateModel(0, 0, 0);
@@ -206,29 +210,57 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         Map<ModelPart, String> partNames = new HashMap<>();
         extractPartNames(model, partNames);
 
-        forEachPart((generatedName, part, transform) -> {
-            // Check if we need to override this name.
+        forRootParts((generatedName, part, transform) -> {
+            // Check if we need to override this name;
             String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
 
-            // Bone bone = new Bone(name);
             ReplayModelPart bone = new ReplayModelPart(name);
-
-            // bone.pos = transform.getTranslation(new Vector3d());
-            // bone.rot = transform.getUnnormalizedRotation(new Quaterniond());
-
             replayModel.bones.add(bone);
             boneMapping.put(part, bone);
+            appendPartMesh(bone, part);
 
-            // replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
-            bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
+            Map<String, ModelPart> children = ((ModelPartAccessor)(Object) part).getChildren();
+            for (String childName : children.keySet()) {
+                ModelPart child = children.get(childName);
 
-            part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
-                if (!path.equals("")) return; // We only want to get the cuboids from this part.
-                MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
-            });
+                ReplayModelPart childBone = new ReplayModelPart(childName);
+                bone.children.add(childBone);
+                boneMapping.put(child, childBone);
+                appendPartMesh(childBone, child);
+            }
         });
 
+        // forEachPart((generatedName, part, transform) -> {
+        //     // Check if we need to override this name.
+        //     String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
+
+        //     // Bone bone = new Bone(name);
+        //     ReplayModelPart bone = new ReplayModelPart(name);
+
+        //     // bone.pos = transform.getTranslation(new Vector3d());
+        //     // bone.rot = transform.getUnnormalizedRotation(new Quaterniond());
+
+        //     replayModel.bones.add(bone);
+        //     boneMapping.put(part, bone);
+
+        //     // replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
+        //     bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
+
+        //     part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
+        //         if (!path.equals("")) return; // We only want to get the cuboids from this part.
+        //         MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
+        //     });
+        // });
+
         return replayModel;
+    }
+
+    private void appendPartMesh(ReplayModelPart bone, ModelPart part) {
+        bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
+        part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
+            if (!path.equals(""));
+            MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
+        });
     }
 
     @Override
@@ -294,5 +326,24 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             forEachPartInternal(key, child, consumer, offset);
         });
         offset.popMatrix();
+    }
+
+    protected void forRootParts(ModelPartConsumer consumer) {
+
+        Consumer<ModelPart> handlePart = (part) -> {
+            Matrix4d offset = new Matrix4d();
+            if (part.yaw != 0)
+                offset.rotateY(part.yaw);
+            if (part.pitch != 0)
+                offset.rotateX(part.pitch);
+            if (part.roll != 0)
+                offset.rotateZ(part.roll);
+
+            String name = boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString();
+            consumer.accept(name, part, offset);
+        };
+
+        ((AnimalModelAccessor) model).retrieveHeadParts().forEach(handlePart);
+        ((AnimalModelAccessor) model).retrieveBodyParts().forEach(handlePart);
     }
 }
