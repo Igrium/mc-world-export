@@ -8,6 +8,7 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.ChickenEntity;
+import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -112,9 +113,10 @@ public final class ReplayModels {
         ReplayModelAdapter.REGISTRY.put(new Identifier("hoglin"), 
                 new AnimalModelFactory(new Identifier("textures/entity/hoglin/hoglin.png"), QUADRUPED_Y_OFFSET));
 
-        // TODO: Horse variant types
-        ReplayModelAdapter.REGISTRY.put(new Identifier("horse"),
-                new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), QUADRUPED_Y_OFFSET));
+        // ReplayModelAdapter.REGISTRY.put(new Identifier("horse"),
+        //         new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), QUADRUPED_Y_OFFSET));
+
+        ReplayModelAdapter.REGISTRY.put(new Identifier("horse"), ent -> new HorseModelAdapter((HorseEntity) ent));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("donkey"),
                 new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), QUADRUPED_Y_OFFSET));

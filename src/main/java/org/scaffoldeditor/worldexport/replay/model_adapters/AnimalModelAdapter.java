@@ -68,7 +68,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
      *                                  model.
      */
     public AnimalModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
-        this(entity, texture, 0);
+        this(entity, texture, ReplayModels.BIPED_Y_OFFSET);
     }
 
     /**
