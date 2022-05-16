@@ -62,5 +62,5 @@ Sometimes, a material effect is impossible to represent with the Unified Materia
     "color2": "tint"
   },
   "transparent": true
-}    
+}
 ```
