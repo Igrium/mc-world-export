@@ -40,6 +40,15 @@ public final class ReplayModels {
 
     }
 
+    public static class SinglePartModelFactory implements ReplayModelAdapterFactory<LivingEntity> {
+
+        @Override
+        public ReplayModelAdapter<?> create(LivingEntity entity) {
+            return new SinglePartModelAdapter<LivingEntity>(entity);
+        }
+          
+    }
+
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
@@ -119,6 +128,43 @@ public final class ReplayModels {
                 new AnimalModelFactory(new Identifier("textures/entity/horse/donkey.png"), QUADRUPED_Y_OFFSET));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("item"), ent -> new ItemModelAdapter((ItemEntity) ent));
+        
+        /**
+         * SINGLE PART
+         */
+        registerSinglePart("creeper");
+        registerSinglePart("illager");
+        registerSinglePart("wither");
+        registerSinglePart("magma_cube");
+        registerSinglePart("parrot");
+        registerSinglePart("dolphin");
+        registerSinglePart("villager");
+        registerSinglePart("salmon");
+        registerSinglePart("spider");
+        registerSinglePart("phantom");
+        registerSinglePart("shulker");
+        registerSinglePart("ghast");
+        registerSinglePart("strider");
+        registerSinglePart("ravager");
+        registerSinglePart("silverfish");
+        registerSinglePart("guardian");
+        registerSinglePart("snow_golem");
+        registerSinglePart("slime");
+        registerSinglePart("iron_golem");
+        registerSinglePart("cod");
+        registerSinglePart("bat");
+        registerSinglePart("endermite");
+        registerSinglePart("blaze");
+    }
 
+    /**
+     * Register a single part entity model. Cuts down on the typing.
+     */
+    private static void registerSinglePart(Identifier id) {
+        ReplayModelAdapter.REGISTRY.put(id, new SinglePartModelFactory());
+    }
+
+    private static void registerSinglePart(String id) {
+        registerSinglePart(new Identifier(id));
     }
 }

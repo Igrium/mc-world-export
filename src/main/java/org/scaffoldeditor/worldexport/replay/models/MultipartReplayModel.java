@@ -7,8 +7,10 @@ import javax.management.modelmbean.XMLParseException;
 
 import org.scaffoldeditor.worldexport.util.TreeIterator;
 import org.scaffoldeditor.worldexport.util.XMLUtils;
+import org.scaffoldeditor.worldexport.util.XMLUtils.JavaNodeList;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 /**
  * Represents a replay model that uses the <code>multipart</code> rig type.
@@ -84,6 +86,14 @@ public class MultipartReplayModel implements ReplayModel<ReplayModelPart> {
         for (Element part : parts) {
             model.bones.add(ReplayModelPart.parse(part));
         }
+
+        JavaNodeList overrides = new JavaNodeList(xml.getElementsByTagName("override_channel"));
+
+        for (Node node : overrides) {
+            Element element = (Element) node;
+            model.overrideChannels.add(OverrideChannel.parse(element));
+        }
+
 
         return model;
     }

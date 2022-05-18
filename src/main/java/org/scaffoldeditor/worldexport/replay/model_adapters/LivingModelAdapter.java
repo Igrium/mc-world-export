@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import javax.annotation.Nullable;
 
+import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
@@ -18,6 +19,7 @@ import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.OverrideChannel.OverrideChannelFrame;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 
+import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerModelPart;
 import net.minecraft.entity.EntityPose;
@@ -38,6 +40,16 @@ import net.minecraft.util.math.Vec3f;
  * @param <M> The type of model that this adapter will use.
  */
 public abstract class LivingModelAdapter<T extends LivingEntity, M extends ReplayModel<?>> implements ReplayModelAdapter<M> {
+
+    public interface ModelPartConsumer {
+        /**
+         * Called for every model part.
+         * @param name The model part's name.
+         * @param part The model part.
+         * @param transform The part's transformation relative to the model root (y offset included)
+         */
+        void accept(String name, ModelPart part, Matrix4dc transform);
+    }
 
     private T entity;
     
@@ -105,7 +117,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     /**
      * Get the filename of a texture, excluding the extension.
      * @param texture Texture identifier.
-     * @return Filename, without extension.
+     * @return Filename, without extension. Compatible with material fields.
      */
     protected String getTexName(Identifier texture) {
         String name = texture.toString().replace(':', '/');
