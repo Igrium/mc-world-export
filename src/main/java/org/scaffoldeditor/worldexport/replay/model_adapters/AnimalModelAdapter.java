@@ -1,9 +1,7 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -17,8 +15,8 @@ import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.mixins.QuadrupedModelAccessor;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
 
@@ -258,7 +256,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     private void appendPartMesh(ReplayModelPart bone, ModelPart part) {
         bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
         part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
-            if (!path.equals(""));
+            if (!path.equals("")) return;
             MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
         });
     }

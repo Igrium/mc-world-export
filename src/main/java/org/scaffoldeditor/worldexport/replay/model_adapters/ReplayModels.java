@@ -113,9 +113,6 @@ public final class ReplayModels {
         ReplayModelAdapter.REGISTRY.put(new Identifier("hoglin"), 
                 new AnimalModelFactory(new Identifier("textures/entity/hoglin/hoglin.png"), QUADRUPED_Y_OFFSET));
 
-        // ReplayModelAdapter.REGISTRY.put(new Identifier("horse"),
-        //         new AnimalModelFactory(new Identifier("textures/entity/horse/horse_brown.png"), QUADRUPED_Y_OFFSET));
-
         ReplayModelAdapter.REGISTRY.put(new Identifier("horse"), ent -> new HorseModelAdapter((HorseEntity) ent));
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("donkey"),
