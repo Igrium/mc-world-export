@@ -103,6 +103,10 @@ public final class ReplayModels {
         ReplayModelAdapter.REGISTRY.put(new Identifier("zombie_villager"), 
                 new BipedModelFactory(new Identifier("textures/entity/zombie_villager/zombie_villager.png")));
 
+        // TODO: Change based on piglin variant.
+        ReplayModelAdapter.REGISTRY.put(new Identifier("piglin"),
+                new BipedModelFactory(new Identifier("textures/entity/piglin/piglin.png")));
+
         /**
          * MISC
          */
