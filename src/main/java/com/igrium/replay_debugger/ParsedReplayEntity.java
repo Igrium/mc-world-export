@@ -24,6 +24,7 @@ import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.BaseReplayEntity;
 import org.scaffoldeditor.worldexport.replay.models.ArmatureReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
+import org.scaffoldeditor.worldexport.replay.models.OverrideChannel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
@@ -214,10 +215,15 @@ public class ParsedReplayEntity implements BaseReplayEntity {
         List<T> bones = new ArrayList<>();
         model.getBones().forEach(bones::add);
 
+        List<OverrideChannel> overrideChannels = new ArrayList<>();
+        model.getOverrideChannels().forEach(overrideChannels::add);
+
+        int frameSize = bones.size() + overrideChannels.size() + 1;
+
         frame = frame.strip();
         String[] frameParts = frame.split(";");
-        if (frameParts.length != bones.size() + 1) {
-            throw new XMLParseException("Frame has an incorrect number of bones. Expected: "+bones.size() + 1+". Actual: "+frameParts.length);
+        if (frameParts.length != frameSize) {
+            throw new XMLParseException("Frame has an incorrect number of bones. Expected: "+frameSize+". Actual: "+frameParts.length);
         }
 
         for (int i = 0; i < frameParts.length; i++) {
@@ -228,6 +234,11 @@ public class ParsedReplayEntity implements BaseReplayEntity {
 
             T bone = null;
             Transform prev;
+
+            // Check for override channel
+            if (i >= bones.size()) {
+                continue;
+            }
             if (i != 0) {
                 bone = bones.get(i - 1);
                 prev = previous.containsKey(bone) ? previous.get(bone) : Transform.NEUTRAL;

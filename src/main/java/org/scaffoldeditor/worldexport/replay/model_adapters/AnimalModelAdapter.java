@@ -132,7 +132,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         forEachPart((name, part, transform) -> {
             ReplayModelPart bone = boneMapping.get(part);
             if (bone == null) {
-                LogManager.getLogger("Replay Models").error("Model part not found in bone mapping!");
+                LogManager.getLogger("Replay Models").error("Model part '"+name+"' not found in bone mapping!");
                 return;
             }
 

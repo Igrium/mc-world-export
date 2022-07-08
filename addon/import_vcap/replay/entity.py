@@ -519,7 +519,7 @@ def parse_multipart(model: ET.Element,
         definition_order.append(name)
 
         mesh_tag = element.find('mesh')
-        if (mesh_tag is not None):
+        if (mesh_tag is not None) and (mesh_tag.text is not None):
             n_meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
             for mesh in n_meshes:
                 meshes[mesh] = id

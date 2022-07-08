@@ -5,14 +5,15 @@ import os
 from re import S
 import sys
 import time
-from typing import IO, Union
+import traceback
+from typing import IO, Callable, Union
 from zipfile import ZipFile
 import zipfile
 
 import numpy as np
 import bpy
 
-from bpy.types import Collection, Context, Image, Material
+from bpy.types import Collection, Context, Image, Material, Operator
 from ..vcap import util
 from . import entity
 from ..vcap.context import VCAPSettings
@@ -47,6 +48,7 @@ class ReplaySettings:
 def load_replay(file: Union[str, IO[bytes]],
                 context: Context,
                 collection: Collection,
+                op: Operator,
                 settings: ReplaySettings = ReplaySettings()):
     if do_profiling:
         import cProfile
@@ -114,8 +116,15 @@ def load_replay(file: Union[str, IO[bytes]],
 
             for index, entry in enumerate(entity_files):
                 context.window_manager.progress_update((.5 * index / len(entity_files)) + .5)
-                with entry.open('r') as e:
-                    entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
+
+                try:
+                    with entry.open('r') as e:
+                        entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
+                except Exception as ex:
+                    
+                    op.report({"ERROR"}, f"Error loading entity {entry.name}. See console for details.")
+                    print(f"Error loading entity {entry.name}", file=sys.stderr)
+                    traceback.print_exception(ex)
 
         print(f"Imported replay in {time.time() - start_time} seconds.")
         context.window_manager.progress_end()

@@ -40,6 +40,15 @@ public class OverrideChannel {
         return element;
     }
     
+    public static OverrideChannel parse(Element element) {
+        String name = element.getAttribute("name");
+        String mode = element.getAttribute("type");
+        if (!(mode.equals("vector") || mode.equals("scalar"))) {
+            throw new IllegalArgumentException("type must be one of 'vector' or 'scalar'.");
+        }
+
+        return new OverrideChannel(name, mode.equals("vector") ? Mode.VECTOR : Mode.SCALAR);
+    }
 
     public static class OverrideChannelFrame {
         private Mode mode;

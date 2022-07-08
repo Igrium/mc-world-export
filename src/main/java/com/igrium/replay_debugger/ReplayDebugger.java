@@ -136,6 +136,7 @@ public class ReplayDebugger {
         });
 
         future.exceptionallyAsync((e) -> {
+            LogManager.getLogger("Replay Debugger").error("Error loading replay file:", e);
             ExceptionDialog.showExceptionMessage(frame, e);
             return null;
         }, EventQueue::invokeLater);
