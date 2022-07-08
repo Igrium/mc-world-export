@@ -176,7 +176,7 @@ class ImportReplayOperator(Operator, ImportHelper):
                 merge_verts=self.merge_verts
             )
         )
-        replay_file.load_replay(self.filepath, context, context.scene.collection, settings=settings)
+        replay_file.load_replay(self.filepath, context, context.scene.collection, self, settings=settings)
         return {'FINISHED'}
 
 # Only needed if you want to add into a dynamic menu
