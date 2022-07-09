@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +20,7 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.random.Random;
 
 public final class MeshWriter {
     private MeshWriter() {}
@@ -95,7 +95,7 @@ public final class MeshWriter {
         int[] vertData = quad.getVertexData();
 
         int len = vertData.length / 8;
-        ByteBuffer buffer = ByteBuffer.allocate(VertexFormats.POSITION_COLOR_TEXTURE_LIGHT_NORMAL.getVertexSize());
+        ByteBuffer buffer = ByteBuffer.allocate(VertexFormats.POSITION_COLOR_TEXTURE_LIGHT_NORMAL.getVertexSizeByte());
         IntBuffer intBuffer = buffer.asIntBuffer();
 
         int[] indices = new int[len];

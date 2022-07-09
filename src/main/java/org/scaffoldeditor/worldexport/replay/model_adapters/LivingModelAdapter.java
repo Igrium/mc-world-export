@@ -226,7 +226,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     }
 
     protected boolean isShaking() {
-        return entity.isFreezing();
+        return entity.isFrozen();
     }
 
     protected float getLyingAngle() {

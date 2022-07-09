@@ -32,7 +32,7 @@ public final class FluidHandler {
         Vec3d offset = new Vec3d(-(worldPos.getX() & 15), -(worldPos.getY() & 15), -(worldPos.getZ() & 15));
         ObjVertexConsumer consumer = new ObjVertexConsumer(mesh, offset);
 
-        client.getBlockRenderManager().renderFluid(worldPos, world, consumer, fluidState);
+        client.getBlockRenderManager().renderFluid(worldPos, world, consumer, null, fluidState);
         
         return addFluidMeshToContext(context, mesh);
     }

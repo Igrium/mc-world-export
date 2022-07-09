@@ -293,7 +293,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
      * @param consumer The function, consuming the part and the transformation of
      *                 said point, in relation to the model root.
      */
-    protected void forEachPart(ModelPartConsumer consumer) {
+    protected void forEachPart(org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer) {
         Matrix4dStack offset = new Matrix4dStack(10);
 
         // If a bone is assigned to this part, and we're guessing part names anyway, use the bone's name.
@@ -306,7 +306,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         });
     }
     
-    private void forEachPartInternal(String name, ModelPart part, ModelPartConsumer consumer, Matrix4dStack offset) {
+    private void forEachPartInternal(String name, ModelPart part, org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer, Matrix4dStack offset) {
         offset.pushMatrix();
         offset.rotate(Math.PI, 1, 0, 0);
         offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
@@ -326,7 +326,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         offset.popMatrix();
     }
 
-    protected void forRootParts(ModelPartConsumer consumer) {
+    protected void forRootParts(org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer) {
 
         Consumer<ModelPart> handlePart = (part) -> {
             Matrix4d offset = new Matrix4d();

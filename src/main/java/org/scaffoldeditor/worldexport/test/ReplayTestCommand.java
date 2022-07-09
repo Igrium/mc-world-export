@@ -6,29 +6,32 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.tree.LiteralCommandNode;
-
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.ReplayIO;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
 
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.command.CommandException;
+import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.entity.Entity;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.ChunkPos;
 
 public final class ReplayTestCommand {
     private ReplayTestCommand() {};
     private static MinecraftClient client = MinecraftClient.getInstance();
 
-    public static void register() {
+    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher,
+            CommandRegistryAccess registryAccess) {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("replaytest").build();
 
         /**
@@ -49,7 +52,7 @@ public final class ReplayTestCommand {
                     }
                     
                     if (closest == null) {
-                        throw new CommandException(new LiteralText("No entity found."));
+                        throw new CommandException(Text.of("No entity found."));
                     }
 
                     testExport(closest, context.getSource());
@@ -77,7 +80,7 @@ public final class ReplayTestCommand {
                             }
                     
                             if (closest == null) {
-                                throw new CommandException(new LiteralText("No entity found."));
+                                throw new CommandException(Text.of("No entity found."));
                             }
                             ChunkPos playerPos = player.getChunkPos();
 
@@ -90,7 +93,7 @@ public final class ReplayTestCommand {
                 .build();
         
         root.addChild(world);
-        ClientCommandManager.DISPATCHER.getRoot().addChild(root);
+        dispatcher.getRoot().addChild(root);
     }
 
     public static void testExport(Entity ent, FabricClientCommandSource source) {
@@ -99,7 +102,7 @@ public final class ReplayTestCommand {
         try {
             rEntity.genAdapter();
         } catch (ModelNotFoundException e1) {
-            throw new CommandException(new LiteralText(e1.getMessage()));
+            throw new CommandException(Text.of(e1.getMessage()));
         }
         rEntity.capture(0);
         rEntity.capture(.3f);
@@ -108,10 +111,10 @@ public final class ReplayTestCommand {
         try {
             FileWriter writer = new FileWriter(target);
             ReplayIO.serializeEntity(rEntity, writer);
-            source.sendFeedback(new LiteralText("Wrote to "+target));
+            source.sendFeedback(Text.of("Wrote to "+target));
         } catch (IOException e) {
             LogManager.getLogger().error(e);
-            throw new CommandException(new LiteralText("Error saving XML: "+e.getMessage()));
+            throw new CommandException(Text.of("Error saving XML: "+e.getMessage()));
         }
     }
 
@@ -122,7 +125,7 @@ public final class ReplayTestCommand {
         try {
             rEntity.genAdapter();
         } catch (ModelNotFoundException e1) {
-            throw new CommandException(new LiteralText(e1.getMessage()));
+            throw new CommandException(Text.of(e1.getMessage()));
         }
         rEntity.capture(0);
         file.entities.add(rEntity);
@@ -133,14 +136,14 @@ public final class ReplayTestCommand {
             FileOutputStream os = new FileOutputStream(target);
             file.saveAsync(os).whenComplete((val, e) -> {
                 if (e != null) {
-                    source.sendError(new LiteralText("Failed to save replay: "+e.getMessage()));
+                    source.sendError(Text.of("Failed to save replay: "+e.getMessage()));
                     LogManager.getLogger().error("Failed to save replay.", e);
                 } else {
-                    source.sendFeedback(new LiteralText("Saved to "+target));
+                    source.sendFeedback(Text.of("Saved to "+target));
                 }
             });
         } catch (FileNotFoundException e) {
-            throw new CommandException(new LiteralText(e.getMessage()));
+            throw new CommandException(Text.of(e.getMessage()));
         }
     }
 }

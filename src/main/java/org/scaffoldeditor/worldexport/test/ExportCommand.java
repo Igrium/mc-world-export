@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -24,14 +25,15 @@ import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.command.v1.ClientCommandManager;
-import net.fabricmc.fabric.api.client.command.v1.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandException;
-import net.minecraft.text.LiteralText;
+import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -79,7 +81,7 @@ public final class ExportCommand {
     protected static ExportContext currentExport;
     private static Set<BiConsumer<BlockPos, BlockState>> worldListeners = new HashSet<>();
 
-    public static void register() {
+    public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
         ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
@@ -90,7 +92,7 @@ public final class ExportCommand {
                 .then(ClientCommandManager.argument("radius", IntegerArgumentType.integer(0))
                         .executes(context -> {
                             if (currentExport != null) {
-                                throw new CommandException(new LiteralText(
+                                throw new CommandException(Text.of(
                                         "A Vcap capture is already in process. Use 'vcap save [name]' to stop it."));
                             }
                             ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
@@ -106,7 +108,7 @@ public final class ExportCommand {
                             currentExport.startTime = new Date();
                             worldListeners.add(currentExport::onBlockUpdate);
 
-                            context.getSource().sendFeedback(new LiteralText("Started Vcap capture..."));
+                            context.getSource().sendFeedback(Text.of("Started Vcap capture..."));
                             return 0;
                         }))
                 .build();
@@ -116,10 +118,10 @@ public final class ExportCommand {
                 .executes(context -> {
                     if (currentExport == null) {
                         throw new CommandException(
-                                new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                                Text.of("No Vcap recording active! Start one with 'vcap start'"));
                     }
                     currentExport.captureFrame();
-                    context.getSource().sendFeedback(new LiteralText("Captured predicted frame."));
+                    context.getSource().sendFeedback(Text.of("Captured predicted frame."));
                     return 0;
                 }).build();
 
@@ -130,16 +132,16 @@ public final class ExportCommand {
                         .executes(context -> {
                             if (currentExport == null) {
                                 throw new CommandException(
-                                        new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                                        Text.of("No Vcap recording active! Start one with 'vcap start'"));
                             }
 
                             boolean mode = context.getArgument("shouldListen", Boolean.class);
                             currentExport.autoCapture = mode;
                             if (mode) {
-                                context.getSource().sendFeedback(new LiteralText("Listening for block updates..."));
+                                context.getSource().sendFeedback(Text.of("Listening for block updates..."));
                             } else {
                                 context.getSource()
-                                        .sendFeedback(new LiteralText("Stopped listening for block updates."));
+                                        .sendFeedback(Text.of("Stopped listening for block updates."));
                             }
                             return 0;
                         }))
@@ -151,7 +153,7 @@ public final class ExportCommand {
                         .executes(context -> {
                             if (currentExport == null) {
                                 throw new CommandException(
-                                        new LiteralText("No Vcap recording active! Start one with 'vcap start'"));
+                                        Text.of("No Vcap recording active! Start one with 'vcap start'"));
                             }
 
                             Path exportFolder = client.runDirectory.toPath().resolve("export").normalize();
@@ -159,7 +161,7 @@ public final class ExportCommand {
                                 exportFolder.toFile().mkdir();
                             }
 
-                            context.getSource().sendFeedback(new LiteralText("Please wait..."));
+                            context.getSource().sendFeedback(Text.of("Please wait..."));
                             File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap")
                                     .toFile();
 
@@ -169,10 +171,10 @@ public final class ExportCommand {
                                 
                             } catch (IOException e) {
                                 throw new CommandException(
-                                    new LiteralText("Unable to save file. " + e.getLocalizedMessage()));
+                                    Text.of("Unable to save file. " + e.getLocalizedMessage()));
                             } catch (Exception e) {
                                 throw new CommandException(
-                                    new LiteralText("Error generating Vcap." + e.getLocalizedMessage()));
+                                    Text.of("Error generating Vcap." + e.getLocalizedMessage()));
                             }
                             return 0;
                         }))
@@ -182,7 +184,7 @@ public final class ExportCommand {
         LiteralCommandNode<FabricClientCommandSource> abandon = ClientCommandManager.literal("abandon")
                 .executes(context -> {
                     if (currentExport == null) {
-                        throw new CommandException(new LiteralText("No Vcap recording active!"));
+                        throw new CommandException(Text.of("No Vcap recording active!"));
                     }
                     currentExport = null;
                     return 0;
@@ -209,10 +211,10 @@ public final class ExportCommand {
                                 } catch (IOException e) {
                                     LogManager.getLogger().error(e);
                                     context.getSource()
-                                            .sendError(new LiteralText("Unable to save image. " + e.getMessage()));
+                                            .sendError(Text.of("Unable to save image. " + e.getMessage()));
                                     return;
                                 }
-                                context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
+                                context.getSource().sendFeedback(Text.of("Wrote to " + targetFile));
                             }, "World Export").start();
 
                             return 0;
@@ -229,7 +231,7 @@ public final class ExportCommand {
                                 })))
                 .build();
         root.addChild(full);
-        ClientCommandManager.DISPATCHER.getRoot().addChild(root);
+        dispatcher.getRoot().addChild(root);
     }
 
     private static void exportFull(CommandContext<FabricClientCommandSource> context) {
@@ -237,7 +239,7 @@ public final class ExportCommand {
         if (!exportFolder.toFile().isDirectory()) {
             exportFolder.toFile().mkdir();
         }
-        context.getSource().sendFeedback(new LiteralText("Please wait..."));
+        context.getSource().sendFeedback(Text.of("Please wait..."));
         File targetFile = exportFolder.resolve(context.getArgument("name", String.class) + ".vcap").toFile();
         ChunkPos playerPos = context.getSource().getPlayer().getChunkPos();
         int radius = context.getArgument("radius", Integer.class);
@@ -252,14 +254,14 @@ public final class ExportCommand {
             FileOutputStream os = new FileOutputStream(targetFile);
             exporter.saveAsync(os).whenComplete((val, e) -> {
                 if (e != null) {
-                    context.getSource().sendError(new LiteralText("Failed to save vcap. " + e.getMessage()));
+                    context.getSource().sendError(Text.of("Failed to save vcap. " + e.getMessage()));
                     LogManager.getLogger().error("Failed to save vcap.", e);
                 } else {
-                    context.getSource().sendFeedback(new LiteralText("Wrote to " + targetFile));
+                    context.getSource().sendFeedback(Text.of("Wrote to " + targetFile));
                 }
             });
         } catch (FileNotFoundException e) {
-            throw new CommandException(new LiteralText("Unable to load file: " + e.getLocalizedMessage()));
+            throw new CommandException(Text.of("Unable to load file: " + e.getLocalizedMessage()));
         }
     }
 }

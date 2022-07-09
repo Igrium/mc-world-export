@@ -62,8 +62,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public void export() {
         close();
         RenderSettings settings = new RenderSettings(RenderMethod.BLEND, EncodingPreset.BLEND, 1920, 1080, 20, 100,
-                outputFile, false, false, false, false, null, 360, 180, false, false, false, AntiAliasing.NONE, "", "",
-                false);
+                outputFile, false, false, false, false, false, null, 360, 180, false, false, false, AntiAliasing.NONE,
+                "", "", false);
 
         CustomPipelines.replaySettings = new ReplayExportSettings()
                 .setViewDistance(getViewDistance())
@@ -180,7 +180,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         maxLowerDepth = client.world.getTopSectionCoord();
 
         setOutputFile(generateOutputFile());
-        setViewDistance(client.options.getViewDistance());
+        setViewDistance(client.options.getClampedViewDistance());
         setLowerDepth(minLowerDepth);
     }
     @Override

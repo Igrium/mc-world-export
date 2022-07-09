@@ -53,7 +53,7 @@ public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
         String name = entity.getEntityName();
         if (name.equals(entity.getUuidAsString())) {
             if (entity.hasCustomName()) {
-                name = entity.getCustomName().asString();
+                name = entity.getCustomName().getString();
             } else {
                 name = EntityType.getId(entity.getType()).toUnderscoreSeparatedString();
             }

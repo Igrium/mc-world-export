@@ -10,6 +10,7 @@ import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 
 public class ReplayExportMod implements ClientModInitializer {
 
@@ -33,8 +34,8 @@ public class ReplayExportMod implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
-        ExportCommand.register();
-        ReplayTestCommand.register();
+        ClientCommandRegistrationCallback.EVENT.register(ExportCommand::register);
+        ClientCommandRegistrationCallback.EVENT.register(ReplayTestCommand::register);
 
         ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
             blockUpdateListeners.forEach(listener -> listener.place(pos, state, world));

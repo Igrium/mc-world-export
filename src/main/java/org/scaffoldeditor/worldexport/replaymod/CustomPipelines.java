@@ -35,6 +35,11 @@ public final class CustomPipelines {
             @Override
             public void consume(Map<Channel, BitmapFrame> arg0) {
             }
+
+            @Override
+            public boolean isParallelCapable() {
+                return false;
+            }
             
         };
         BlendState.setState(null); // Stop native Blender exporter from running.

@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 
 @Mixin(TitleScreen.class)
@@ -25,7 +24,7 @@ public class TitleScreenMixin extends Screen {
 
     @Inject(method = "init()V", at = @At("RETURN"))
     protected void init(CallbackInfo ci) {
-        addDrawableChild(new ButtonWidget(width - 98, 0, 98, 20, new LiteralText("Debug Replays"), (button) -> {
+        addDrawableChild(new ButtonWidget(width - 98, 0, 98, 20, Text.of("Debug Replays"), (button) -> {
             try {
                 ReplayDebugger instance = new ReplayDebugger();
                 instance.launch();
