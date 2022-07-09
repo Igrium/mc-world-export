@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter.BipedModelFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
+import org.scaffoldeditor.worldexport.replay.model_adapters.custom.FireballModelAdapter;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -9,6 +10,7 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.ChickenEntity;
 import net.minecraft.entity.passive.HorseEntity;
+import net.minecraft.entity.projectile.AbstractFireballEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -164,6 +166,12 @@ public final class ReplayModels {
         registerSinglePart("bat");
         registerSinglePart("endermite");
         registerSinglePart("blaze");
+
+        /**
+         * CUSTOM
+         */
+        ReplayModelAdapter.REGISTRY.put(new Identifier("fireball"),
+                        entity -> new FireballModelAdapter((AbstractFireballEntity) entity));
     }
 
     /**
