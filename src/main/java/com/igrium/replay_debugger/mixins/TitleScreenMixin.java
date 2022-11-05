@@ -24,15 +24,15 @@ public class TitleScreenMixin extends Screen {
 
     @Inject(method = "init()V", at = @At("RETURN"))
     protected void init(CallbackInfo ci) {
-        addDrawableChild(new ButtonWidget(width - 98, 0, 98, 20, Text.of("Debug Replays"), (button) -> {
-            try {
-                ReplayDebugger instance = new ReplayDebugger();
-                instance.launch();
-            } catch (HeadlessException e) {
-                LogManager.getLogger(ReplayDebugger.class).error("Unable to launch debugger in headless environment.");
-            }
+        // addDrawableChild(new ButtonWidget(width - 98, 0, 98, 20, Text.of("Debug Replays"), (button) -> {
+        //     try {
+        //         ReplayDebugger instance = new ReplayDebugger();
+        //         instance.launch();
+        //     } catch (HeadlessException e) {
+        //         LogManager.getLogger(ReplayDebugger.class).error("Unable to launch debugger in headless environment.");
+        //     }
             
-		}));
+		// }));
     }
     
 }
