@@ -4,9 +4,10 @@ from .vcap.context import VCAPSettings
 
 from .vcap import vcap_importer, import_obj
 from .replay import entity, replay_file
-from bpy.types import Context, Operator
+from . import camera_export
+from bpy.types import Context, Operator, Object
 from bpy.props import StringProperty, BoolProperty, EnumProperty
-from bpy_extras.io_utils import ImportHelper
+from bpy_extras.io_utils import ImportHelper, ExportHelper
 import bpy
 
 
@@ -179,6 +180,28 @@ class ImportReplayOperator(Operator, ImportHelper):
         replay_file.load_replay(self.filepath, context, context.scene.collection, self, settings=settings)
         return {'FINISHED'}
 
+class ExportCameraXMLOperator(Operator, ExportHelper):
+    bl_idname = "vcap.exportcameraxml"
+    bl_label = "Export Camera XML"
+
+    filename_ext = ".xml"
+    
+    def execute(self, context: Context):
+        obj: Object = context.active_object
+        if (obj == None):
+            return self.fail("No camera selected.")
+        elif (obj.type != 'CAMERA'):
+            return self.fail("Selected object must be a camera.")
+        
+            
+        camera_export.write(self.filepath, obj, context)
+        return {'FINISHED'}
+    
+    def fail(self, message: str):
+        self.report({'ERROR'}, message)
+        return {'CANCELLED'}
+
+
 # Only needed if you want to add into a dynamic menu
 def menu_func_import(self, context):
     self.layout.operator(ImportVcap.bl_idname,
@@ -193,22 +216,29 @@ def menu_func_replay(self, context):
     self.layout.operator(ImportReplayOperator.bl_idname,
                          text="Minecraft Replay File (.replay)")
 
+def menu_func_camera_xml(self, context):
+    self.layout.operator(ExportCameraXMLOperator.bl_idname,
+                         text="Camera Animation (.xml)")
 
 def register():
     bpy.utils.register_class(ImportVcap)
     bpy.utils.register_class(ImportEntityOperator)
     bpy.utils.register_class(ImportReplayOperator)
+    bpy.utils.register_class(ExportCameraXMLOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     # bpy.utils.register_class(ImportTestOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_replay)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_camera_xml)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportVcap)
     bpy.utils.unregister_class(ImportEntityOperator)
     bpy.utils.unregister_class(ImportReplayOperator)
+    bpy.utils.unregister_class(ExportCameraXMLOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
     # bpy.utils.unregister_class(ImportTestOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_replay)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_camera_xml)
