@@ -44,11 +44,47 @@ class ReplaySettings:
         self.separate_parts = separate_parts
         self.hide_entities = hide_entities
 
+class ExecutionHandle:
+    __slots__ = (
+        '__onProgress',
+        '__onFeedback',
+        '__onWarning'
+    )
+
+    __onProgress: Callable[[float], None]
+    __onFeedback: Callable[[str], None]
+    __onWarning: Callable[[str], None]
+
+    def __default_progress(val):
+        pass
+
+    def __default_feedback(val):
+        print(val)
+
+    def __default_warning(val):
+        warn(val)
+
+    def __init__(self, onProgress: Callable[[float], None] = __default_progress,
+                 onFeedback: Callable[[str], None] = __default_feedback,
+                 onWarning: Callable[[str], None] = __default_warning) -> None:
+        self.__onProgress = onProgress
+        self.__onFeedback = onFeedback
+        self.__onWarning = onWarning
+
+    def progress(self, val: float):
+        self.__onProgress(val)
+
+    def feedback(self, message: str):
+        self.__onFeedback(message)
+    
+    def warn(self, message: str):
+        self.__onWarning(message)
+
 
 def load_replay(file: Union[str, IO[bytes]],
                 context: Context,
                 collection: Collection,
-                op: Operator,
+                handle: ExecutionHandle = ExecutionHandle(),
                 settings: ReplaySettings = ReplaySettings()):
     if do_profiling:
         import cProfile
@@ -59,14 +95,16 @@ def load_replay(file: Union[str, IO[bytes]],
     textures: dict[str, Image] = {}
     materials: dict[str, Material] = {}
 
-    context.window_manager.progress_begin(min=0, max=1)
-    context.window_manager.progress_update(0)
+    # context.window_manager.progress_begin(min=0, max=1)
+    # context.window_manager.progress_update(0)
+    handle.progress(0)
     start_time = time.time()
     with ZipFile(file, 'r') as archive:
         # World
         if settings.world:
             def wold_progress_function(progress):
-                context.window_manager.progress_update(progress * .5)
+                # context.window_manager.progress_update(progress * .5)
+                handle.progress(progress * .5)
 
             world_collection = bpy.data.collections.new('world')
             collection.children.link(world_collection)
@@ -84,7 +122,7 @@ def load_replay(file: Union[str, IO[bytes]],
 
             filename = f'tex/{tex_name}.png'
             if filename not in archive.namelist():
-                warning(f'{tex_name} missing from replay archive!')
+                handle.warn(f'{tex_name} missing from replay archive!')
                 return None
             
             with archive.open(filename) as file:
@@ -115,19 +153,17 @@ def load_replay(file: Union[str, IO[bytes]],
             # entity_files = [file for file in archive.filelist if file.filename.endswith(".xml")]
 
             for index, entry in enumerate(entity_files):
-                context.window_manager.progress_update((.5 * index / len(entity_files)) + .5)
+                handle.progress((.5 * index / len(entity_files)) + .5)
 
                 try:
                     with entry.open('r') as e:
                         entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
                 except Exception as ex:
-                    
-                    op.report({"ERROR"}, f"Error loading entity {entry.name}. See console for details.")
-                    print(f"Error loading entity {entry.name}", file=sys.stderr)
+                    handle.warn({"ERROR"}, f"Error loading entity {entry.name}. See console for details.")
                     traceback.print_exception(ex)
 
-        print(f"Imported replay in {time.time() - start_time} seconds.")
-        context.window_manager.progress_end()
+        handle.feedback(f"Imported replay in {time.time() - start_time} seconds.")
+        # context.window_manager.progress_end()
 
     if do_profiling:
         pr.disable()

@@ -60,6 +60,12 @@ class ImportReplayOperator(Operator, ImportHelper):
         default=True
     )
 
+    def __error(self, message: str):
+        self.report({"ERROR"}, message)
+    
+    def __feedback(self, message: str):
+        self.report({"INFO"}, message)
+
     def execute(self, context: Context):
         settings = replay_file.ReplaySettings(
             world=self.import_world,
@@ -72,7 +78,16 @@ class ImportReplayOperator(Operator, ImportHelper):
                 merge_verts=self.merge_verts
             )
         )
-        replay_file.load_replay(self.filepath, context, context.scene.collection, self, settings=settings)
+        
+        handle = replay_file.ExecutionHandle(
+            onProgress=lambda val : context.window_manager.progress_update(val),
+            onFeedback=self.__feedback,
+            onWarning=self.__error
+        )
+
+        context.window_manager.progress_begin(min=0, max=1)
+        replay_file.load_replay(self.filepath, context, context.scene.collection, handle=handle, settings=settings)
+        context.window_manager.progress_end()
         return {'FINISHED'}
 
 def _menu_func_replay(self, context):
