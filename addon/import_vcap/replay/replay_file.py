@@ -48,12 +48,14 @@ class ExecutionHandle:
     __slots__ = (
         '__onProgress',
         '__onFeedback',
-        '__onWarning'
+        '__onWarning',
+        '__should_abort'
     )
 
     __onProgress: Callable[[float], None]
     __onFeedback: Callable[[str], None]
     __onWarning: Callable[[str], None]
+    __should_abort: Callable[[], bool]
 
     def __default_progress(val):
         pass
@@ -66,10 +68,12 @@ class ExecutionHandle:
 
     def __init__(self, onProgress: Callable[[float], None] = __default_progress,
                  onFeedback: Callable[[str], None] = __default_feedback,
-                 onWarning: Callable[[str], None] = __default_warning) -> None:
+                 onWarning: Callable[[str], None] = __default_warning,
+                 should_abort: Callable[[], bool] = lambda: False) -> None:
         self.__onProgress = onProgress
         self.__onFeedback = onFeedback
         self.__onWarning = onWarning
+        self.__should_abort = should_abort
 
     def progress(self, val: float):
         self.__onProgress(val)
@@ -79,6 +83,9 @@ class ExecutionHandle:
     
     def warn(self, message: str):
         self.__onWarning(message)
+    
+    def should_abort(self):
+        return self.__should_abort()
 
 
 def load_replay(file: Union[str, IO[bytes]],

@@ -3,8 +3,9 @@
 from os import name, path
 
 import bpy
+import threading
 from bpy.props import BoolProperty, EnumProperty, StringProperty
-from bpy.types import Context, Operator
+from bpy.types import Context, Operator, Event, Scene
 from bpy_extras.io_utils import ImportHelper
 
 from .replay import replay_file
@@ -17,6 +18,14 @@ class ImportReplayOperator(Operator, ImportHelper):
 
     # ImportHelper mixin class uses this
     filename_ext = ".txt"
+
+    current_percentage = 0.0
+    updated = False
+    abort = False
+    __thread = None
+    __timer = None
+
+    scene: Scene = None
 
     filter_glob: StringProperty(
         default="*.replay",
@@ -65,8 +74,8 @@ class ImportReplayOperator(Operator, ImportHelper):
     
     def __feedback(self, message: str):
         self.report({"INFO"}, message)
-
-    def execute(self, context: Context):
+    
+    def __load_replay(self, context: Context):
         settings = replay_file.ReplaySettings(
             world=self.import_world,
             entities=self.import_entities,
@@ -78,26 +87,85 @@ class ImportReplayOperator(Operator, ImportHelper):
                 merge_verts=self.merge_verts
             )
         )
+
+        def progress_update(val: float):
+            self.current_percentage = val
+            self.updated = True
         
         handle = replay_file.ExecutionHandle(
-            onProgress=lambda val : context.window_manager.progress_update(val),
+            onProgress=progress_update,
             onFeedback=self.__feedback,
-            onWarning=self.__error
+            onWarning=self.__error,
+            should_abort=lambda: self.abort
         )
 
-        context.window_manager.progress_begin(min=0, max=1)
         replay_file.load_replay(self.filepath, context, context.scene.collection, handle=handle, settings=settings)
-        context.window_manager.progress_end()
-        return {'FINISHED'}
+
+    def execute(self, context: Context):
+        wm = context.window_manager
+        self.__timer = wm.event_timer_add(0.1, window=context.window)
+        wm.modal_handler_add(self)
+
+        self.__thread = threading.Thread(target=self.__load_replay, args=[context])
+        self.scene = context.scene
+        self.scene.show_progress_bar = True
+        self.scene.progress_bar = 0
+
+        self.__thread.start()
+
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context: Context, event: Event):
+        context.area.tag_redraw()
+
+        # if event.type == 'ESC':
+        #     self.abort = True
+        #     self.finish(context)
+        #     return 
+
+        if self.updated:
+            progress = self.current_percentage
+            self.scene.progress_bar = int(progress * 100)
+            self.updated = False
+        
+        if not self.__thread.is_alive():
+            self.finish(context)
+            return {'FINISHED'}
+        
+        return {'RUNNING_MODAL'}
+
+    def finish(self, context: Context):
+        wm = context.window_manager
+        wm.event_timer_remove(self.__timer)
+        self.scene.show_progress_bar = False
+
 
 def _menu_func_replay(self, context):
     self.layout.operator(ImportReplayOperator.bl_idname,
                          text="Minecraft Replay File (.replay)")
 
+def _header_draw_func(self, context: Context):
+    scene = context.scene
+    if (scene.show_progress_bar):
+        self.layout.prop(scene, 'progress_bar')
+
 def register():
+    bpy.types.Scene.progress_bar = bpy.props.IntProperty(
+        subtype="PERCENTAGE",
+        min=0,
+        max=100
+    )
+
+    bpy.types.Scene.show_progress_bar = bpy.props.BoolProperty()
+
     bpy.utils.register_class(ImportReplayOperator)
     bpy.types.TOPBAR_MT_file_import.append(_menu_func_replay)
+    bpy.types.TOPBAR_HT_upper_bar.append(_header_draw_func)
 
 def unregister():
+    del bpy.types.Scene.progress_bar
+    del bpy.types.Scene.show_progress_bar
+
     bpy.utils.unregister_class(ImportReplayOperator)
     bpy.types.TOPBAR_MT_file_import.remove(_menu_func_replay)
+    bpy.types.TOPBAR_HT_upper_bar.remove(_header_draw_func)
