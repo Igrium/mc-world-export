@@ -94,13 +94,14 @@ def load(file: Union[str, IO[bytes]],
         wm.progress_end()
 
 def loadMeshes(archive: ZipFile, context: VCAPContext):
-    for file in archive.filelist:
-        if file.filename.startswith('mesh/'):
-            model_id = os.path.splitext(os.path.basename(file.filename))[0]
+    meshes = filter(lambda file: file.filename.startswith('mesh/'), archive.filelist)
+    for file in meshes:
+        model_id = os.path.splitext(os.path.basename(file.filename))[0]
+        # print(f"Loading mesh: {model_id}...") # TESTING ONLY
 
-            loaded_file = context.archive.open(file)
-            context.models[model_id] = import_mesh.load(context, model_id, loaded_file)
-            loaded_file.close()
+        loaded_file = context.archive.open(file)
+        context.models[model_id] = import_mesh.load(context, model_id, loaded_file)
+        loaded_file.close()
 
 def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSettings, progress_function: Callable[[float], None] = None):
     nbt: amulet_nbt.NBTFile = amulet_nbt.load(world_dat.read(), compressed=False)

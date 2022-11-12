@@ -1,5 +1,6 @@
 import io
 import json
+import faulthandler
 from logging import warn, warning
 import os
 from re import S
@@ -20,7 +21,7 @@ from ..vcap.context import VCAPSettings
 from ..vcap import vcap_importer
 from ..vcap import materials as matlib
 
-do_profiling = False
+do_profiling = True
 
 class ReplaySettings:
     __slots__ = (
@@ -98,6 +99,7 @@ def load_replay(file: Union[str, IO[bytes]],
         import pstats
         pr = cProfile.Profile()
         pr.enable()
+        faulthandler.enable()
 
     textures: dict[str, Image] = {}
     materials: dict[str, Material] = {}
@@ -166,7 +168,7 @@ def load_replay(file: Union[str, IO[bytes]],
                     with entry.open('r') as e:
                         entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
                 except Exception as ex:
-                    handle.warn({"ERROR"}, f"Error loading entity {entry.name}. See console for details.")
+                    handle.warn(f"Error loading entity {entry.name}. See console for details.")
                     traceback.print_exception(ex)
 
         handle.feedback(f"Imported replay in {time.time() - start_time} seconds.")

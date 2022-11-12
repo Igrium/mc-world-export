@@ -1291,8 +1291,11 @@ def load(context: Context,
     #                     use_image_search, float_func)
 
     # deselect all
-    if bpy.ops.object.select_all.poll():
-        bpy.ops.object.select_all(action='DESELECT')
+    # if bpy.ops.object.select_all.poll():
+    #     bpy.ops.object.select_all(action='DESELECT')
+    if hasattr(context, 'selected_objects'):
+        for obj in context.selected_objects:
+            obj.select_set(False)
 
     # Split the mesh by objects/materials, may
     SPLIT_OB_OR_GROUP = bool(use_split_objects or use_split_groups)

@@ -479,12 +479,12 @@ def parse_multipart(model: ET.Element,
     obj: Object = bpy.data.objects.new(name, armature)
 
     collection.objects.link(obj)
-    context.view_layer.objects.active = obj
 
     definition_order: list[str] = []
     meshes: dict[Mesh, int] = {}
     seperate: set[Mesh] = set()
 
+    context.view_layer.objects.active = obj
     override_channels: list[tuple[str, str]] = []
 
     bpy.ops.object.mode_set(mode = 'EDIT')
