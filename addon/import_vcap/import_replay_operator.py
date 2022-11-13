@@ -60,8 +60,17 @@ class ImportReplayOperator(Operator, ImportHelper):
         default=True
     )
 
+    automatic_offset: BoolProperty(
+        name="Automatic Offset",
+        description="Read the world offset from the file, or generate it if it doesn't exist. If unchecked, scene-wide vcap offset is used.",
+        default=True
+    )
+
     def __error(self, message: str):
         self.report({"ERROR"}, message)
+    
+    def __warn(self, message: str):
+        self.report({"WARNING"}, message)
     
     def __feedback(self, message: str):
         self.report({"INFO"}, message)
@@ -72,6 +81,7 @@ class ImportReplayOperator(Operator, ImportHelper):
             entities=self.import_entities,
             separate_parts=self.separate_parts,
             hide_entities=self.hide_entities,
+            automatic_offset=self.automatic_offset,
 
             vcap_settings=VCAPSettings(
                 use_vertex_colors=self.use_vertex_colors,
@@ -82,7 +92,8 @@ class ImportReplayOperator(Operator, ImportHelper):
         handle = replay_file.ExecutionHandle(
             onProgress=lambda val : context.window_manager.progress_update(val),
             onFeedback=self.__feedback,
-            onWarning=self.__error
+            onWarning=self.__warn,
+            onError=self.__error
         )
 
         context.window_manager.progress_begin(min=0, max=1)

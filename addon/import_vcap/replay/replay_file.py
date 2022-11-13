@@ -28,7 +28,8 @@ class ReplaySettings:
         'entities',
         'separate_parts',
         'vcap_settings',
-        'hide_entities'
+        'hide_entities',
+        'automatic_offset'
     )
 
     world: bool
@@ -36,24 +37,28 @@ class ReplaySettings:
     separate_parts: bool
     vcap_settings: VCAPSettings
     hide_entities: bool
+    automatic_offset: bool
 
-    def __init__(self, world=True, entities=True, vcap_settings=VCAPSettings(merge_verts=False), separate_parts=False, hide_entities=True) -> None:
+    def __init__(self, world=True, entities=True, vcap_settings=VCAPSettings(merge_verts=False), separate_parts=False, hide_entities=True, automatic_offset=True) -> None:
         self.world = world
         self.entities = entities
         self.vcap_settings = vcap_settings
         self.separate_parts = separate_parts
         self.hide_entities = hide_entities
+        self.automatic_offset = automatic_offset
 
 class ExecutionHandle:
     __slots__ = (
         '__onProgress',
         '__onFeedback',
-        '__onWarning'
+        '__onWarning',
+        '__onError'
     )
 
     __onProgress: Callable[[float], None]
     __onFeedback: Callable[[str], None]
     __onWarning: Callable[[str], None]
+    __onError: Callable[[str], None]
 
     def __default_progress(val):
         pass
@@ -64,12 +69,17 @@ class ExecutionHandle:
     def __default_warning(val):
         warn(val)
 
+    def __default_error(val):
+        warn(val)
+
     def __init__(self, onProgress: Callable[[float], None] = __default_progress,
                  onFeedback: Callable[[str], None] = __default_feedback,
-                 onWarning: Callable[[str], None] = __default_warning) -> None:
+                 onWarning: Callable[[str], None] = __default_warning,
+                 onError: Callable[[str], None] = __default_error) -> None:
         self.__onProgress = onProgress
         self.__onFeedback = onFeedback
         self.__onWarning = onWarning
+        self.__onError = onError
 
     def progress(self, val: float):
         self.__onProgress(val)
@@ -79,6 +89,9 @@ class ExecutionHandle:
     
     def warn(self, message: str):
         self.__onWarning(message)
+    
+    def error(self, message: str):
+        self.__onError(message)
 
 
 def load_replay(file: Union[str, IO[bytes]],
@@ -95,11 +108,22 @@ def load_replay(file: Union[str, IO[bytes]],
     textures: dict[str, Image] = {}
     materials: dict[str, Material] = {}
 
-    # context.window_manager.progress_begin(min=0, max=1)
-    # context.window_manager.progress_update(0)
     handle.progress(0)
     start_time = time.time()
     with ZipFile(file, 'r') as archive:
+        # Metadata
+        with archive.open('meta.json', 'r') as meta_file:
+            meta = json.load(meta_file)
+            if settings.automatic_offset:
+                if 'offset' in meta:
+                    offset = meta['offset']
+                else:
+                    # TODO: Automatic offset detection.
+                    offset = [0, 0, 0]
+                    handle.warn("No world offset found in replay file!")
+
+                context.scene.vcap_offset = offset # Custom property registerd in data.py
+
         # World
         if settings.world:
             def wold_progress_function(progress):
@@ -159,11 +183,10 @@ def load_replay(file: Union[str, IO[bytes]],
                     with entry.open('r') as e:
                         entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
                 except Exception as ex:
-                    handle.warn({"ERROR"}, f"Error loading entity {entry.name}. See console for details.")
+                    handle.error(f"Error loading entity {entry.name}. See console for details.")
                     traceback.print_exception(ex)
 
         handle.feedback(f"Imported replay in {time.time() - start_time} seconds.")
-        # context.window_manager.progress_end()
 
     if do_profiling:
         pr.disable()
