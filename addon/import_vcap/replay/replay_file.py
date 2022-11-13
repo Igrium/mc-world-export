@@ -91,7 +91,7 @@ def load_replay(file: Union[str, IO[bytes]],
         import pstats
         pr = cProfile.Profile()
         pr.enable()
-
+    
     textures: dict[str, Image] = {}
     materials: dict[str, Material] = {}
 

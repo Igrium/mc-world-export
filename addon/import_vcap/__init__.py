@@ -22,12 +22,14 @@ bl_info = {
     "category" : "Import-Export"
 }
 
-from . import operators, import_replay_operator
+from . import operators, import_replay_operator, data
 
 def register():
+    data.register()
     operators.register()
     import_replay_operator.register()
 
 def unregister():
+    data.unregister()
     operators.unregister()
     import_replay_operator.unregister()

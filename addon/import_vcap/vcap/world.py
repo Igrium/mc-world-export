@@ -10,13 +10,14 @@ from .context import VCAPContext, VCAPSettings
 from mathutils import Matrix, Vector
 from ..amulet_nbt import TAG_Compound, TAG_List, TAG_Int_Array, TAG_Byte_Array, TAG_String
 from . import util
+from .. import data
 
-def load_frame(nbt: TAG_Compound, index = 0):
+def load_frame(nbt: TAG_Compound, index = 0, offset = Vector()):
     t = nbt["type"].value
     if t == 0:
-        return IFrame(nbt, index)
+        return IFrame(nbt, index, offset)
     elif t == 1:
-        return PFrame(nbt, index)
+        return PFrame(nbt, index, offset)
     else: raise RuntimeError(f"Unknown frame type: {t}")
 
 
@@ -51,8 +52,9 @@ class VcapFrame:
 class PFrame(VcapFrame):
     __nbt__: TAG_Compound
     index: int = 0
+    vcap_offset = Vector()
 
-    def __init__(self, nbt: TAG_Compound, index: int = 0) -> None:
+    def __init__(self, nbt: TAG_Compound, index: int = 0, vcap_offset = Vector()) -> None:
         """Create a PFrame object.
 
         Args:
@@ -63,6 +65,7 @@ class PFrame(VcapFrame):
         self.index = index
         self.time = nbt['time'].value
         self.overrides = dict()
+        self.vcap_offset = vcap_offset
 
     def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings, progress_function=None):
         blocks: TAG_List = self.__nbt__['blocks']
@@ -80,7 +83,8 @@ class PFrame(VcapFrame):
             x = pos[0].value
             y = pos[1].value
             z = pos[2].value
-            position = Vector((x, y, z))
+            position: Vector = Vector((x, y, z))
+            position += self.vcap_offset
             position.freeze()
 
             model_id: TAG_String = palette[state]
@@ -126,6 +130,7 @@ class PFrame(VcapFrame):
             y = pos[1].value
             z = pos[2].value
             position = Vector((x, y, z))
+            position += self.vcap_offset
             position.freeze()
             overrides.add(position)
 
@@ -135,8 +140,9 @@ class PFrame(VcapFrame):
 class IFrame(VcapFrame):
     __nbt__: TAG_Compound
     index: int
+    vcap_offset = Vector()
 
-    def __init__(self, nbt: TAG_Compound, index: int = 0) -> None:
+    def __init__(self, nbt: TAG_Compound, index: int = 0, vcap_offset = Vector([0, 0, 0])) -> None:
         """Create an IFrame object.
 
         Args:
@@ -147,6 +153,7 @@ class IFrame(VcapFrame):
         self.overrides = dict()
         self.index = index
         self.time = nbt['time'].value
+        self.vcap_offset = vcap_offset
 
     def get_meshes(self, vcontext: VCAPContext, settings: VCAPSettings, progress_function: Callable[[float], None] = None) -> list[Mesh]:
         sections: TAG_List[TAG_Compound] = self.__nbt__['sections']
@@ -194,6 +201,7 @@ class IFrame(VcapFrame):
                             color = [1, 1, 1, 1]
 
                         world_pos = Vector((offset[0] * 16 + x, offset[1] * 16 + y, offset[2] * 16 + z))
+                        world_pos += self.vcap_offset
                         world_pos.freeze()
                         mesh_index = 'base'
 

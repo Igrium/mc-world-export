@@ -14,7 +14,7 @@ from bpy_extras.wm_utils.progress_report import ProgressReport
 from mathutils import Matrix, Vector
 from numpy import ndarray
 
-from .. import amulet_nbt
+from .. import amulet_nbt, data
 from ..amulet_nbt import (TAG_Byte_Array, TAG_Compound, TAG_Int_Array,
                           TAG_List, TAG_String)
 from . import import_mesh, materials, util
@@ -107,8 +107,10 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     print("Loading world...")
     nbt_frames: TAG_List = nbt.get('frames')
     frames: list[VcapFrame] = []
+    offset = Vector(data.vcap_offset_mc(vcontext.context.scene))
+    offset.freeze()
     for i in range(0, len(nbt_frames)):
-        frames.append(load_frame(nbt_frames[i], i))
+        frames.append(load_frame(nbt_frames[i], i, offset))
 
     overrides: dict[Any, set[Vector]] = dict()
     blame: dict[Any, TesselatedFrame] = dict()
@@ -122,7 +124,7 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
         meshes = frame.get_meshes(
             vcontext,
             settings,
-            progress_function = progress_function)
+            progress_function=progress_function)
 
         final_frame = TesselatedFrame()
         print(f"Wrote frame ${i} with {len(overrides)} overrides.")
