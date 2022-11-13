@@ -26,6 +26,7 @@ public class ReplayFile extends BaseReplayFile<ReplayEntity<?>> implements Mater
 
     public final Map<String, Material> materials = new HashMap<>();
     public final Map<String, ReplayTexture> textures = new HashMap<>();
+    public final ReplayMeta meta = new ReplayMeta();
 
     private float fps = 20f;
 
@@ -115,7 +116,7 @@ public class ReplayFile extends BaseReplayFile<ReplayEntity<?>> implements Mater
 
     @Override
     public ReplayMeta getMeta() {
-        return new ReplayMeta();
+        return meta;
     }
     
 }

@@ -122,7 +122,8 @@ def load_replay(file: Union[str, IO[bytes]],
                     offset = [0, 0, 0]
                     handle.warn("No world offset found in replay file!")
 
-                context.scene.vcap_offset = offset # Custom property registerd in data.py
+                # Custom property registerd in data.py
+                context.scene.vcap_offset = [offset[0], -offset[2], offset[1]] # Switch coordinate space.
 
         # World
         if settings.world:

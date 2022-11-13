@@ -13,9 +13,6 @@ import java.util.concurrent.CompletionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.mat.Material;
@@ -54,13 +51,10 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
 
         // META
         ReplayMeta meta = getMeta();
-        Gson gson = new GsonBuilder()
-            .setPrettyPrinting()
-            .create();
 
         out.putNextEntry(new ZipEntry("meta.json"));
         PrintWriter writer = new PrintWriter(out);
-        writer.print(gson.toJson(meta));
+        writer.print(ReplayMeta.toJson(meta));
         writer.flush();
         out.closeEntry();
 

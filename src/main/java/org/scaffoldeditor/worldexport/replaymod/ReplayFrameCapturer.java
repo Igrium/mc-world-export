@@ -19,6 +19,7 @@ import com.replaymod.render.utils.ByteBufferPool;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
+import org.joml.Vector3i;
 import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
@@ -78,6 +79,9 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             exporter = new ReplayFile(client.world, 
                     new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
                     new ChunkPos(centerPos.x + viewDistance, centerPos.z + viewDistance));
+            
+            BlockPos centerBlock = client.getCameraEntity().getBlockPos();
+            exporter.meta.offset = new Vector3i(-centerBlock.getX(), -centerBlock.getY(), -centerBlock.getZ());
         }
         
         exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
