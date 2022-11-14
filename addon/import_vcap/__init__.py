@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Igrium",
     "description" : "",
     "blender" : (2, 93, 0),
-    "version" : (0, 3, 0),
+    "version" : (0, 3, 1),
     "location" : "",
     "warning" : "This addon is still in development.",
     "category" : "Import-Export"
