@@ -12,15 +12,19 @@ Replay files are essentially renamed zip files. Changing the file extension from
 
 Like Vcap, Replay files contain a `meta.json` file in the root of the archive containing metadata about the file:
 
-- `version` - *string*: The Replay version. This specification is for version `0.1.0`.
+- `version` - *string*: The Replay version. This specification is for version `0.2.1`.
 - `encoder` - *string*: The program used to write this file. Used for debugging.
+- `offset` - *int array*: An offset to apply to the file during import. Useful for replays that take place thousands of blocks away from spawn.
+
+> **Note**: The `offset` is a translation applied to the file during import. This means it should be the *inverse* of your desired origin point. For example, an `offset` of `[100, -30, -50]` will place the Blender origin on the block at `-100, 30, 50`.
 
 ***Example:***
 
 ```json
 {
-    "version": "0.1.0",
-    "encoder": "Minecraft Replay Exporter"
+    "version": "0.2.1",
+    "encoder": "Minecraft Replay Exporter",
+    "origin": [-1288, -78, 187]
 }
 ```
 
