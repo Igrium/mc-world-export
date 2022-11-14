@@ -13,38 +13,6 @@ import bpy
 # ImportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
 
-
-class ImportTestOperator(Operator, ImportHelper):
-    bl_idname = "vcap.importtest"
-    bl_label = "Import Test"
-
-    # ImportHelper mixin class uses this
-    filename_ext = ".txt"
-
-    filter_glob: StringProperty(
-        default="*.obj",
-        options={'HIDDEN'},
-        maxlen=255,  # Max internal buffer length, longer would be clamped.
-    )
-
-    def execute(self, context: Context):
-        file = self.filepath
-
-        with open(file, 'rb') as f:
-            meshes = import_obj.load(context, f, name=path.basename(file))
-
-        view_layer = context.view_layer
-        collection = view_layer.active_layer_collection.collection
-
-        for mesh in meshes:
-            obj = bpy.data.objects.new(mesh.name, mesh)
-            collection.objects.link(obj)
-
-        # obj.load(context, open(file, 'rb'), path.basename(file))
-
-        return {'FINISHED'}
-
-
 class ImportVcap(Operator, ImportHelper):
     """Import a Voxel Capture file. Used internally in the replay importer."""
     bl_idname = "vcap.import_vcap"
@@ -144,8 +112,7 @@ def register():
     bpy.utils.register_class(ImportEntityOperator)
     bpy.utils.register_class(ExportCameraXMLOperator)
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
-    # bpy.utils.register_class(ImportTestOperator)
-    bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
+    # bpy.types.TOPBAR_MT_file_import.append(menu_func_import2)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_camera_xml)
 
 
@@ -154,6 +121,5 @@ def unregister():
     bpy.utils.unregister_class(ImportEntityOperator)
     bpy.utils.unregister_class(ExportCameraXMLOperator)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
-    # bpy.utils.unregister_class(ImportTestOperator)
-    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
+    # bpy.types.TOPBAR_MT_file_import.remove(menu_func_import2)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_camera_xml)
