@@ -2,14 +2,14 @@ import bpy
 from bpy.types import Scene
 
 def register():
-    bpy.types.Scene.vcap_offset = bpy.props.FloatVectorProperty(
+    bpy.types.Scene.vcap_offset = bpy.props.IntVectorProperty(
         name="Vcap Offset", default=[0,0,0],
         description="The relationship between Minecraft coordinates and Blender coordinates (disragarding space conversions)")
 
 def unregister():
     del bpy.types.Scene.vcap_offset
 
-def vcap_offset(scene: Scene) -> list[float]:
+def vcap_offset(scene: Scene) -> list[int]:
     """Get the current vcap offset of a scene.
 
     Args:
