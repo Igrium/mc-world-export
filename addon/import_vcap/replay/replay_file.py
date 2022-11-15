@@ -21,6 +21,8 @@ from ..vcap import vcap_importer
 from ..vcap import materials as matlib
 
 do_profiling = False
+LINE_CLEAR = '\x1b[2K'  # <-- ANSI sequence
+
 
 class ReplaySettings:
     __slots__ = (
@@ -177,17 +179,19 @@ def load_replay(file: Union[str, IO[bytes]],
             entity_files = [path for path in ent_folder.iterdir() if path.name.endswith('.xml')]
             # entity_files = [file for file in archive.filelist if file.filename.endswith(".xml")]
 
+            size = len(entity_files)    
             for index, entry in enumerate(entity_files):
-                handle.progress((.5 * index / len(entity_files)) + .5)
-
+                handle.progress((.5 * index / size) + .5)
                 try:
                     with entry.open('r') as e:
-                        entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
+                        name = entity.load_entity(e, context, ent_collection, materials, separate_parts=settings.separate_parts, autohide=settings.hide_entities)
+                        print(f"Loaded entity {index + 1}/{size}: {name}                    ", end='\r') # Awful hack to fix return carriage override issue. 
                 except Exception as ex:
                     handle.error(f"Error loading entity {entry.name}. See console for details.")
                     traceback.print_exception(ex)
+            print("Finished loading entities.")
 
-        handle.feedback(f"Imported replay in {time.time() - start_time} seconds.")
+        handle.feedback(f"Imported replay in {round(time.time() - start_time, 2)} seconds.")
 
     if do_profiling:
         pr.disable()

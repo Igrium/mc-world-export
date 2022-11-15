@@ -40,7 +40,6 @@ def import_image(file: IO[bytes], name: str, alpha=True, is_data=False) -> Image
 
         [type]: Loaded image datablock.
     """
-    print(f'Loading image: {name}')
     data = file.read()
 
     image = bpy.data.images.new(name, 1024, 1024, alpha=alpha, is_data=is_data)

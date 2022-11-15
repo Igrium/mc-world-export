@@ -22,7 +22,6 @@ from .anim import TesselatedFrame
 from .context import VCAPContext, VCAPSettings
 from .world import VcapFrame, load_frame
 
-
 def load(file: Union[str, IO[bytes]],
          collection: Collection,
          context: Context,
@@ -54,21 +53,22 @@ def load(file: Union[str, IO[bytes]],
         for entry in archive.filelist:
             if entry.filename.startswith('mat/'):
                 mat_id = os.path.splitext(os.path.basename(entry.filename))[0]
-                print("Reading material: "+mat_id)
 
                 f = archive.open(entry)
                 obj = json.load(f)
                 mat = materials.parse(obj, mat_id, vcontext)
                 vcontext.materials[mat_id] = mat
                 f.close()
-        print(vcontext.materials)
         # Meshes
         loadMeshes(archive, vcontext)
         progress_function(.1)
 
         # Blocks
         world_dat = archive.open('world.dat')
+
         readWorld(world_dat, vcontext, settings, lambda progress: progress_function(progress * .9 + .1))
+        print("Finished reading world.")
+
         world_dat.close()
 
         # Object
@@ -82,7 +82,6 @@ def load(file: Union[str, IO[bytes]],
         obj.rotation_euler = (math.radians(90), 0, 0)
 
         for mat in vcontext.materials.values():
-            print("Appending material ", mat)
             obj.data.materials.append(mat)
 
         progress_function(1)
@@ -125,9 +124,8 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
             vcontext,
             settings,
             progress_function=progress_function)
-
+        
         final_frame = TesselatedFrame()
-        print(f"Wrote frame ${i} with {len(overrides)} overrides.")
 
         for id in meshes:
             obj = bpy.data.objects.new(meshes[id].name, meshes[id])

@@ -68,12 +68,15 @@ class ImportReplayOperator(Operator, ImportHelper):
 
     def __error(self, message: str):
         self.report({"ERROR"}, message)
+        print("ERROR: "+message)
     
     def __warn(self, message: str):
         self.report({"WARNING"}, message)
+        print("WARNING: "+message)
     
     def __feedback(self, message: str):
         self.report({"INFO"}, message)
+        print("INFO: "+message)
 
     def execute(self, context: Context):
         settings = replay_file.ReplaySettings(

@@ -12,6 +12,8 @@ from ..amulet_nbt import TAG_Compound, TAG_List, TAG_Int_Array, TAG_Byte_Array, 
 from . import util
 from .. import data
 
+LINE_CLEAR = '\x1b[2K'  # <-- ANSI sequence
+
 def load_frame(nbt: TAG_Compound, index = 0, offset = Vector()):
     t = nbt["type"].value
     if t == 0:
@@ -167,7 +169,7 @@ class IFrame(VcapFrame):
         for i in range(0, num_sections):
             # Only print every 10 chunks so we don't slow down the program
             if i % 10 == 0:
-                print(f'Writing section {i}/{num_sections}')
+                print(f'Writing section {i}/{num_sections}', end='\r')
                 if(progress_function): progress_function(i / num_sections)
             
             section = sections[i]

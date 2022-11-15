@@ -382,7 +382,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                     add_curve(action, channel, index=0)
                 ...
 
-    print(f"Parsed entity {name} in {time.time() - start_time} seconds.")
+    return name
 
 def parse_armature(model: ET.Element, context: Context, collection: Collection, name="entity"):
     """Load an armature from a model XML element.
@@ -524,13 +524,12 @@ def parse_multipart(model: ET.Element,
 
         definition_order.append(name)
 
+        # Not all model parts have meshes.
         mesh_tag = element.find('mesh')
         if (mesh_tag is not None) and (mesh_tag.text is not None):
             n_meshes, mats, vertex_groups = _simple_load_obj(context, mesh_tag.text, materials)
             for mesh in n_meshes:
                 meshes[mesh] = id
-        else:
-            print(f'Model part {name} is missing a mesh!')
         
         # Check if visibility gets changed
         for frame in frames:
