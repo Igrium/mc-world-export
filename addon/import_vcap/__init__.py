@@ -16,16 +16,20 @@ bl_info = {
     "author" : "Igrium",
     "description" : "",
     "blender" : (2, 93, 0),
-    "version" : (0, 3, 0),
+    "version" : (0, 3, 1),
     "location" : "",
     "warning" : "This addon is still in development.",
     "category" : "Import-Export"
 }
 
-from . import operators
+from . import operators, import_replay_operator, data
 
 def register():
+    data.register()
     operators.register()
+    import_replay_operator.register()
 
 def unregister():
+    data.unregister()
     operators.unregister()
+    import_replay_operator.unregister()

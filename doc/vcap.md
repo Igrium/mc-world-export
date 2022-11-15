@@ -10,7 +10,7 @@ Vcap files are essentially renamed zip files. Changing the file extension from `
 
 The first file to look at within the archive is `meta.json`. This JSON file contains the following metadata about the Vcap:
 
-- `version` - *string*: The Vcap version. This specification is for version `0.1.0`.
+- `version` - *string*: The Vcap version. This specification is for version `0.2.1`.
 - `encoder` - *string*: The program used to write this file. Used for debugging.
 - `blockTypes` (optional) - *object*: A mapping of model IDs and the IDs of the blocks they represent. Used to infer the block ID of any voxel within the file. **Note that not all model IDs must be present in this mapping.**
 
@@ -18,7 +18,7 @@ The first file to look at within the archive is `meta.json`. This JSON file cont
 
 ```json
 {
-    "version": "0.1.0",
+    "version": "0.2.1",
     "encoder": "Minecraft World Exporter",
     "blockTypes": {
         "minecraft:dirt#[false, false, false, false, false, true]": "minecraft:dirt",

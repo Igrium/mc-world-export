@@ -16,7 +16,6 @@ import java.util.zip.ZipInputStream;
 
 import javax.management.modelmbean.XMLParseException;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.igrium.replay_debugger.ReplayParseException.ParseStage;
 import com.igrium.replay_debugger.ui.ParsingUpdateListener;
@@ -82,8 +81,6 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
         ZipInputStream archive = new ZipInputStream(new BufferedInputStream(is));
         ZipEntry entry;
         ParsedReplayFile replay = new ParsedReplayFile();
-
-        Gson gson = new Gson();
         
         while ((entry = archive.getNextEntry()) != null) {
             if (entry.isDirectory()) continue;
@@ -94,7 +91,7 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
             if (filename.equals("meta.json")) {
                 try {
                     String meta = IOUtils.toString(archive, "UTF-8");
-                    replay.meta = gson.fromJson(meta, ReplayMeta.class);
+                    replay.meta = ReplayMeta.fromJson(meta);
                 } catch (JsonParseException e) {
                     throw new ReplayParseException(ParseStage.GENERAL, "meta.json", e);
                 }
