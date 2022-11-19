@@ -168,6 +168,7 @@ public final class MeshWriter {
      * @param second The second mesh.
      * @return Whether they are equivilent.
      */
+    @Deprecated
     public static boolean objEquals(Obj first, Obj second) {
         if (first.getNumVertices() != second.getNumVertices()) return false;
         if (first.getNumFaces() != second.getNumFaces()) return false;

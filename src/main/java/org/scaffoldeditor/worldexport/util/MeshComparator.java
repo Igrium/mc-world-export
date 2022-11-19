@@ -14,10 +14,31 @@ import it.unimi.dsi.fastutil.ints.IntComparators;
  * Contains a set of functions allowing the comparison of meshes.
  */
 public class MeshComparator {
+    /**
+     * Compare material groups along with vertices.
+     */
     public static final int COMPARE_MATERIALS = 1;
+
+    /**
+     * Compare vertex texcoord in addition to location.
+     */
     public static final int COMPARE_UVS = 2;
+
+    /**
+     * Compare face groups along with vertices.
+     */
     public static final int COMPARE_GROUPS = 4;
+
+    /**
+     * Don't sort the vertex order before comparison. Optimization for if vertex
+     * order is known to be deterministic.
+     */
     public static final int NO_SORT = 8;
+
+    /**
+     * Don't explicitly check for face congruency. Allows for matches when meshes
+     * have been triangulated differently.
+     */
     public static final int LENIENT_FACE_MATCHING = 16;
 
     private Map<ReadableObj, int[]> cache = new HashMap<>();
@@ -48,6 +69,8 @@ public class MeshComparator {
      * @return Whether these models are equal.
      */
     public boolean meshEquals(ReadableObj mesh1, ReadableObj mesh2, float epsilon, int flags) {
+        if (mesh1.equals(mesh2)) return true;
+
         // Preliminary checks.
         if (mesh1.getNumVertices() != mesh2.getNumVertices()) return false;
 

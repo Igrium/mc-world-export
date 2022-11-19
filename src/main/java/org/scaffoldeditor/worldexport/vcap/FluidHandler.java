@@ -2,6 +2,10 @@ package org.scaffoldeditor.worldexport.vcap;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
+import org.scaffoldeditor.worldexport.util.MeshComparator;
+
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.client.MinecraftClient;
@@ -32,9 +36,20 @@ public final class FluidHandler {
         Vec3d offset = new Vec3d(-(worldPos.getX() & 15), -(worldPos.getY() & 15), -(worldPos.getZ() & 15));
         ObjVertexConsumer consumer = new ObjVertexConsumer(mesh, offset);
 
-        client.getBlockRenderManager().renderFluid(worldPos, world, consumer, null, fluidState);
+        client.getBlockRenderManager().renderFluid(worldPos, world, consumer, world.getBlockState(worldPos), fluidState);
         
         return addFluidMeshToContext(context, mesh);
+    }
+
+    @Nullable
+    private static String findMeshInContext(Obj mesh, ExportContext context) {
+        for (Map.Entry<String, Obj> entry : context.fluidMeshes.entrySet()) {
+            if (context.getMeshComparator().meshEquals(mesh, entry.getValue(), .05f,
+                    MeshComparator.LENIENT_FACE_MATCHING | MeshComparator.NO_SORT)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     public static String addFluidMeshToContext(ExportContext context, Obj mesh) {
@@ -43,9 +58,8 @@ public final class FluidHandler {
         }
         Map<String, Obj> fluidMeshes = context.fluidMeshes;
 
-        // for (String id : fluidMeshes.keySet()) {
-        //     if (MeshWriter.objEquals(mesh, fluidMeshes.get(id))) return id;
-        // }
+        String existing = findMeshInContext(mesh, context);
+        if (existing != null) return existing;
 
         String name = genFluidMeshName(context);
         fluidMeshes.put(name, mesh);

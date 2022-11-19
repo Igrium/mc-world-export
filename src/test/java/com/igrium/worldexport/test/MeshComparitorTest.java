@@ -15,9 +15,16 @@ import de.javagl.obj.ObjReader;
 public class MeshComparitorTest {
 
     @Test
-    void testIdentical() throws IOException {
+    void testSelf() {
         Obj obj = read(TestMeshes.CUBE1);
         assertTrue(new MeshComparator().meshEquals(obj, obj, 0, 0));
+    }
+
+    @Test
+    void testIdentical() throws IOException {
+        Obj obj = read(TestMeshes.CUBE1);
+        Obj obj2 = read(TestMeshes.CUBE1);
+        assertTrue(new MeshComparator().meshEquals(obj, obj2, 0, MeshComparator.NO_SORT));
     }
 
     @Test

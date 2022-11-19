@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.util.MeshComparator;
 
 import de.javagl.obj.Obj;
 import net.minecraft.block.BlockState;
@@ -78,6 +79,8 @@ public class ExportContext {
     public final Map<String, Obj> fluidMeshes = new HashMap<>();
 
     private VcapSettings settings = new VcapSettings();
+    private MeshComparator meshComparator = new MeshComparator();
+
 
     public VcapSettings getSettings() {
         return settings;
@@ -85,6 +88,14 @@ public class ExportContext {
 
     public void setSettings(VcapSettings settings) {
         this.settings = settings;
+    }
+
+    public MeshComparator getMeshComparator() {
+        return meshComparator;
+    }
+
+    public void setMeshComparator(MeshComparator meshComparator) {
+        this.meshComparator = meshComparator;
     }
 
     /**
@@ -147,5 +158,6 @@ public class ExportContext {
             return name+'1';
         }
     }
+    
 
 }
