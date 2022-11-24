@@ -82,7 +82,7 @@ public final class BlockExporter {
 
 
         if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
-            id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
+            id = LegacyFluidHandler.writeFluidMesh(world, pos, context, fluid);
         } else {
             BlockPos.Mutable mutable = pos.mutableCopy();
             boolean[] faces = new boolean[6];
@@ -126,7 +126,7 @@ public final class BlockExporter {
 
                     FluidState fluid = state.getFluidState();
                     if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
-                        id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
+                        id = LegacyFluidHandler.writeFluidMesh(world, worldPos, context, fluid);
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
                         boolean[] faces = new boolean[6];

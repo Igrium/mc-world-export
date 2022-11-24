@@ -14,8 +14,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockRenderView;
 
-public final class FluidHandler {
-    private FluidHandler() {}
+public final class LegacyFluidHandler {
+    private LegacyFluidHandler() {}
     static final MinecraftClient client = MinecraftClient.getInstance();
 
     /**
