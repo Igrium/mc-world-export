@@ -13,7 +13,9 @@ import net.minecraft.util.math.BlockPos;
  * An algorithm for executing a <a href="https://en.wikipedia.org/wiki/Flood_fill">flood fill</a>
  */
 public abstract class FloodFill {
-    public static Builder<RecursiveFloodFill> recursive = new Builder<>(RecursiveFloodFill::new);
+    public static Builder<RecursiveFloodFill> recursive() {
+        return new Builder<>(RecursiveFloodFill::new);
+    }
 
     protected final Predicate<BlockPos> predicate;
     protected final Consumer<BlockPos> function;
@@ -40,6 +42,15 @@ public abstract class FloodFill {
         Consumer<BlockPos> function = pos -> {};
         boolean edges = false;
         boolean corners = false;
+
+        public Builder<T> copy() {
+            Builder<T> builder = new Builder<>(factory);
+            builder.predicate = predicate;
+            builder.function = function;
+            builder.edges = edges;
+            builder.corners = corners;
+            return builder;
+        }
         
         public Builder(Factory<T> factory) {
             this.factory = factory;

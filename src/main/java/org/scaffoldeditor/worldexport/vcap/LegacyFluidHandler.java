@@ -43,7 +43,7 @@ public final class LegacyFluidHandler {
 
     @Nullable
     private static String findMeshInContext(Obj mesh, ExportContext context) {
-        for (Map.Entry<String, Obj> entry : context.fluidMeshes.entrySet()) {
+        for (Map.Entry<String, Obj> entry : context.extraModels.entrySet()) {
             if (context.getMeshComparator().meshEquals(mesh, entry.getValue(), .05f,
                     MeshComparator.LENIENT_FACE_MATCHING | MeshComparator.NO_SORT)) {
                 return entry.getKey();
@@ -56,7 +56,7 @@ public final class LegacyFluidHandler {
         if (mesh.getNumVertices() == 0) {
             return MeshWriter.EMPTY_MESH;
         }
-        Map<String, Obj> fluidMeshes = context.fluidMeshes;
+        Map<String, Obj> fluidMeshes = context.extraModels;
 
         String existing = findMeshInContext(mesh, context);
         if (existing != null) return existing;
@@ -68,7 +68,7 @@ public final class LegacyFluidHandler {
 
     private static String genFluidMeshName(ExportContext context) {
         int index = 0;
-        while (context.fluidMeshes.keySet().contains("fluid."+index)) {
+        while (context.extraModels.keySet().contains("fluid."+index)) {
             index++;
         }
         return "fluid."+index;
