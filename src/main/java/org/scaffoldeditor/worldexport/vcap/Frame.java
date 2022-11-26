@@ -99,14 +99,14 @@ public interface Frame {
             int lowerDepth = context.getSettings().getLowerDepth() * 16; // In blocks, not chunks.
 
             for (BlockPos pos : blocks) {
-                if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+                if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
 
                 updates.put(pos, BlockExporter.exportBlock(world, pos, context));
                 states.put(pos, world.getBlockState(pos));
                 // Check adjacent blocks.
                 for (Direction dir : Direction.values()) {
                     BlockPos adjacent = pos.offset(dir);
-                    if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+                    if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
                     if (updates.containsKey(adjacent)) continue;
 
                     String old;
