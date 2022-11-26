@@ -105,7 +105,11 @@ public class FluidDomain {
                 return false;
             
             return (world.getBlockState(pos).getFluidState().isOf(fluid));
-        }).function(positions::add).maxDepth(5000).build();
+        }).function(pos -> {
+            if (context.getSettings().isInExport(pos)) {
+                positions.add(pos);
+            }
+        }).maxDepth(5000).build();
         floodFill.execute(rootPos);
 
         this.mesh = captureMesh(world);

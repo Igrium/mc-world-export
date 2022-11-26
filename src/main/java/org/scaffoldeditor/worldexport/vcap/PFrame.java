@@ -26,11 +26,6 @@ import net.minecraft.world.WorldAccess;
 
 public class PFrame implements Frame {
 
-    private static boolean isInBBox(BlockPos pos, ChunkPos minChunk, ChunkPos maxChunk) {
-        return (minChunk.getStartX() <= pos.getX()) && (pos.getX() < maxChunk.getStartX())
-            && (minChunk.getStartZ() <= pos.getZ()) && (pos.getZ() < maxChunk.getStartZ());
-    }
-
     /**
      * Capture a predicted frame.
      * 
@@ -86,14 +81,10 @@ public class PFrame implements Frame {
     }
 
     protected void capture(Set<BlockPos> blocks, ExportContext context) {
-        ChunkPos minChunk = context.getSettings().getMinChunk();
-        ChunkPos maxChunk = context.getSettings().getMaxChunk();
-
-        int lowerDepth = context.getSettings().getLowerDepth() * 16; // In blocks, not chunks.
         Set<BlockPos> fluidPositions = new HashSet<>();
 
         for (BlockPos pos : blocks) {
-            if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+            if (!context.getSettings().isInExport(pos)) continue;
             if (context.getSettings().exportDynamicFluids() && !world.getBlockState(pos).getFluidState().isEmpty()) {
                 fluidPositions.add(pos);
             } else {
@@ -105,7 +96,7 @@ public class PFrame implements Frame {
             // Check adjacent blocks.
             for (Direction dir : Direction.values()) {
                 BlockPos adjacent = pos.offset(dir);
-                if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+                if (!context.getSettings().isInExport(pos)) continue;
                 if (updated.containsKey(adjacent)) continue;
                 
                 if (previous.fluidAt(adjacent).isPresent()) {

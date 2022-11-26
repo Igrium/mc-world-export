@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.vcap;
 
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 
 public class VcapSettings {
@@ -92,5 +93,19 @@ public class VcapSettings {
         this.maxChunk = maxChunk;
 
         return this;
+    }
+
+    /**
+     * Check if a given block is within the export region.
+     * @param pos The block to check.
+     * @return Is it in the export region?
+     */
+    public boolean isInExport(BlockPos pos) {
+        return pos.getY() >= (getLowerDepth() * 16) && isInBBox(pos, minChunk, maxChunk);
+    }
+
+    private static boolean isInBBox(BlockPos pos, ChunkPos minChunk, ChunkPos maxChunk) {
+        return (minChunk.getStartX() <= pos.getX()) && (pos.getX() < maxChunk.getStartX())
+            && (minChunk.getStartZ() <= pos.getZ()) && (pos.getZ() < maxChunk.getStartZ());
     }
 }
