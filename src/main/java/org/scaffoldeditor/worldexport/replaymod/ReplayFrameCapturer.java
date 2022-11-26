@@ -85,7 +85,11 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         }
         
         exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
-        exporter.getWorldExporter().getSettings().exportFluids(true).setLowerDepth(settings.getLowerDepth());
+        exporter.getWorldExporter()
+                .getSettings()
+                .setFluidMode(settings.getFluidMode())
+                .setLowerDepth(settings.getLowerDepth());
+
         LogManager.getLogger().info("Capturing initial world");
         exporter.getWorldExporter().captureIFrame(0);
         ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);

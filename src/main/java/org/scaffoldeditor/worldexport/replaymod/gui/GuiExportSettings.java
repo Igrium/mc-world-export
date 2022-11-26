@@ -13,6 +13,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiDropdownMenu;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
@@ -34,6 +35,7 @@ import com.replaymod.replaystudio.pathing.path.Timeline;
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.CustomPipelines;
 import org.scaffoldeditor.worldexport.replaymod.ReplayExportSettings;
+import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashReport;
@@ -67,7 +69,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         CustomPipelines.replaySettings = new ReplayExportSettings()
                 .setViewDistance(getViewDistance())
-                .setLowerDepth(getLowerDepth());
+                .setLowerDepth(getLowerDepth())
+                .setFluidMode(getFluidMode());
         
         try {
             VideoRenderer videoRenderer = new VideoRenderer(settings, replayHandler, timeline);
@@ -91,7 +94,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             });
         }
     });
-
+    
     public final GuiSlider viewDistanceSlider = new GuiSlider().onValueChanged(new Runnable() {
         public void run() {
             viewDistanceSlider.setText("Radius (Chunks): " + getViewDistance());
@@ -103,6 +106,9 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
         };
     }).setSize(122, 20).setSteps(32);
+
+    public final GuiDropdownMenu<FluidMode> fluidModeDropdown = new GuiDropdownMenu<FluidMode>()
+            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.values()).setSelected(FluidMode.STATIC);
 
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setLabel("Export")
@@ -117,7 +123,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    viewDistanceSlider, lowerDepthSlider)
+                    viewDistanceSlider, lowerDepthSlider,
+                    new GuiLabel().setText("Fluid Mode"), fluidModeDropdown)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
     
     {
@@ -151,6 +158,10 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     public int getViewDistance() {
         return viewDistanceSlider.getValue() + minViewDistance;
+    }
+
+    public FluidMode getFluidMode() {
+        return fluidModeDropdown.getSelectedValue();
     }
 
     public GuiExportSettings(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Timeline timeline) {

@@ -94,7 +94,7 @@ public class PFrame implements Frame {
 
         for (BlockPos pos : blocks) {
             if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
-            if (context.getSettings().shouldExportFluids() && !world.getBlockState(pos).getFluidState().isEmpty()) {
+            if (context.getSettings().exportDynamicFluids() && !world.getBlockState(pos).getFluidState().isEmpty()) {
                 fluidPositions.add(pos);
             } else {
                 updated.put(pos, BlockExporter.exportBlock(world, pos, context));

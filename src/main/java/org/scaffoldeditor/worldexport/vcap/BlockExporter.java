@@ -143,7 +143,7 @@ public final class BlockExporter {
                     String id;
 
                     FluidState fluid = state.getFluidState();
-                    if (!fluid.isEmpty() && context.getSettings().shouldExportFluids() && fluidConsumer != null) {
+                    if (!fluid.isEmpty() && context.getSettings().exportStaticFluids() && fluidConsumer != null) {
                         genFluid(worldPos, world, context, fluidConsumer);
 
                         Optional<FluidDomain> thisDomain = fluidConsumer.fluidAt(worldPos);

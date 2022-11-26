@@ -3,18 +3,59 @@ package org.scaffoldeditor.worldexport.vcap;
 import net.minecraft.util.math.ChunkPos;
 
 public class VcapSettings {
-    private boolean exportFluids = true;
+    public enum FluidMode { 
+        NONE(false, false),
+        STATIC(true, false),
+        DYNAMIC(true, true);
+
+        private final boolean exportStatic;
+        private final boolean exportDynamic;
+
+        FluidMode(boolean exportStatic, boolean exportDynamic) {
+            this.exportStatic = exportStatic;
+            this.exportDynamic = exportDynamic;
+        }
+
+        public boolean exportStatic() {
+            return exportStatic;
+        }
+
+        public boolean exportDynamic() {
+            return exportDynamic;
+        }
+    }
+
+    private FluidMode fluidMode = FluidMode.STATIC;
     private int lowerDepth = Integer.MIN_VALUE;
     private ChunkPos minChunk = new ChunkPos(0, 0);
     private ChunkPos maxChunk = new ChunkPos(0, 0);
 
+    @Deprecated
     public boolean shouldExportFluids() {
-        return exportFluids;
+        return fluidMode == FluidMode.DYNAMIC;
     }
 
+    @Deprecated
     public VcapSettings exportFluids(boolean exportFluids) {
-        this.exportFluids = exportFluids;
+        fluidMode = exportFluids ? FluidMode.DYNAMIC : FluidMode.NONE;
         return this;
+    }
+
+    public FluidMode getFluidMode() {
+        return fluidMode;
+    }
+
+    public VcapSettings setFluidMode(FluidMode fluidMode) {
+        this.fluidMode = fluidMode;
+        return this;
+    }
+
+    public boolean exportStaticFluids() {
+        return fluidMode.exportStatic();
+    }
+
+    public boolean exportDynamicFluids() {
+        return fluidMode.exportDynamic();
     }
 
     /**

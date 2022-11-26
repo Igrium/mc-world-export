@@ -1,8 +1,12 @@
 package org.scaffoldeditor.worldexport.replaymod;
 
+import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
+
 public final class ReplayExportSettings {
     private int viewDistance = 8;
     private int lowerDepth = 0;
+
+    private FluidMode fluidMode = FluidMode.DYNAMIC;
 
     public int getViewDistance() {
         return viewDistance;
@@ -32,6 +36,15 @@ public final class ReplayExportSettings {
      */
     public ReplayExportSettings setLowerDepth(int lowerDepth) {
         this.lowerDepth = lowerDepth;
+        return this;
+    }
+
+    public FluidMode getFluidMode() {
+        return fluidMode;
+    }
+
+    public ReplayExportSettings setFluidMode(FluidMode fluidMode) {
+        this.fluidMode = fluidMode;
         return this;
     }
 }
