@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
@@ -83,7 +84,7 @@ public class FluidDomain {
             other.rootPos.getX() - rootPos.getX(),
             other.rootPos.getY() - rootPos.getY(),
             other.rootPos.getZ() - rootPos.getZ());
-        return comparator.meshEquals(mesh, other.mesh, .01f, 0);
+        return comparator.meshEquals(mesh, other.mesh, offset, .01f, 0);
     }
     
     /**
@@ -104,7 +105,7 @@ public class FluidDomain {
                 return false;
             
             return (world.getBlockState(pos).getFluidState().isOf(fluid));
-        }).function(positions::add).build();
+        }).function(positions::add).maxDepth(5000).build();
         floodFill.execute(rootPos);
 
         this.mesh = captureMesh(world);
@@ -115,10 +116,16 @@ public class FluidDomain {
 
         Obj mesh = Objs.create();
         mesh.setActiveMaterialGroupName(MeshWriter.TRANSPARENT_TINTED_MAT);
-        Vec3d offset = new Vec3d(-rootPos.getX(), -rootPos.getY(), -rootPos.getZ());
-        ObjVertexConsumer consumer = new ObjVertexConsumer(mesh, offset);
+
+        ObjVertexConsumer consumer = new ObjVertexConsumer(mesh);
 
         for (BlockPos pos : positions) {
+            Vector3d offset = new Vector3d(-(pos.getX() & 15), -(pos.getY() & 15), -(pos.getZ() & 15));
+            BlockPos blockOffset = pos.subtract(rootPos);
+            offset.add(blockOffset.getX(), blockOffset.getY(), blockOffset.getZ());
+
+            consumer.setTransform(offset);
+
             BlockState state = world.getBlockState(pos);
             client.getBlockRenderManager().renderFluid(pos, world, consumer, state, state.getFluidState());
         }

@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.vcap;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Vector3d;
+import org.joml.Vector3dc;
 import org.joml.Vector3f;
 
 import de.javagl.obj.Obj;
@@ -41,6 +42,24 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     public Matrix4dc getTransform() {
         return transform;
+    }
+
+    public void setTransform(Matrix4dc transform) {
+        this.transform = transform;
+    }
+
+    public void setTransform(Vec3d offset) {
+        setTransform(offset.getX(), offset.getY(), offset.getZ());
+    }
+
+    public void setTransform(Vector3dc offset) {
+        Matrix4d transform = new Matrix4d();
+        this.transform = transform.translate(offset);
+    }
+
+    public void setTransform(double x, double y, double z) {
+        Matrix4d transform = new Matrix4d();
+        this.transform = transform.translate(x, y, z);
     }
 
     @Override

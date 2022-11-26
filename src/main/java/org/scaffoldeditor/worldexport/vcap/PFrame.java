@@ -13,6 +13,7 @@ import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.nbt.NbtByte;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtInt;
@@ -92,18 +93,19 @@ public class PFrame implements Frame {
         Set<BlockPos> fluidPositions = new HashSet<>();
 
         for (BlockPos pos : blocks) {
-            if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+            if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
             if (context.getSettings().shouldExportFluids() && !world.getBlockState(pos).getFluidState().isEmpty()) {
                 fluidPositions.add(pos);
             } else {
                 updated.put(pos, BlockExporter.exportBlock(world, pos, context));
+                states.put(pos, world.getBlockState(pos));
             }
 
             states.put(pos, world.getBlockState(pos));
             // Check adjacent blocks.
             for (Direction dir : Direction.values()) {
                 BlockPos adjacent = pos.offset(dir);
-                if (pos.getX() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
+                if (pos.getY() < lowerDepth || !isInBBox(pos, minChunk, maxChunk)) continue;
                 if (updated.containsKey(adjacent)) continue;
                 
                 if (previous.fluidAt(adjacent).isPresent()) {
@@ -132,7 +134,13 @@ public class PFrame implements Frame {
     private void genFluid(BlockPos pos, WorldAccess world, ExportContext context) {
         // We've already exported this fluid.
         if (handledFluids.contains(pos)) return;
-        Fluid fluidType = world.getBlockState(pos).getFluidState().getFluid();
+        FluidState fluidState = world.getBlockState(pos).getFluidState();
+        
+        if (fluidState.isEmpty()) {
+            // throw new IllegalStateException("Fluid at "+pos+" is empty!");
+            return;
+        }
+        Fluid fluidType = fluidState.getFluid();
 
         FluidDomain fluid = new FluidDomain(pos, fluidType, context);
         fluid.capture(world);
@@ -148,7 +156,8 @@ public class PFrame implements Frame {
 
             // Clean up last frame if we need to.
             if (!fluid.getRootPos().equals(last.getRootPos()) && !updated.containsKey(last.getRootPos())) {
-                updated.put(last.getRootPos(), MeshWriter.EMPTY_MESH);
+                updated.put(last.getRootPos(), BlockExporter.exportBlock(world, pos, context));
+                states.put(last.getRootPos(), world.getBlockState(pos));
             }
         }
 
@@ -159,6 +168,7 @@ public class PFrame implements Frame {
 
         String meshId = context.addExtraModel("fluid.0", fluid.getMesh());
         updated.put(fluid.getRootPos(), meshId);
+        states.put(fluid.getRootPos(), world.getBlockState(fluid.getRootPos()));
     }
     
 

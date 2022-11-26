@@ -14,6 +14,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockRenderView;
 
+@Deprecated
 public final class LegacyFluidHandler {
     private LegacyFluidHandler() {}
     static final MinecraftClient client = MinecraftClient.getInstance();

@@ -21,25 +21,28 @@ public abstract class FloodFill {
     protected final Consumer<BlockPos> function;
     protected final boolean edges;
     protected final boolean corners;
+    protected final int maxDepth;
 
-    public FloodFill(Predicate<BlockPos> predicate, Consumer<BlockPos> function, boolean edges, boolean corners) {
+    public FloodFill(Predicate<BlockPos> predicate, Consumer<BlockPos> function, int maxDepth, boolean edges, boolean corners) {
         this.predicate = predicate;
         this.function = function;
         this.edges = edges;
         this.corners = corners;
+        this.maxDepth = maxDepth;
     }
 
     public abstract void execute(BlockPos start);
 
     public static class Builder<T extends FloodFill> {
         public static interface Factory<T extends FloodFill> {
-            T create(Predicate<BlockPos> predicate, Consumer<BlockPos> function, boolean edges, boolean corners);
+            T create(Predicate<BlockPos> predicate, Consumer<BlockPos> function, int maxDepth, boolean edges, boolean corners);
         }
 
         private final Factory<T> factory;
 
         Predicate<BlockPos> predicate = pos -> false;
         Consumer<BlockPos> function = pos -> {};
+        int maxDepth = Integer.MAX_VALUE;
         boolean edges = false;
         boolean corners = false;
 
@@ -47,6 +50,7 @@ public abstract class FloodFill {
             Builder<T> builder = new Builder<>(factory);
             builder.predicate = predicate;
             builder.function = function;
+            builder.maxDepth = maxDepth;
             builder.edges = edges;
             builder.corners = corners;
             return builder;
@@ -66,6 +70,11 @@ public abstract class FloodFill {
             return this;
         }
 
+        public Builder<T> maxDepth(int maxDepth) {
+            this.maxDepth = maxDepth;
+            return this;
+        }
+
         public Builder<T> edges(boolean edges) {
             this.edges = edges;
             return this;
@@ -77,15 +86,15 @@ public abstract class FloodFill {
         }
 
         public T build() {
-            return factory.create(predicate, function, edges, corners);
+            return factory.create(predicate, function, maxDepth, edges, corners);
         }
     }
 
     // https://en.wikipedia.org/wiki/Flood_fill#Stack-based_recursive_implementation_(four-way)
     public static class RecursiveFloodFill extends FloodFill {
 
-        public RecursiveFloodFill(Predicate<BlockPos> predicate, Consumer<BlockPos> function, boolean edges, boolean corners) {
-            super(predicate, function, edges, corners);
+        public RecursiveFloodFill(Predicate<BlockPos> predicate, Consumer<BlockPos> function, int maxDepth, boolean edges, boolean corners) {
+            super(predicate, function, maxDepth, edges, corners);
         }
 
         @Override
@@ -100,6 +109,8 @@ public abstract class FloodFill {
                 if (predicate.test(pos)) {
                     function.accept(pos);
                     blacklist.add(pos);
+
+                    if (queue.size() >= maxDepth) continue;
 
                     queue.add(pos.add(1, 0, 0));
                     queue.add(pos.add(-1, 0, 0));
