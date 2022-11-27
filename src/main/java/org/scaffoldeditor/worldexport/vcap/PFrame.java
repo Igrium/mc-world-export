@@ -88,8 +88,7 @@ public class PFrame implements Frame {
             if (context.getSettings().exportDynamicFluids() && !world.getBlockState(pos).getFluidState().isEmpty()) {
                 fluidPositions.add(pos);
             } else {
-                updated.put(pos, BlockExporter.exportBlock(world, pos, context));
-                states.put(pos, world.getBlockState(pos));
+                putBlock(pos, BlockExporter.exportBlock(world, pos, context), world.getBlockState(pos));
             }
 
             states.put(pos, world.getBlockState(pos));
@@ -111,8 +110,7 @@ public class PFrame implements Frame {
                 }
                 String newId = BlockExporter.exportBlock(world, adjacent, context);
                 if (!old.equals(newId)) {
-                    updated.put(adjacent, newId);
-                    states.put(adjacent, world.getBlockState(adjacent));
+                    putBlock(adjacent, newId, world.getBlockState(adjacent));
                 }
             }
         }
@@ -147,8 +145,8 @@ public class PFrame implements Frame {
 
             // Clean up last frame if we need to.
             if (!fluid.getRootPos().equals(last.getRootPos()) && !updated.containsKey(last.getRootPos())) {
-                updated.put(last.getRootPos(), BlockExporter.exportBlock(world, pos, context));
-                states.put(last.getRootPos(), world.getBlockState(pos));
+                BlockPos rootPos = last.getRootPos();
+                putBlock(rootPos, BlockExporter.exportBlock(world, rootPos, context), world.getBlockState(rootPos));
             }
         }
 
@@ -158,8 +156,12 @@ public class PFrame implements Frame {
         }
 
         String meshId = context.addExtraModel("fluid.0", fluid.getMesh());
-        updated.put(fluid.getRootPos(), meshId);
-        states.put(fluid.getRootPos(), world.getBlockState(fluid.getRootPos()));
+        putBlock(fluid.getRootPos(), meshId, world.getBlockState(fluid.getRootPos()));
+    }
+
+    protected void putBlock(BlockPos pos, String meshName, BlockState state) {
+        updated.put(pos, meshName);
+        states.put(pos, state);
     }
     
 
