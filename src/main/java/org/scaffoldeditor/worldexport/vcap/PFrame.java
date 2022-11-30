@@ -114,19 +114,25 @@ public class PFrame implements Frame {
                 }
             }
         }
-
+        
         for (BlockPos pos : fluidPositions) {
             genFluid(pos, world, context);
         }
     }
 
     private void genFluid(BlockPos pos, WorldAccess world, ExportContext context) {
+        if (!context.getSettings().exportDynamicFluids()) return;
         // We've already exported this fluid.
         if (handledFluids.contains(pos)) return;
         FluidState fluidState = world.getBlockState(pos).getFluidState();
+        Optional<FluidDomain> lastFrame = previous.fluidAt(pos);
         
         if (fluidState.isEmpty()) {
-            // throw new IllegalStateException("Fluid at "+pos+" is empty!");
+            // Clean up last frame
+            if (lastFrame.isPresent()) {
+                BlockPos rootPos = lastFrame.get().getRootPos();
+                putBlock(rootPos, BlockExporter.exportBlock(world, rootPos, context), world.getBlockState(rootPos));
+            }
             return;
         }
         Fluid fluidType = fluidState.getFluid();
@@ -134,7 +140,6 @@ public class PFrame implements Frame {
         FluidDomain fluid = new FluidDomain(pos, fluidType, context);
         fluid.capture(world);
 
-        Optional<FluidDomain> lastFrame = previous.fluidAt(pos);
         if (lastFrame.isPresent()) {
             FluidDomain last = lastFrame.get();
             // Fluid is identical to last frame.
@@ -152,7 +157,7 @@ public class PFrame implements Frame {
 
         for (BlockPos fluidPos : fluid.getPositions()) {
             fluids.put(fluidPos, fluid);
-            handledFluids.add(pos);
+            handledFluids.add(fluidPos);
         }
 
         String meshId = context.addExtraModel("fluid.0", fluid.getMesh());

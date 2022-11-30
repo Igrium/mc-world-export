@@ -31,6 +31,8 @@ public class VcapSettings {
     private ChunkPos minChunk = new ChunkPos(0, 0);
     private ChunkPos maxChunk = new ChunkPos(0, 0);
 
+    private int fluidChunkSize = 16;
+
     @Deprecated
     public boolean shouldExportFluids() {
         return fluidMode == FluidMode.DYNAMIC;
@@ -57,6 +59,15 @@ public class VcapSettings {
 
     public boolean exportDynamicFluids() {
         return fluidMode.exportDynamic();
+    }
+    
+    public int getFluidChunkSize() {
+        return fluidChunkSize;
+    }
+
+    public VcapSettings setFluidChunkSize(int fluidChunkSize) {
+        this.fluidChunkSize = fluidChunkSize;
+        return this;
     }
 
     /**

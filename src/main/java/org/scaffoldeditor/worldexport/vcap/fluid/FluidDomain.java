@@ -99,11 +99,18 @@ public class FluidDomain {
                             getFluidName(rootFluid), getFluidName(fluid)));
         }
 
+        // int fluidChunkSize = context.getSettings().getFluidChunkSize() / 2;
         FloodFill floodFill = context.getFloodFill().predicate(pos -> {
             if (!world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.getX()),
                     ChunkSectionPos.getSectionCoord(pos.getY())))
                 return false;
             
+            // if (Math.abs(pos.getX() - rootPos.getX()) > fluidChunkSize
+            //         || Math.abs(pos.getY() - rootPos.getY()) > fluidChunkSize
+            //         || Math.abs(pos.getZ() - rootPos.getZ()) > fluidChunkSize) {
+            //     return false;
+            // }
+
             return (world.getBlockState(pos).getFluidState().isOf(fluid));
         }).function(pos -> {
             if (context.getSettings().isInExport(pos)) {
