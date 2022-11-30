@@ -5,14 +5,16 @@ import net.minecraft.util.math.ChunkPos;
 
 public class VcapSettings {
     public enum FluidMode { 
-        NONE(false, false),
-        STATIC(true, false),
-        DYNAMIC(true, true);
+        NONE("None", false, false),
+        STATIC("Static", true, false),
+        DYNAMIC("Dynamic", true, true);
 
         private final boolean exportStatic;
         private final boolean exportDynamic;
+        private final String name;
 
-        FluidMode(boolean exportStatic, boolean exportDynamic) {
+        FluidMode(String name, boolean exportStatic, boolean exportDynamic) {
+            this.name = name;
             this.exportStatic = exportStatic;
             this.exportDynamic = exportDynamic;
         }
@@ -23,6 +25,11 @@ public class VcapSettings {
 
         public boolean exportDynamic() {
             return exportDynamic;
+        }
+
+        @Override
+        public String toString() {
+            return name;
         }
     }
 

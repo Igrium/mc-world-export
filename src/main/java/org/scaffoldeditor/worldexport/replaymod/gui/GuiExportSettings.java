@@ -108,7 +108,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     }).setSize(122, 20).setSteps(32);
 
     public final GuiDropdownMenu<FluidMode> fluidModeDropdown = new GuiDropdownMenu<FluidMode>()
-            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.values()).setSelected(FluidMode.STATIC);
+            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.NONE, FluidMode.STATIC).setSelected(FluidMode.STATIC);
 
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setLabel("Export")
