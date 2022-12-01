@@ -12,11 +12,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name" : "import_vcap",
+    "name" : "Import Minecraft Replay",
     "author" : "Igrium",
-    "description" : "",
+    "description" : "The Blender component of Igrium's Replay Exporter",
     "blender" : (2, 93, 0),
-    "version" : (0, 3, 1),
+    "version" : (0, 4, 0),
     "location" : "",
     "warning" : "This addon is still in development.",
     "category" : "Import-Export"

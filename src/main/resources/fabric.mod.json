@@ -3,8 +3,8 @@
   "id": "worldexport",
   "version": "${version}",
 
-  "name": "Replay Export Mod",
-  "description": "An addon to the Replay Mod allowing it to export into Blender and other 3D softwarea.",
+  "name": "Replay Exporter",
+  "description": "An addon to the Replay Mod that allows it to export into Blender and other 3D software.",
   "authors": [
     "Igrium"
   ],
@@ -13,8 +13,8 @@
     "sources": "https://github.com/Sam54123/mc-world-export"
   },
 
-  "license": "GPL",
-  "icon": "assets/modid/icon.png",
+  "license": "GPL-3.0-or-later",
+  "icon": "assets/worldexport/icon.png",
 
   "environment": "*",
   "entrypoints": {
