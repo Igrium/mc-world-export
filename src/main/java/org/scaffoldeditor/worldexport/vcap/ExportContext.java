@@ -8,6 +8,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.util.FloodFill;
+import org.scaffoldeditor.worldexport.util.MeshComparator;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 import de.javagl.obj.Obj;
 import net.minecraft.block.BlockState;
@@ -70,14 +75,17 @@ public class ExportContext {
     /**
      * The model entries in the cache and their IDs.
      */
-    public final Map<ModelEntry, String> models = new HashMap<>();
+    public final BiMap<ModelEntry, String> models = HashBiMap.create();
 
     /**
      * The fluid meshes in the export context.
      */
-    public final Map<String, Obj> fluidMeshes = new HashMap<>();
+    public final BiMap<String, Obj> extraModels = HashBiMap.create();
 
     private VcapSettings settings = new VcapSettings();
+    private MeshComparator meshComparator = new MeshComparator();
+
+    private FloodFill.Builder<?> floodFill = FloodFill.recursive();
 
     public VcapSettings getSettings() {
         return settings;
@@ -85,6 +93,37 @@ public class ExportContext {
 
     public void setSettings(VcapSettings settings) {
         this.settings = settings;
+    }
+
+    public MeshComparator getMeshComparator() {
+        return meshComparator;
+    }
+
+    public void setMeshComparator(MeshComparator meshComparator) {
+        this.meshComparator = meshComparator;
+    }
+
+    public FloodFill.Builder<?> getFloodFill() {
+        return floodFill.copy();
+    }
+
+    public void setFloodFill(FloodFill.Builder<?> floodFill) {
+        this.floodFill = floodFill;
+    }
+
+    /**
+     * Add an "extra" model to the vcap file.
+     * @param desiredName The name to use.
+     * @param model The model to add.
+     * @return The name the model was given.
+     */
+    public synchronized String addExtraModel(String desiredName, Obj model) {
+        if (extraModels.containsValue(model)) {
+            return extraModels.inverse().get(model);
+        }
+        String name = makeNameUnique(desiredName);
+        extraModels.put(name, model);
+        return name;
     }
 
     /**
@@ -97,13 +136,17 @@ public class ExportContext {
         String id = models.get(entry);
         if (id == null) {
             if (name == null) name = String.valueOf(entry.model.hashCode());
-            id = name+Arrays.toString(entry.faces);
-            while (models.containsValue(id)) {
-                id = iterateName(id);
-            }
+            id = makeNameUnique(name+Arrays.toString(entry.faces));
             models.put(entry, id);
         }
         return id;
+    }
+
+    public synchronized String makeNameUnique(String name) {
+        while (models.containsValue(name) || extraModels.containsKey(name)) {
+            name = iterateName(name);
+        }
+        return name;
     }
 
     public String getID(ModelEntry entry) {
@@ -147,5 +190,6 @@ public class ExportContext {
             return name+'1';
         }
     }
+    
 
 }

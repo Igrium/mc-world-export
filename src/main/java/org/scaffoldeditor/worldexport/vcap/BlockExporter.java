@@ -4,11 +4,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
+
+import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
+import de.javagl.obj.Obj;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -38,13 +44,15 @@ public final class BlockExporter {
     
     static final MinecraftClient client = MinecraftClient.getInstance();
     
-    public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, OutputStream os) throws IOException {
+    public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+            OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
         NbtCompound tag = new NbtCompound();
-        tag.put("sections", exportStill(world, minChunk, maxChunk, context));
+        tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer));
         NbtIo.writeCompressed(tag, os);
     }
 
-    public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context) {
+    public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+            @Nullable FluidConsumer fluidConsumer) {
         NbtList sectionTag = new NbtList();
 
         for (int x = minChunk.x; x < maxChunk.x; x++) {
@@ -59,7 +67,7 @@ public final class BlockExporter {
                     int y = chunk.sectionIndexToCoord(i);
                     if (y < context.getSettings().getLowerDepth()) continue;
                     
-                    sectionTag.add(writeSection(sections[i], world, x, y, z, context));
+                    sectionTag.add(writeSection(sections[i], world, x, y, z, context, fluidConsumer));
                 }
             }
         }
@@ -77,31 +85,41 @@ public final class BlockExporter {
     public static String exportBlock(WorldAccess world, BlockPos pos, ExportContext context) {
         BlockState state = world.getBlockState(pos);
         String id;
-        FluidState fluid = state.getFluidState();
         BlockRenderManager dispatcher = client.getBlockRenderManager();
 
 
-        if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
-            id = FluidHandler.writeFluidMesh(world, pos, context, fluid);
-        } else {
-            BlockPos.Mutable mutable = pos.mutableCopy();
-            boolean[] faces = new boolean[6];
+        BlockPos.Mutable mutable = pos.mutableCopy();
+        boolean[] faces = new boolean[6];
 
-            for (int i = 0; i < DIRECTIONS.length; i++) {
-                Direction direction = DIRECTIONS[i];
-                mutable.set(pos, direction);
-                faces[i] = Block.shouldDrawSide(state, world, pos, direction, mutable);
-            }
-
-            ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-            id = context.getID(entry, BlockModels.getModelId(state).toString());
+        for (int i = 0; i < DIRECTIONS.length; i++) {
+            Direction direction = DIRECTIONS[i];
+            mutable.set(pos, direction);
+            faces[i] = Block.shouldDrawSide(state, world, pos, direction, mutable);
         }
+
+        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
+        id = context.getID(entry, BlockModels.getModelId(state).toString());
 
         return id;
     }
 
+    private static void genFluid(BlockPos worldPos, WorldAccess world, ExportContext context, FluidConsumer fluidConsumer) {
+        // The fluid for this block was already generated.
+        if (fluidConsumer.fluidAt(worldPos).isPresent()) return;
+        
+        FluidState state = world.getBlockState(worldPos).getFluidState();
+        if (state.isEmpty()) {
+            throw new IllegalArgumentException("This block is not a fluid!");
+        }
+
+        FluidDomain domain = new FluidDomain(worldPos, state.getFluid(), context);
+        domain.capture(world);
+
+        fluidConsumer.putFluid(domain);
+    }
+
     private static NbtCompound writeSection(ChunkSection section, WorldAccess world,
-            int sectionX, int sectionY, int sectionZ, ExportContext context) {
+            int sectionX, int sectionY, int sectionZ, ExportContext context, @Nullable FluidConsumer fluidConsumer) {
 
         BlockRenderManager dispatcher = client.getBlockRenderManager();
         LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
@@ -125,8 +143,21 @@ public final class BlockExporter {
                     String id;
 
                     FluidState fluid = state.getFluidState();
-                    if (!fluid.isEmpty() && context.getSettings().shouldExportFluids()) {
-                        id = FluidHandler.writeFluidMesh(world, worldPos, context, fluid);
+                    if (!fluid.isEmpty() && context.getSettings().exportStaticFluids() && fluidConsumer != null) {
+                        genFluid(worldPos, world, context, fluidConsumer);
+
+                        Optional<FluidDomain> thisDomain = fluidConsumer.fluidAt(worldPos);
+                        if (!thisDomain.isPresent()) {
+                            throw new IllegalStateException("Block at "+worldPos+" is a fluid, but no fluid domain was generated!");
+                        }
+
+                        if (thisDomain.get().getRootPos().equals(worldPos)) {
+                            Obj mesh = thisDomain.get().getMesh();
+                            id = context.addExtraModel("fluid.0", mesh);
+                        } else {
+                            id = MeshWriter.EMPTY_MESH;
+                        }
+
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
                         boolean[] faces = new boolean[6];

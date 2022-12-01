@@ -27,9 +27,9 @@ import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
 import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 import org.scaffoldeditor.worldexport.vcap.Frame;
-import org.scaffoldeditor.worldexport.vcap.Frame.IFrame;
-import org.scaffoldeditor.worldexport.vcap.Frame.PFrame;
+import org.scaffoldeditor.worldexport.vcap.IFrame;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter;
+import org.scaffoldeditor.worldexport.vcap.PFrame;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
 import org.scaffoldeditor.worldexport.vcap.VcapMeta;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings;
@@ -171,9 +171,9 @@ public class VcapExporter {
             }
         }
 
-        for (String id : context.fluidMeshes.keySet()) {
+        for (String id : context.extraModels.keySet()) {
             LOGGER.debug("Writing fluid mesh: "+id);
-            writeMesh(context.fluidMeshes.get(id), id, out);
+            writeMesh(context.extraModels.get(id), id, out);
         }
 
         // Fluid meshes assume empty mesh is written.

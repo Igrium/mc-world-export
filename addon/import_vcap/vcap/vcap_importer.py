@@ -138,7 +138,13 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
 
         final_frame.time = frame.time
         override_id = f'frame{i}'
-        overrides[override_id] = frame.get_declared_override()
+        my_override = frame.get_declared_override()
+        
+        # Can't have two overrides of one block.
+        for override in overrides.values():
+            override.difference_update(my_override)
+        
+        overrides[override_id] = my_override
         blame[override_id] = final_frame
 
         loaded_frames.append(final_frame)
@@ -148,7 +154,7 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
     def add_keyframe(obj: Object, value: bool, frame: float):
         obj.hide_viewport = not value
         obj.hide_render = not value
-        obj.keyframe_insert('hide_viewport', frame=frame)
+        obj.keyframe_insert('hide_viewport', frame=frame) 
         obj.keyframe_insert('hide_render', frame=frame)
 
     def seconds_to_frames(seconds: float):
