@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationImpl;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionChannel;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
@@ -44,10 +45,9 @@ import net.minecraft.util.math.Vec3d;
 
 public class AnimationSerializer {
     
-    
 
     public static String getPreferredRotChannel(Rotation value) {
-        return "rotation_euler";
+        return (value instanceof QuaternionChannel) ? "rotation_quat" : "rotation_euler";
     }
 
     private Logger logger = LogManager.getLogger();
@@ -65,24 +65,28 @@ public class AnimationSerializer {
     private TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
     /**
+     * Deserialize a single animation XML file.
+     * @param in The file data.
+     * @return The parsed animation.
+     * @throws IOException If the animation is improperly formatted or there's another IO exception.
+     */
+    public AbstractCameraAnimation loadAnimation(InputStream in) throws IOException {
+        Document doc = quickLoadDocument(in);
+        try {
+            return loadAnimation(doc.getDocumentElement());
+        } catch (XMLParseException e) {
+            throw new IOException("The animation was unable to load due to an XML error.", e);
+        }
+    }
+
+    /**
      * Deserialize an <code>animations.xml</code> file.
      * @param in The file data.
      * @return The parsed animations and their IDs.
      * @throws IOException If an unrecoverable exception is thrown while parsing the file.
      */
     public BiMap<Integer, AbstractCameraAnimation> loadAnimations(InputStream in) throws IOException {
-        DocumentBuilder builder;
-        try {
-            builder = docFactory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            throw new IllegalStateException("Document builder factory was not configured properly.", e);
-        }
-        Document doc;
-        try {
-            doc = builder.parse(in);
-        } catch (SAXException e) {
-            throw new IOException("The XML document was formatted improperly.", e);
-        }
+        Document doc = quickLoadDocument(in);
 
         BiMap<Integer, AbstractCameraAnimation> anims = HashBiMap.create();
         for (Element element : XMLUtils.getChildrenByTagName(doc.getDocumentElement(), "anim")) {
@@ -104,6 +108,22 @@ public class AnimationSerializer {
 
         return anims;
     };
+
+    private Document quickLoadDocument(InputStream in) throws IOException {
+        DocumentBuilder builder;
+        try {
+            builder = docFactory.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new IllegalStateException("Document builder factory was not configured properly.", e);
+        }
+        Document doc;
+        try {
+            doc = builder.parse(in);
+        } catch (SAXException e) {
+            throw new IOException("The XML document was formatted improperly.", e);
+        }
+        return doc;
+    }
 
     /**
      * Serialize a set of camera animations into an <code>animations.xml</code> file.
@@ -149,7 +169,7 @@ public class AnimationSerializer {
      * @throws XMLParseException If there's a formatting issue with the XML.
      */
     public AbstractCameraAnimation loadAnimation(Element element) throws XMLParseException {
-        if (!element.getTagName().equals("anim")) {
+        if (!element.getTagName().equals("animation")) {
             throw new XMLParseException("Cannot load a "+element.getTagName()+" tag as an animation.");
         }
 
@@ -269,7 +289,7 @@ public class AnimationSerializer {
      * @return The animation as XML.
      */
     public Element writeAnimation(AbstractCameraAnimation animation, Document dom) {
-        Element element = dom.createElement("anim");
+        Element element = dom.createElement("animation");
         element.setAttribute("fps", String.valueOf(animation.getFps()));
         element.setAttribute("id", String.valueOf(animation.getId()));
         if (animation.isEmpty()) {

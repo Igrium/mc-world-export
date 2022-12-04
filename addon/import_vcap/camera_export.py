@@ -28,7 +28,7 @@ def write_data(obj: Object, context: Context):
         raise Exception("Selected object must be a camera!")
     camera: Camera = obj.data
 
-    root = ET.Element("camera")
+    root = ET.Element("animation")
     root.set('fps', str(context.scene.render.fps / context.scene.render.fps_base))
     root.set('fov', str(math.degrees(camera.angle)))
 

@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel;
 
 import net.minecraft.util.math.Quaternion;
+import net.minecraft.util.math.Vec3f;
 
 /**
  * A global abstraction for rotations of various types. Euler rotations use a Y -> X -> Z axis order.
@@ -87,6 +88,41 @@ public interface Rotation {
         
     }
 
+    public static class QuaternionRot implements Rotation {
+        private final Quaternion value;
+        
+        private Vec3f euler;
+
+        public QuaternionRot(Quaternion value) {
+            this.value = value;
+            euler = value.toEulerYxz();
+        }
+
+        public QuaternionRot(double w, double x, double y, double z) {
+            this(new Quaternion((float) x, (float) y, (float) z, (float) w));
+        }
+
+        @Override
+        public double pitch() {
+            return euler.getX();
+        }
+
+        @Override
+        public double yaw() {
+            return euler.getY();
+        }
+
+        @Override
+        public double roll() {
+            return euler.getZ();
+        }
+
+        @Override
+        public Quaternion quaternion() {
+            return value;
+        }
+    }
+
     public static abstract class RotationChannel<T extends Rotation> implements AnimationChannel<T> {
         public abstract double[] write(Rotation value);
     }
@@ -113,5 +149,29 @@ public interface Rotation {
             return new double[] { value.pitch(), value.yaw(), value.roll() };
         }
         
+    }
+
+    public static class QuaternionChannel extends RotationChannel<QuaternionRot> {
+        
+        @Override
+        public int numValues() {
+            return 4;
+        }
+
+        @Override
+        public QuaternionRot read(double... values) throws IndexOutOfBoundsException {
+            return new QuaternionRot(values[0], values[1], values[2], values[3]);
+        }
+
+        @Override
+        public Class<? extends QuaternionRot> getChannelType() {
+            return QuaternionRot.class;
+        }
+
+        @Override
+        public double[] write(Rotation value) {
+            Quaternion quat = value.quaternion();
+            return new double[] { quat.getW(), quat.getX(), quat.getY(), quat.getZ() };
+        }
     }
 }
