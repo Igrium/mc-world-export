@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.camera_paths;
+package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -160,7 +160,7 @@ public class AnimationSerializer {
             fovs[i] = Float.parseFloat(values[6]);
         }
 
-        CameraAnimation anim = new CameraAnimation(fps, positions, rotations, fovs);
+        CameraAnimationImpl anim = new CameraAnimationImpl(fps, positions, rotations, fovs);
         anim.setId(Integer.parseInt(element.getAttribute("id")));
         return anim;
     }

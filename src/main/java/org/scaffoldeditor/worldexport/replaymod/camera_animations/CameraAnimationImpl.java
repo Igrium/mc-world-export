@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.camera_paths;
+package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import net.minecraft.util.math.Vec3d;
 
-public class CameraAnimation extends AbstractCameraAnimation {
+public class CameraAnimationImpl extends AbstractCameraAnimation {
 
     protected final Vec3d[] positions;
     protected final Vec3d[] rotations;
@@ -39,7 +39,7 @@ public class CameraAnimation extends AbstractCameraAnimation {
         return fovs[index];
     }
 
-    public CameraAnimation(float fps, Vec3d[] positions, Vec3d[] rotations, float[] fovs) throws IllegalArgumentException {
+    public CameraAnimationImpl(float fps, Vec3d[] positions, Vec3d[] rotations, float[] fovs) throws IllegalArgumentException {
         if (positions.length != rotations.length || positions.length != fovs.length) {
             throw new IllegalArgumentException("All animation channels must be the same length!");
         }
@@ -50,7 +50,7 @@ public class CameraAnimation extends AbstractCameraAnimation {
         this.fovs = fovs;
     }
     
-    public CameraAnimation(float fps, List<Vec3d> positions, List<Vec3d> rotations, List<Float> fovs) throws IllegalArgumentException {
+    public CameraAnimationImpl(float fps, List<Vec3d> positions, List<Vec3d> rotations, List<Float> fovs) throws IllegalArgumentException {
         if (positions.size() != rotations.size() || positions.size() != fovs.size()) {
             throw new IllegalArgumentException("All animation channels must be the same length!");
         }

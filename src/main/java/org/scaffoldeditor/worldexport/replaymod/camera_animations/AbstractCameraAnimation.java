@@ -1,8 +1,8 @@
-package org.scaffoldeditor.worldexport.replaymod.camera_paths;
+package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
 import java.util.AbstractList;
 
-import org.scaffoldeditor.worldexport.replaymod.camera_paths.CameraAnimations.CameraPathFrame;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
 
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -81,8 +81,13 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @return The position.
      */
     public Vec3d getPositionAt(double time) {
-        assertInBounds(time);
         int frame = getFrameNumber(time);
+        if (frame < 0) {
+            return getPositionAt(0);
+        } else if (frame >= size()) {
+            return getPositionAt(size() - 1);
+        }
+
         if (frame + 1 < size()) {
             double delta = getFrameDelta(time);
             Vec3d prev = getPosition(frame);
@@ -103,8 +108,13 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @return The rotation.
      */
     public Vec3d getRotationAt(double time) {
-        assertInBounds(time);
         int frame = getFrameNumber(time);
+        if (frame < 0) {
+            return getRotationAt(0);
+        } else if (frame >= size()) {
+            return getRotationAt(size() - 1);
+        }
+
         if (frame + 1 < size()) {
             double delta = getFrameDelta(time);
             Vec3d prev = getRotation(frame);
@@ -125,8 +135,13 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @return The FOV.
      */
     public float getFovAt(double time) {
-        assertInBounds(time);
         int frame = getFrameNumber(time);
+        if (frame < 0) {
+            return getFov(0);
+        } else if (frame >= size()) {
+            return getFov(size() - 1);
+        }
+
         if (frame + 1 < size()) {
             double delta = getFrameDelta(time);
             float prev = getFov(frame);
@@ -149,13 +164,5 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
         double next = Math.ceil(time / fps);
         
         return (framePrecise - prev) / (next - prev);
-    }
-
-    private void assertInBounds(double time) {
-        double len = length();
-        if (time < 0 || time > len) {
-            throw new IndexOutOfBoundsException(
-                    String.format("Time %s is out of bounds for path of length %s", time, len));
-        }
     }
 }
