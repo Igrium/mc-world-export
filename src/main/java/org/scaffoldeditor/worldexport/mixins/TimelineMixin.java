@@ -12,7 +12,7 @@ import com.replaymod.replaystudio.pathing.path.Timeline;
 @Mixin(TimelineImpl.class)
 public class TimelineMixin {
     
-    @Inject(method = "applyToGame(JLjava/lang/Object;)V", at = @At("RETURN"))
+    @Inject(method = "applyToGame(JLjava/lang/Object;)V", at = @At("RETURN"), remap = false)
     void applyToGame(long time, Object replayHandler, CallbackInfo ci) {
         TimelineUpdateCallback.EVENT.invoker().onUpdate((Timeline) this, replayHandler, time);
     }

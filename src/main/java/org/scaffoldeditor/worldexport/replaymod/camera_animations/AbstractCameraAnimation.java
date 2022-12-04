@@ -10,6 +10,7 @@ import net.minecraft.util.math.Vec3d;
 public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFrame> {
 
     protected int id;
+    protected String name = "[unnamed]";
 
     public int getId() {
         return id;
@@ -17,6 +18,14 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**

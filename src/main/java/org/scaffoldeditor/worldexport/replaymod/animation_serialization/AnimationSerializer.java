@@ -256,30 +256,8 @@ public class AnimationSerializer {
 
         // IDs are only used internally; not in imported files.
         if (element.hasAttribute("id")) anim.setId(Integer.parseInt(element.getAttribute("id")));
+        if (element.hasAttribute("name")) anim.setName(element.getAttribute("name"));
         return anim;
-
-        // for (int i = 0; i < length; i++) {
-        //     String[] values = lines.get(i).strip().split(" ");
-        //     if (values.length != 7) {
-        //         throw new XMLParseException("Animation line "+i+" has an improper number of values!");
-        //     }
-
-        //     positions[i] = new Vec3d(
-        //             Double.parseDouble(values[0]),
-        //             Double.parseDouble(values[1]),
-        //             Double.parseDouble(values[2]));
-            
-        //     rotations[i] = new Vec3d(
-        //             Double.parseDouble(values[3]),
-        //             Double.parseDouble(values[4]),
-        //             Double.parseDouble(values[5]));
-            
-        //     fovs[i] = Float.parseFloat(values[6]);
-        // }
-
-        // CameraAnimationImpl anim = new CameraAnimationImpl(fps, positions, rotations, fovs);
-        // anim.setId(Integer.parseInt(element.getAttribute("id")));
-        // return anim;
     }
 
     /**
@@ -292,6 +270,8 @@ public class AnimationSerializer {
         Element element = dom.createElement("animation");
         element.setAttribute("fps", String.valueOf(animation.getFps()));
         element.setAttribute("id", String.valueOf(animation.getId()));
+        element.setAttribute("name", animation.getName());
+
         if (animation.isEmpty()) {
             element.appendChild(dom.createElement("anim_data"));
             return element;

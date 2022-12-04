@@ -14,11 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.replaymod.core.KeyBindingRegistry;
+import com.replaymod.core.ReplayMod;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.EventRegistrations;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.events.ReplayClosingCallback;
@@ -41,6 +44,14 @@ public class CameraAnimationModule extends EventRegistrations {
     public static final int CAMERA_ID_CONSTANT = 2048;
 
     private static final Logger LOGGER = LogManager.getLogger();
+
+    /**
+     * Shortcut for <code>ReplayExportMod.getInstance().getCameraAnimationsModule()</code>
+     * @return The active module instance.
+     */
+    public static CameraAnimationModule getInstance() {
+        return ReplayExportMod.getInstance().getCameraAnimationsModule();
+    }
 
     /**
      * Given a camera ID, get the net ID of the corresponding client entity.
@@ -71,6 +82,8 @@ public class CameraAnimationModule extends EventRegistrations {
     protected AnimationSerializer serializer = new AnimationSerializer();
     protected final MinecraftClient client = MinecraftClient.getInstance();
 
+    public KeyBindingRegistry.Binding keySyncTime;
+
     private ExecutorService saveService;
 
     public CameraAnimationModule() {
@@ -81,6 +94,13 @@ public class CameraAnimationModule extends EventRegistrations {
     @Override
     public void register() {
         TimelineUpdateCallback.EVENT.register(this::onTimelineTick);
+    }
+
+    public void registerKeyBindings() {
+        ReplayMod core = ReplayMod.instance;
+        core.getKeyBindingRegistry().registerKeyBinding("worldexport.input.importcamera", 0, () -> {
+            LOGGER.info("Pressed import anims button!");
+        }, true);
     }
 
     /**
