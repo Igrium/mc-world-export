@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -66,7 +67,7 @@ public class CameraAnimationModule extends EventRegistrations {
      */
     private Map<ReplayFile, BiMap<Integer, AbstractCameraAnimation>> animCache = new HashMap<>();
 
-    public static record CameraPathFrame(Vec3d pos, Vec3d rot, float fov) {}
+    public static record CameraPathFrame(Vec3d pos, Rotation rot, float fov) {}
     protected AnimationSerializer serializer = new AnimationSerializer();
     protected final MinecraftClient client = MinecraftClient.getInstance();
 
@@ -139,11 +140,11 @@ public class CameraAnimationModule extends EventRegistrations {
             AnimatedCameraEntity camera = getCameraEntity(client.world, id);
 
             Vec3d pos = anim.getPositionAt(timeSeconds);
-            Vec3d rot = anim.getRotationAt(timeSeconds);
+            Rotation rot = anim.getRotationAt(timeSeconds);
             float fov = anim.getFovAt(timeSeconds);
 
             camera.setCameraPosition(pos.x, pos.y, pos.z);
-            camera.setCameraRotation((float) rot.x, (float) rot.y, (float) rot.z);
+            camera.setCameraRotation((float) rot.yaw(), (float) rot.pitch(), (float) rot.roll());
             camera.setFov(fov);
         }
     }

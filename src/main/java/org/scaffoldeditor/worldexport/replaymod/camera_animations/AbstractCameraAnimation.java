@@ -57,7 +57,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @param index Frame number.
      * @return The position.
      */
-    public abstract Vec3d getRotation(int index);
+    public abstract Rotation getRotation(int index);
 
     /**
      * Get the FOV of the camera at a given frame.
@@ -107,7 +107,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @param time The time in seconds.
      * @return The rotation.
      */
-    public Vec3d getRotationAt(double time) {
+    public Rotation getRotationAt(double time) {
         int frame = getFrameNumber(time);
         if (frame < 0) {
             return getRotationAt(0);
@@ -117,13 +117,13 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
 
         if (frame + 1 < size()) {
             double delta = getFrameDelta(time);
-            Vec3d prev = getRotation(frame);
-            Vec3d next = getRotation(frame + 1);
+            Rotation prev = getRotation(frame);
+            Rotation next = getRotation(frame + 1);
 
-            return new Vec3d(
-                    MathHelper.lerp(delta, prev.x, next.y),
-                    MathHelper.lerp(delta, prev.y, next.y),
-                    MathHelper.lerp(delta, prev.z, next.z));
+            return new Rotation.Euler(
+                    MathHelper.lerp(delta, prev.pitch(), next.pitch()),
+                    MathHelper.lerp(delta, prev.yaw(), next.yaw()),
+                    MathHelper.lerp(delta, prev.roll(), next.roll()));
         } else {
             return getRotation(frame);
         }

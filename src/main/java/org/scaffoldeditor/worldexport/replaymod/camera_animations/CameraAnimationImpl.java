@@ -9,7 +9,7 @@ import net.minecraft.util.math.Vec3d;
 public class CameraAnimationImpl extends AbstractCameraAnimation {
 
     protected final Vec3d[] positions;
-    protected final Vec3d[] rotations;
+    protected final Rotation[] rotations;
     protected final float[] fovs;
 
     protected float fps = 30;
@@ -30,7 +30,7 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
     }
 
     @Override
-    public Vec3d getRotation(int index) {
+    public Rotation getRotation(int index) {
         return rotations[index];
     }
 
@@ -39,7 +39,7 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
         return fovs[index];
     }
 
-    public CameraAnimationImpl(float fps, Vec3d[] positions, Vec3d[] rotations, float[] fovs) throws IllegalArgumentException {
+    public CameraAnimationImpl(float fps, Vec3d[] positions, Rotation[] rotations, float[] fovs) throws IllegalArgumentException {
         if (positions.length != rotations.length || positions.length != fovs.length) {
             throw new IllegalArgumentException("All animation channels must be the same length!");
         }
@@ -50,14 +50,14 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
         this.fovs = fovs;
     }
     
-    public CameraAnimationImpl(float fps, List<Vec3d> positions, List<Vec3d> rotations, List<Float> fovs) throws IllegalArgumentException {
+    public CameraAnimationImpl(float fps, List<Vec3d> positions, List<Rotation> rotations, List<Float> fovs) throws IllegalArgumentException {
         if (positions.size() != rotations.size() || positions.size() != fovs.size()) {
             throw new IllegalArgumentException("All animation channels must be the same length!");
         }
 
         this.fps = fps;
         this.positions = positions.toArray(new Vec3d[0]);
-        this.rotations = rotations.toArray(new Vec3d[0]);
+        this.rotations = rotations.toArray(new Rotation[0]);
         this.fovs = ArrayUtils.toPrimitive(fovs.toArray(new Float[0]));
     }
 }

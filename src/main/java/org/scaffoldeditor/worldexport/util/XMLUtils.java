@@ -37,7 +37,7 @@ public final class XMLUtils {
     /**
      * Get a list of all the <i>direct</i> children of this element with a given tag name.
      * @param element Element to search through.
-     * @param name Name to search through.
+     * @param name Name to search for.
      * @return Child elements.
      */
     public static List<Element> getChildrenByTagName(Element element, String name) {
@@ -54,5 +54,24 @@ public final class XMLUtils {
         }
 
         return childElements;
+    }
+
+    /**
+     * Get the first direct child element with a given tag name.
+     * @param element The element to search.
+     * @param name Name to search for.
+     * @return The child element, or <code>null</code> if none was found.
+     */
+    public static Element getFirstElementWithName(Element element, String name) {
+        NodeList childeren = element.getChildNodes();
+        for (int i = 0; i < childeren.getLength(); i++) {
+            Node child = childeren.item(i);
+            if (!(child instanceof Element)) continue;
+            Element cElement = (Element) child;
+            if (cElement.getTagName().equals(name)) {
+                return cElement;
+            }
+        }
+        return null;
     }
 }
