@@ -3,27 +3,24 @@ package org.scaffoldeditor.worldexport.replaymod.animation_serialization;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.Euler;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.RotationChannel;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.RotationProvidingChannel;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.ScalarProvidingChannel;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.VectorProvidingChannel;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
-import net.minecraft.util.math.Vec3d;
-
 public class AnimationChannels {
     public static final BiMap<String, AnimationChannel<?>> channelTypeRegistry = HashBiMap.create();
 
-    public static final AnimationChannel<Vec3d> LOCATION = new AnimationChannel.VectorChannel();
-    public static final RotationChannel<Euler> ROTATION_EULER = new Rotation.EulerChannel();
-    public static final RotationChannel<QuaternionRot> ROTATION_QUAT = new Rotation.QuaternionChannel();
-    public static final AnimationChannel<Float> FOV = new AnimationChannel.FloatChannel();
+    public static final AnimationChannel.VectorChannel LOCATION = new AnimationChannel.VectorChannel();
+    public static final AnimationChannel.EulerChannel ROTATION_EULER = new AnimationChannel.EulerChannel();
+    public static final AnimationChannel.QuaternionChannel ROTATION_QUAT = new AnimationChannel.QuaternionChannel();
+    public static final AnimationChannel.FloatChannel FOV = new AnimationChannel.FloatChannel();
 
-    public static final Set<String> positionChannels = new HashSet<>();
-    public static final Set<String> rotationChannels = new HashSet<>();
-    public static final Set<String> fovChannels = new HashSet<>();
+    public static final Set<VectorProvidingChannel<?>> positionChannels = new HashSet<>();
+    public static final Set<RotationProvidingChannel<?>> rotationChannels = new HashSet<>();
+    public static final Set<ScalarProvidingChannel<?>> fovChannels = new HashSet<>();
 
     static {
         channelTypeRegistry.put("location", LOCATION);
@@ -31,8 +28,18 @@ public class AnimationChannels {
         channelTypeRegistry.put("rotation_quat", ROTATION_QUAT);
         channelTypeRegistry.put("fov", FOV);
 
-        positionChannels.add("location");
-        rotationChannels.add("rotation_euler");
-        fovChannels.add("fov");
+        positionChannels.add(LOCATION);
+        rotationChannels.add(ROTATION_EULER);
+        rotationChannels.add(ROTATION_QUAT);
+        fovChannels.add(FOV);
     }
+
+    public static AnimationChannel<?> getChannel(String id) {
+        return channelTypeRegistry.get(id);
+    }
+
+    public static String getId(AnimationChannel<?> channel) {
+        return channelTypeRegistry.inverse().get(channel);
+    }
+    
 }

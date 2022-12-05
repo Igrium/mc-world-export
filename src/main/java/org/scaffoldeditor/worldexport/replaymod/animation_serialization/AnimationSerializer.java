@@ -28,10 +28,13 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.RotationProvidingChannel;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.ScalarProvidingChannel;
+import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel.VectorProvidingChannel;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationImpl;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionChannel;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
@@ -44,11 +47,6 @@ import com.google.common.collect.HashBiMap;
 import net.minecraft.util.math.Vec3d;
 
 public class AnimationSerializer {
-    
-
-    public static String getPreferredRotChannel(Rotation value) {
-        return (value instanceof QuaternionChannel) ? "rotation_quat" : "rotation_euler";
-    }
 
     private Logger logger = LogManager.getLogger();
 
@@ -89,7 +87,7 @@ public class AnimationSerializer {
         Document doc = quickLoadDocument(in);
 
         BiMap<Integer, AbstractCameraAnimation> anims = HashBiMap.create();
-        for (Element element : XMLUtils.getChildrenByTagName(doc.getDocumentElement(), "anim")) {
+        for (Element element : XMLUtils.getChildrenByTagName(doc.getDocumentElement(), "animation")) {
             AbstractCameraAnimation anim;
             try {
                 anim = loadAnimation(element);
@@ -175,9 +173,9 @@ public class AnimationSerializer {
 
         float fps = Float.parseFloat(element.getAttribute("fps"));
 
-        AnimationChannel<Vec3d> posChannel = null;
-        AnimationChannel<Rotation> rotChannel = null;
-        AnimationChannel<Float> fovChannel = null;
+        VectorProvidingChannel<?> posChannel = null;
+        RotationProvidingChannel<?> rotChannel = null;
+        ScalarProvidingChannel<?> fovChannel = null;
 
         List<AnimationChannel<?>> channels = new ArrayList<>();
 
@@ -187,26 +185,29 @@ public class AnimationSerializer {
             if (channel == null) {
                 throw new XMLParseException("Unknown channel name: "+name);
             }
-            if (positionChannels.contains(name)) {
+
+            if (positionChannels.contains(channel)) {
                 if (posChannel != null) {
                     throw new XMLParseException(String.format("Two position channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(posChannel), name));
                 }
-                posChannel = AnimationChannel.castChannel(channel, Vec3d.class);
+                posChannel = (VectorProvidingChannel<?>) channel;
                 channels.add(channel);
-            } else if (rotationChannels.contains(name)) {
+
+            } else if (rotationChannels.contains(channel)) {
                 if (rotChannel != null) {
                     throw new XMLParseException(String.format("Two rotation channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(rotChannel), name));
                 }
-                rotChannel = AnimationChannel.castChannel(channel, Rotation.class);
+                rotChannel = (RotationProvidingChannel<?>) channel;
                 channels.add(channel);
-            } else if (fovChannels.contains(name)) {
+
+            } else if (fovChannels.contains(channel)) {
                 if (fovChannel != null) {
                     throw new XMLParseException(String.format("Two FOV channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(fovChannel), name));
                 }
-                fovChannel = AnimationChannel.castChannel(channel, Float.class);
+                fovChannel = (ScalarProvidingChannel<?>) channel;
                 channels.add(channel);
             } else {
                 throw new IllegalStateException("Channel name '" + name +"' was not registered with a channel type!");
@@ -252,7 +253,7 @@ public class AnimationSerializer {
                 } else if (channel == rotChannel) {
                     rotations[i] = rotChannel.read(myValues);
                 } else if (channel == fovChannel) {
-                    fovs[i] = fovChannel.read(myValues);
+                    fovs[i] = fovChannel.read(myValues).floatValue();
                 } else {
                     throw new IllegalStateException("I honestly have no idea how this happened.");
                 }
@@ -265,6 +266,10 @@ public class AnimationSerializer {
         if (element.hasAttribute("id")) anim.setId(Integer.parseInt(element.getAttribute("id")));
         if (element.hasAttribute("name")) anim.setName(element.getAttribute("name"));
         return anim;
+    }
+
+    public static RotationProvidingChannel<?> getPreferredRotChannel(Rotation value) {
+        return (value instanceof QuaternionRot) ? AnimationChannels.ROTATION_QUAT : AnimationChannels.ROTATION_EULER;
     }
 
     /**
@@ -284,27 +289,31 @@ public class AnimationSerializer {
             return element;
         }
 
-        AnimationChannel<Vec3d> positionChannel = AnimationChannels.LOCATION;
-        String rotationChannelName = getPreferredRotChannel(animation.getRotation(0));
-        AnimationChannel<Rotation> rotationChannel = AnimationChannel.castChannel(channelTypeRegistry.get(rotationChannelName), Rotation.class);
-        AnimationChannel<Float> fovChannel = AnimationChannels.FOV;
+        // AnimationChannel<Vec3d> positionChannel = AnimationChannels.LOCATION;
+        // String rotationChannelName = getPreferredRotChannel(animation.getRotation(0));
+        // AnimationChannel<Rotation> rotationChannel = AnimationChannel.castChannel(channelTypeRegistry.get(rotationChannelName), Rotation.class);
+        // AnimationChannel<Float> fovChannel = AnimationChannels.FOV;
+
+        VectorProvidingChannel<?> positionChannel = AnimationChannels.LOCATION;
+        RotationProvidingChannel<?> rotationChannel = getPreferredRotChannel(animation.getRotation(0));
+        ScalarProvidingChannel<?> fovChannel = AnimationChannels.FOV;
 
         Element positionTag = dom.createElement("channel");
-        positionTag.setAttribute("name", positionChannels.iterator().next());
+        positionTag.setAttribute("name", AnimationChannels.getId(positionChannel));
         positionTag.setAttribute("size", String.valueOf(positionChannel.numValues()));
         element.appendChild(positionTag);
 
         Element rotationTag = dom.createElement("channel");
-        rotationTag.setAttribute("name", rotationChannelName);
+        rotationTag.setAttribute("name", AnimationChannels.getId(rotationChannel));
         rotationTag.setAttribute("size", String.valueOf(rotationChannel.numValues()));
         element.appendChild(rotationTag);
 
         Element fovTag = dom.createElement("channel");
-        fovTag.setAttribute("name", fovChannels.iterator().next());
+        fovTag.setAttribute("name", AnimationChannels.getId(fovChannel));
         fovTag.setAttribute("size", String.valueOf(fovChannel.numValues()));
         element.appendChild(fovTag);
 
-        Element animData = dom.createElement("animData");
+        Element animData = dom.createElement("anim_data");
         StringBuilder textContent = new StringBuilder();
 
         Iterator<CameraPathFrame> iterator = animation.iterator();

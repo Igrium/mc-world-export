@@ -160,7 +160,7 @@ public class CameraAnimationModule extends EventRegistrations {
         ReplayHandler replayHandler = (ReplayHandler) handler;
         Map<Integer, AbstractCameraAnimation> animations;
         try {
-            animations = getAnimations(replayHandler.getReplayFile());
+            animations = getAnimationsOrThrow(replayHandler.getReplayFile());
         } catch (IOException e) {
             LOGGER.error("Unable to load imported camera animations.", e);
             animsBroken = true; // Don't spam the console.
@@ -209,7 +209,7 @@ public class CameraAnimationModule extends EventRegistrations {
     }
 
     protected AbstractCameraAnimation injestAnimation(ReplayFile replayFile, AbstractCameraAnimation animation) throws IOException {
-        Map<Integer, AbstractCameraAnimation> anims = getAnimations(replayFile);
+        Map<Integer, AbstractCameraAnimation> anims = getAnimationsOrThrow(replayFile);
 
         int id = 0;
         while (anims.get(id) != null) {
@@ -230,7 +230,7 @@ public class CameraAnimationModule extends EventRegistrations {
      * @return The animations and their IDs.
      * @throws IOException If an IO exception occurs while loading the animations.
      */
-    public Map<Integer, AbstractCameraAnimation> getAnimations(ReplayFile file) throws IOException {
+    public Map<Integer, AbstractCameraAnimation> getAnimationsOrThrow(ReplayFile file) throws IOException {
         synchronized (animCache) {
             BiMap<Integer, AbstractCameraAnimation> cached = animCache.get(file);
             if (cached == null) {
@@ -241,13 +241,26 @@ public class CameraAnimationModule extends EventRegistrations {
     }
 
     /**
+     * Get all the camera animations in a replay file.
+     * @param file The replay file.
+     * @return The animations and their IDs.
+     */
+    public Map<Integer, AbstractCameraAnimation> getAnimations(ReplayFile file) {
+        try {
+            return getAnimationsOrThrow(file);
+        } catch (IOException e) {
+            LOGGER.error("Error loading animations for replay file.", e);
+            return Collections.emptyMap();
+        }
+    }
+
+    /**
      * Get an animation from a replay file by it's id.
      * @param file The replay file.
      * @param id The ID.
      * @return The animation, if it exists.
-     * @throws IOException If an IO exception occurs while loading the animation.
      */
-    public Optional<AbstractCameraAnimation> getAnimation(ReplayFile file, int id) throws IOException {
+    public Optional<AbstractCameraAnimation> getAnimation(ReplayFile file, int id) {
         return Optional.ofNullable(getAnimations(file).get(id));
     }
     

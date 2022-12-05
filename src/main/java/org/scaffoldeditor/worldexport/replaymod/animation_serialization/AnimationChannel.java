@@ -1,5 +1,10 @@
 package org.scaffoldeditor.worldexport.replaymod.animation_serialization;
 
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.Euler;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
+
+import net.minecraft.util.math.Quaternion;
 import net.minecraft.util.math.Vec3d;
 
 public interface AnimationChannel<T> {
@@ -10,6 +15,7 @@ public interface AnimationChannel<T> {
     public Class<? extends T> getChannelType();
     
     @SuppressWarnings("unchecked")
+    @Deprecated
     public static <T> AnimationChannel<T> castChannel(AnimationChannel<?> channel, Class<T> clazz)
             throws ClassCastException {
         if (!clazz.isAssignableFrom(channel.getChannelType())) {
@@ -19,7 +25,22 @@ public interface AnimationChannel<T> {
         return (AnimationChannel<T>) channel;
     }
 
-    public static class VectorChannel implements AnimationChannel<Vec3d> {
+    public interface VectorProvidingChannel<E extends Vec3d> extends AnimationChannel<E> {
+        @Override
+        public double[] write(Vec3d value);
+    }
+
+    public interface RotationProvidingChannel<E extends Rotation> extends AnimationChannel<E> {
+        @Override
+        double[] write(Rotation value);
+    }
+
+    public interface ScalarProvidingChannel<E extends Number> extends AnimationChannel<E> {
+        @Override
+        double[] write(Number value);
+    }
+
+    public static class VectorChannel implements VectorProvidingChannel<Vec3d> {
 
         @Override
         public int numValues() {
@@ -43,7 +64,7 @@ public interface AnimationChannel<T> {
         
     }
 
-    public static class FloatChannel implements AnimationChannel<Float> {
+    public static class FloatChannel implements ScalarProvidingChannel<Float> {
 
         @Override
         public int numValues() {
@@ -56,13 +77,62 @@ public interface AnimationChannel<T> {
         }
 
         @Override
-        public double[] write(Float value) {
-            return new double[] { value };
+        public double[] write(Number value) {
+            return new double[] { value.doubleValue() };
         }
 
         @Override
         public Class<? extends Float> getChannelType() {
             return Float.class;
+        }
+        
+    }
+
+    public static class EulerChannel implements RotationProvidingChannel<Rotation.Euler> {
+
+        @Override
+        public int numValues() {
+            return 3;
+        }
+
+        @Override
+        public Euler read(double... values) throws IndexOutOfBoundsException {
+            return new Euler(values[0], values[1], values[2]);
+        }
+
+        @Override
+        public Class<? extends Euler> getChannelType() {
+            return Euler.class;
+        }
+
+        @Override
+        public double[] write(Rotation value) {
+            return new double[] { value.pitch(), value.yaw(), value.roll() };
+        }
+        
+    }
+
+    public static class QuaternionChannel implements RotationProvidingChannel<Rotation.QuaternionRot> {
+
+        @Override
+        public int numValues() {
+            return 4;
+        }
+
+        @Override
+        public QuaternionRot read(double... values) throws IndexOutOfBoundsException {
+            return new QuaternionRot(values[0], values[1], values[2], values[3]);
+        }
+
+        @Override
+        public Class<? extends QuaternionRot> getChannelType() {
+            return QuaternionRot.class;
+        }
+
+        @Override
+        public double[] write(Rotation value) {
+            Quaternion quat = value.quaternion();
+            return new double[] { quat.getW(), quat.getX(), quat.getY(), quat.getZ() };
         }
         
     }

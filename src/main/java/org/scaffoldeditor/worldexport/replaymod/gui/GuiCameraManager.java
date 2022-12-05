@@ -1,9 +1,12 @@
 package org.scaffoldeditor.worldexport.replaymod.gui;
 
-import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 
 import com.replaymod.core.utils.Utils;
@@ -13,6 +16,8 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiElement;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
@@ -74,6 +79,7 @@ public class GuiCameraManager extends AbstractGuiPopup<GuiCameraManager> {
                 return new Dimension(screenSize.getWidth() - 120, screenSize.getHeight() - 40);
             }
         });
+        // refresh();
     }
 
     /**
@@ -84,18 +90,25 @@ public class GuiCameraManager extends AbstractGuiPopup<GuiCameraManager> {
         chooser.onAccept(file -> {
             try {
                 CameraAnimationModule.getInstance().importAnimation(handler.getReplayFile(), file);
+                // refresh();
             } catch (IOException e) {
                 Utils.error(LogManager.getLogger("Camera Import"), getContainer(), CrashReport.create(e, "Importing Camera Animation"), () -> {});
             }
         });
     }
 
-    /**
-     * Called when the user has selected a file to import.
-     * @param file The file to import.
-     */
-    public void onImport(File file) {
+    @SuppressWarnings("rawtypes")
+    public void refresh() {
+        // For some reason there isn't a dedicated clear function.
+        Collection<GuiElement> elements = Set.copyOf(camerasList.getElements().keySet());
+        elements.forEach(camerasList::removeElement);
 
+        Map<Integer, AbstractCameraAnimation> anims = CameraAnimationModule.getInstance().getAnimations(handler.getReplayFile());
+        GuiElement[] newElements = anims.keySet().stream().sorted().map(id -> {
+            return new GuiLabel().setText(anims.get(id).getName());
+        }).toArray(GuiElement[]::new);
+
+        camerasList.addElements(new VerticalLayout.Data(), newElements);
     }
 
     @Override

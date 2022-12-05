@@ -1,7 +1,5 @@
 package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
-import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationChannel;
-
 import net.minecraft.util.math.Quaternion;
 import net.minecraft.util.math.Vec3f;
 
@@ -120,58 +118,6 @@ public interface Rotation {
         @Override
         public Quaternion quaternion() {
             return value;
-        }
-    }
-
-    public static abstract class RotationChannel<T extends Rotation> implements AnimationChannel<T> {
-        public abstract double[] write(Rotation value);
-    }
-
-    public static class EulerChannel extends RotationChannel<Euler> {
-
-        @Override
-        public int numValues() {
-            return 3;
-        }
-
-        @Override
-        public Euler read(double... values) throws IndexOutOfBoundsException {
-            return new Euler(values[0], values[1], values[2]);
-        }
-
-        @Override
-        public Class<? extends Euler> getChannelType() {
-            return Euler.class;
-        }
-
-        @Override
-        public double[] write(Rotation value) {
-            return new double[] { value.pitch(), value.yaw(), value.roll() };
-        }
-        
-    }
-
-    public static class QuaternionChannel extends RotationChannel<QuaternionRot> {
-        
-        @Override
-        public int numValues() {
-            return 4;
-        }
-
-        @Override
-        public QuaternionRot read(double... values) throws IndexOutOfBoundsException {
-            return new QuaternionRot(values[0], values[1], values[2], values[3]);
-        }
-
-        @Override
-        public Class<? extends QuaternionRot> getChannelType() {
-            return QuaternionRot.class;
-        }
-
-        @Override
-        public double[] write(Rotation value) {
-            Quaternion quat = value.quaternion();
-            return new double[] { quat.getW(), quat.getX(), quat.getY(), quat.getZ() };
         }
     }
 }
