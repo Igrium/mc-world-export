@@ -192,7 +192,7 @@ public class AnimationSerializer {
                     throw new XMLParseException(String.format("Two position channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(posChannel), name));
                 }
-                posChannel = AnimationChannel.castChannel(posChannel, Vec3d.class);
+                posChannel = AnimationChannel.castChannel(channel, Vec3d.class);
             } else if (rotationChannels.contains(name)) {
                 if (rotChannel != null) {
                     throw new XMLParseException(String.format("Two rotation channels were specified: '%s' and '$s'.",
@@ -204,7 +204,7 @@ public class AnimationSerializer {
                     throw new XMLParseException(String.format("Two FOV channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(fovChannel), name));
                 }
-                fovChannel = AnimationChannel.castChannel(fovChannel, Float.class);
+                fovChannel = AnimationChannel.castChannel(channel, Float.class);
             } else {
                 throw new IllegalStateException("Channel name '" + name +"' was not registered with a channel type!");
             }

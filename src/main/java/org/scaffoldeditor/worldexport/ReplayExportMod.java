@@ -45,6 +45,7 @@ public class ReplayExportMod implements ClientModInitializer {
 
         ReplayModels.registerDefaults();
 
+        // TODO: Make sure this only registers *after* the replay mod.
         cameraAnimationsModule.register();
         cameraAnimationsModule.registerKeyBindings();
     }

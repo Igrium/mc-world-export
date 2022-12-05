@@ -1,5 +1,7 @@
 package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,11 +14,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
+import org.scaffoldeditor.worldexport.replaymod.gui.GuiCameraManager;
+import org.scaffoldeditor.worldexport.util.UnsupportedFileTypeException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -83,8 +88,9 @@ public class CameraAnimationModule extends EventRegistrations {
     protected final MinecraftClient client = MinecraftClient.getInstance();
 
     public KeyBindingRegistry.Binding keySyncTime;
-
     private ExecutorService saveService;
+
+    private ReplayHandler currentReplay;
 
     public CameraAnimationModule() {
         on(ReplayOpenedCallback.EVENT, this::onReplayOpened);
@@ -94,12 +100,13 @@ public class CameraAnimationModule extends EventRegistrations {
     @Override
     public void register() {
         TimelineUpdateCallback.EVENT.register(this::onTimelineTick);
+        super.register();
     }
 
     public void registerKeyBindings() {
         ReplayMod core = ReplayMod.instance;
         core.getKeyBindingRegistry().registerKeyBinding("worldexport.input.importcamera", 0, () -> {
-            LOGGER.info("Pressed import anims button!");
+            GuiCameraManager.openScreen(currentReplay);
         }, true);
     }
 
@@ -129,6 +136,7 @@ public class CameraAnimationModule extends EventRegistrations {
     }
 
     private void onReplayOpened(ReplayHandler handler) throws IOException {
+        currentReplay = handler;
         saveService = Executors.newSingleThreadExecutor();
         animsBroken = false;
         cacheAnimations(handler.getReplayFile());
@@ -136,7 +144,11 @@ public class CameraAnimationModule extends EventRegistrations {
 
     private void onReplayClosing(ReplayHandler handler) {
         animCache.remove(handler.getReplayFile());
-
+        if (handler == currentReplay) {
+            currentReplay = null;
+        } else {
+            LOGGER.warn("Recieved onReplayClosing for replay that is not open!");
+        }
         if (animCache.isEmpty()) closeSaveService();
     }
 
@@ -177,6 +189,39 @@ public class CameraAnimationModule extends EventRegistrations {
             Thread.currentThread().interrupt();
         }
         saveService = null;
+    }
+
+    public AbstractCameraAnimation importAnimation(ReplayFile replayFile, File file) throws UnsupportedFileTypeException, IOException {
+        String ext = FilenameUtils.getExtension(file.getName());
+        if (ext.equals("xml")) {
+            return importAnimXML(replayFile, file);
+        } else {
+            throw new UnsupportedFileTypeException(ext);
+        }
+    }
+    
+    private AbstractCameraAnimation importAnimXML(ReplayFile replayFile, File file) throws IOException {
+        FileInputStream in = new FileInputStream(file);
+        AbstractCameraAnimation anim = serializer.loadAnimation(in);
+        in.close();
+
+        return injestAnimation(replayFile, anim);
+    }
+
+    protected AbstractCameraAnimation injestAnimation(ReplayFile replayFile, AbstractCameraAnimation animation) throws IOException {
+        Map<Integer, AbstractCameraAnimation> anims = getAnimations(replayFile);
+
+        int id = 0;
+        while (anims.get(id) != null) {
+            id++;
+        }
+        animation.setId(id);
+
+        var newAnims = HashBiMap.create(anims);
+        newAnims.put(id, animation);
+        writeAnimations(replayFile, newAnims);
+
+        return animation;
     }
 
     /**
