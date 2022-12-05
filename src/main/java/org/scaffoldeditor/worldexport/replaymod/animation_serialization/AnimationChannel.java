@@ -12,7 +12,7 @@ public interface AnimationChannel<T> {
     @SuppressWarnings("unchecked")
     public static <T> AnimationChannel<T> castChannel(AnimationChannel<?> channel, Class<T> clazz)
             throws ClassCastException {
-        if (!channel.getChannelType().isAssignableFrom(clazz)) {
+        if (!clazz.isAssignableFrom(channel.getChannelType())) {
             throw new ClassCastException(channel.getChannelType().getSimpleName()
                     + " is not compatible with an animation channel of type " + clazz.getSimpleName());
         }

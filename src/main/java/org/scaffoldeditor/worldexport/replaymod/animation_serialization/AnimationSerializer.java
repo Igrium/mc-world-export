@@ -193,18 +193,21 @@ public class AnimationSerializer {
                             channelTypeRegistry.inverse().get(posChannel), name));
                 }
                 posChannel = AnimationChannel.castChannel(channel, Vec3d.class);
+                channels.add(channel);
             } else if (rotationChannels.contains(name)) {
                 if (rotChannel != null) {
                     throw new XMLParseException(String.format("Two rotation channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(rotChannel), name));
                 }
                 rotChannel = AnimationChannel.castChannel(channel, Rotation.class);
+                channels.add(channel);
             } else if (fovChannels.contains(name)) {
                 if (fovChannel != null) {
                     throw new XMLParseException(String.format("Two FOV channels were specified: '%s' and '$s'.",
                             channelTypeRegistry.inverse().get(fovChannel), name));
                 }
                 fovChannel = AnimationChannel.castChannel(channel, Float.class);
+                channels.add(channel);
             } else {
                 throw new IllegalStateException("Channel name '" + name +"' was not registered with a channel type!");
             }
@@ -216,7 +219,7 @@ public class AnimationSerializer {
         }
         
 
-        List<String> lines = animData.getTextContent().lines().filter(s -> s.isBlank()).toList();
+        List<String> lines = animData.getTextContent().lines().filter(s -> !s.isBlank()).toList();
         int length = lines.size();
 
         Vec3d[] positions = new Vec3d[length];
@@ -224,6 +227,10 @@ public class AnimationSerializer {
         float[] fovs = new float[length];
 
         int valuesPerLine = channels.stream().mapToInt(AnimationChannel::numValues).sum();
+        // int valuesPerLine = 0;
+        // for (AnimationChannel<?> channel : channels) {
+        //     valuesPerLine += channel.numValues();
+        // }
         for (int i = 0; i < length; i++) {
             String[] values = lines.get(i).strip().split(" ");
             if (values.length != valuesPerLine) {
@@ -279,7 +286,7 @@ public class AnimationSerializer {
 
         AnimationChannel<Vec3d> positionChannel = AnimationChannels.LOCATION;
         String rotationChannelName = getPreferredRotChannel(animation.getRotation(0));
-        AnimationChannel<Rotation> rotationChannel = AnimationChannel.castChannel(positionChannel, Rotation.class);
+        AnimationChannel<Rotation> rotationChannel = AnimationChannel.castChannel(channelTypeRegistry.get(rotationChannelName), Rotation.class);
         AnimationChannel<Float> fovChannel = AnimationChannels.FOV;
 
         Element positionTag = dom.createElement("channel");
@@ -319,7 +326,7 @@ public class AnimationSerializer {
                             .mapToObj(String::valueOf).collect(Collectors.joining(" ")));
             
             if (iterator.hasNext()) {
-                textContent.append(System.lineSeparator());
+                textContent.append('\n');
             }
 
         }

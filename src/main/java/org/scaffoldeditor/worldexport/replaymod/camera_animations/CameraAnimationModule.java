@@ -45,7 +45,7 @@ import net.minecraft.util.math.Vec3d;
  */
 public class CameraAnimationModule extends EventRegistrations {
 
-    public static final String ENTRY_ANIMATIONS = "animations.json";
+    public static final String ENTRY_ANIMATIONS = "animations.xml";
     public static final int CAMERA_ID_CONSTANT = 2048;
 
     private static final Logger LOGGER = LogManager.getLogger();

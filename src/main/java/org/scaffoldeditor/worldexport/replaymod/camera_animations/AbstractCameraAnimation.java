@@ -174,4 +174,14 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
         
         return (framePrecise - prev) / (next - prev);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return o == this;
+    }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(this);
+    }
 }
