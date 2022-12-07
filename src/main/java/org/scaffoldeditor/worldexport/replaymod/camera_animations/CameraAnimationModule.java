@@ -18,6 +18,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
+import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiCameraManager;
@@ -127,9 +128,9 @@ public class CameraAnimationModule extends EventRegistrations {
         }
 
         // Create the entity if it doesn't exist.
-        AnimatedCameraEntity camera = new AnimatedCameraEntity(client, world);
+        AnimatedCameraEntity camera = ReplayExportMod.ANIMATED_CAMERA.create(world);
         camera.setId(entId);
-        world.addEntity(entId, entity);
+        world.addEntity(entId, camera);
 
         return camera;
     }

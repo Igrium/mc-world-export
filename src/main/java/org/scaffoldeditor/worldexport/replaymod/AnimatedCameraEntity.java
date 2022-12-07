@@ -1,26 +1,30 @@
-package org.scaffoldeditor.worldexport.replaymod.camera_animations;
+package org.scaffoldeditor.worldexport.replaymod;
 
 import org.scaffoldeditor.worldexport.replaymod.util.RollProvider;
 
 import com.replaymod.replaystudio.util.Location;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.Packet;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
+import net.minecraft.world.World;
 
 public class AnimatedCameraEntity extends Entity implements RollProvider {
 
+    public static final Identifier ID = new Identifier("worldexport", "camera");
+
     public float roll;
     public float fov;
-    protected final MinecraftClient client;
 
-    public AnimatedCameraEntity(MinecraftClient client, ClientWorld world) {
-        super(EntityType.PLAYER, world);
-        this.client = client;
+    public AnimatedCameraEntity(EntityType<? extends AnimatedCameraEntity> type, World world) {
+        super(type, world);
+        if (!world.isClient) {
+            throw new IllegalStateException("Animated camera entity should never be spawned on the server!");
+        }
     }
 
     @Override
@@ -130,10 +134,9 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
     }
 
     @Override
-    public boolean shouldRender(double cameraX, double cameraY, double cameraZ) {
-        return client.getCameraEntity() != this;
+    public boolean shouldSave() {
+        return false;
     }
-
     
 
 }
