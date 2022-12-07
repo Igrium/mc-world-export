@@ -180,7 +180,8 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
         double framePrecise = time * fps;
         double prev = Math.floor(time * fps);
         double next = Math.ceil(time * fps);
-        
+
+        if ((next - prev) == 0) return 0;
         return (framePrecise - prev) / (next - prev);
     }
 
