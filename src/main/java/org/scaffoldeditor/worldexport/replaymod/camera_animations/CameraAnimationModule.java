@@ -84,7 +84,7 @@ public class CameraAnimationModule extends EventRegistrations {
      */
     private Map<ReplayFile, BiMap<Integer, AbstractCameraAnimation>> animCache = new HashMap<>();
 
-    public static record CameraPathFrame(Vec3d pos, Rotation rot, float fov) {}
+    public static record CameraPathFrame(Vec3d pos, Rotation rot, double fov) {}
     protected AnimationSerializer serializer = new AnimationSerializer();
     protected final MinecraftClient client = MinecraftClient.getInstance();
 
@@ -174,7 +174,7 @@ public class CameraAnimationModule extends EventRegistrations {
             Vec3d pos = anim.getPositionAt(timeSeconds);
             Vec3d offset = anim.getOffset();
             Rotation rot = anim.getRotationAt(timeSeconds);
-            float fov = anim.getFovAt(timeSeconds);
+            double fov = anim.getFovAt(timeSeconds);
 
             camera.setCameraPosition(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
             camera.setCameraRotation(rot);

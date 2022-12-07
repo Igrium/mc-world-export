@@ -82,7 +82,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @param index Frame number.
      * @return The FOV.
      */
-    public abstract float getFov(int index);
+    public abstract double getFov(int index);
 
     /**
      * Calculate the camera transform a given time.
@@ -152,7 +152,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @param time The time in seconds.
      * @return The FOV.
      */
-    public float getFovAt(double time) {
+    public double getFovAt(double time) {
         int frame = getFrameNumber(time);
         if (frame < 0) {
             return getFov(0);
@@ -162,10 +162,10 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
 
         if (frame + 1 < size()) {
             double delta = getFrameDelta(time);
-            float prev = getFov(frame);
-            float next = getFov(frame + 1);
+            double prev = getFov(frame);
+            double next = getFov(frame + 1);
 
-            return (float) MathHelper.lerp(delta, prev, next);
+            return MathHelper.lerp(delta, prev, next);
         } else {
             return getFov(frame);
         }

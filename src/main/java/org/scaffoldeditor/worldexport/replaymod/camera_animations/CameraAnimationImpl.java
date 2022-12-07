@@ -10,7 +10,7 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
 
     protected final Vec3d[] positions;
     protected final Rotation[] rotations;
-    protected final float[] fovs;
+    protected final double[] fovs;
 
     protected float fps = 30;
 
@@ -35,11 +35,11 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
     }
 
     @Override
-    public float getFov(int index) {
+    public double getFov(int index) {
         return fovs[index];
     }
 
-    public CameraAnimationImpl(float fps, Vec3d[] positions, Rotation[] rotations, float[] fovs) throws IllegalArgumentException {
+    public CameraAnimationImpl(float fps, Vec3d[] positions, Rotation[] rotations, double[] fovs) throws IllegalArgumentException {
         if (positions.length != rotations.length || positions.length != fovs.length) {
             throw new IllegalArgumentException("All animation channels must be the same length!");
         }
@@ -58,6 +58,6 @@ public class CameraAnimationImpl extends AbstractCameraAnimation {
         this.fps = fps;
         this.positions = positions.toArray(new Vec3d[0]);
         this.rotations = rotations.toArray(new Rotation[0]);
-        this.fovs = ArrayUtils.toPrimitive(fovs.toArray(new Float[0]));
+        this.fovs = ArrayUtils.toPrimitive(fovs.toArray(new Double[0]));
     }
 }

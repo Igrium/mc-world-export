@@ -16,7 +16,7 @@ public class AnimationChannels {
     public static final AnimationChannel.VectorChannel LOCATION = new AnimationChannel.VectorChannel();
     public static final AnimationChannel.EulerChannel ROTATION_EULER = new AnimationChannel.EulerChannel();
     public static final AnimationChannel.QuaternionChannel ROTATION_QUAT = new AnimationChannel.QuaternionChannel();
-    public static final AnimationChannel.FloatChannel FOV = new AnimationChannel.FloatChannel();
+    public static final AnimationChannel.DoubleChannel FOV = new AnimationChannel.DoubleChannel();
 
     public static final Set<VectorProvidingChannel<?>> positionChannels = new HashSet<>();
     public static final Set<RotationProvidingChannel<?>> rotationChannels = new HashSet<>();

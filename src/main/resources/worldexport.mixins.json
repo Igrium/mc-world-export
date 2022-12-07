@@ -13,7 +13,8 @@
     "VideoRendererMixin",
     "QuadrupedModelAccessor",
     "TimelineMixin",
-    "ReplayModMixin"
+    "ReplayModMixin",
+    "GameRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

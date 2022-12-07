@@ -64,7 +64,7 @@ public interface AnimationChannel<T> {
         
     }
 
-    public static class FloatChannel implements ScalarProvidingChannel<Float> {
+    public static class DoubleChannel implements ScalarProvidingChannel<Double> {
 
         @Override
         public int numValues() {
@@ -72,8 +72,8 @@ public interface AnimationChannel<T> {
         }
 
         @Override
-        public Float read(double... values) throws IndexOutOfBoundsException {
-            return (float) values[0];
+        public Double read(double... values) throws IndexOutOfBoundsException {
+            return values[0];
         }
 
         @Override
@@ -82,8 +82,8 @@ public interface AnimationChannel<T> {
         }
 
         @Override
-        public Class<? extends Float> getChannelType() {
-            return Float.class;
+        public Class<? extends Double> getChannelType() {
+            return Double.class;
         }
         
     }

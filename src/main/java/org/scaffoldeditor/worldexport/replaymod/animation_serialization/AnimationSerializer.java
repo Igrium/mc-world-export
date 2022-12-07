@@ -225,7 +225,7 @@ public class AnimationSerializer {
 
         Vec3d[] positions = new Vec3d[length];
         Rotation[] rotations = new Rotation[length];
-        float[] fovs = new float[length];
+        double[] fovs = new double[length];
 
         int valuesPerLine = channels.stream().mapToInt(AnimationChannel::numValues).sum();
         // int valuesPerLine = 0;
@@ -253,7 +253,7 @@ public class AnimationSerializer {
                 } else if (channel == rotChannel) {
                     rotations[i] = rotChannel.read(myValues);
                 } else if (channel == fovChannel) {
-                    fovs[i] = fovChannel.read(myValues).floatValue();
+                    fovs[i] = fovChannel.read(myValues).doubleValue();
                 } else {
                     throw new IllegalStateException("I honestly have no idea how this happened.");
                 }

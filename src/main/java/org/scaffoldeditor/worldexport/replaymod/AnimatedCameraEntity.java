@@ -2,12 +2,15 @@ package org.scaffoldeditor.worldexport.replaymod;
 
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
+import org.scaffoldeditor.worldexport.replaymod.util.FovProvider;
 import org.scaffoldeditor.worldexport.replaymod.util.RollProvider;
 
 import com.replaymod.replaystudio.util.Location;
 
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityDimensions;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.Packet;
@@ -15,12 +18,12 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
-public class AnimatedCameraEntity extends Entity implements RollProvider {
+public class AnimatedCameraEntity extends Entity implements RollProvider, FovProvider {
 
     public static final Identifier ID = new Identifier("worldexport", "camera");
 
     public float roll;
-    public float fov;
+    public double fov;
 
     public AnimatedCameraEntity(EntityType<? extends AnimatedCameraEntity> type, World world) {
         super(type, world);
@@ -60,12 +63,17 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
         this.roll = roll;
     }
 
-    public final float getFov() {
+    public final double getFov() {
         return fov;
     }
 
-    public void setFov(float fov) {
+    public void setFov(double fov) {
         this.fov = fov;
+    }
+
+    @Override
+    protected float getEyeHeight(EntityPose pose, EntityDimensions dimensions) {
+        return 0;
     }
 
     /**
@@ -122,8 +130,6 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
         // TODO: verify this isn't fixing a mistake in the Blender addon
         yaw = -MathHelper.wrapDegrees(yaw + 180);
         pitch = 90 - pitch; // Why is Minecraft's rotation system so weird?
-        
-        
 
         setCameraRotation(yaw, pitch, roll);
     }

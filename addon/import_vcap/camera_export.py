@@ -73,7 +73,7 @@ def write_data(obj: Object, context: Context):
             frame.extend([str(x) for x in rotation])
         
         if animate_fov:
-            frame.append(str(math.degrees(camera.angle)))
+            frame.append(str(math.degrees(camera.angle_y)))
         
         builder.append(' '.join(frame))
     
