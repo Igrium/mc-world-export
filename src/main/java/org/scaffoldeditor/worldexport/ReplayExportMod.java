@@ -6,6 +6,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModels;
+import org.scaffoldeditor.worldexport.replaymod.ReplayModHooks;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
@@ -46,8 +47,11 @@ public class ReplayExportMod implements ClientModInitializer {
         ReplayModels.registerDefaults();
 
         // TODO: Make sure this only registers *after* the replay mod.
-        cameraAnimationsModule.register();
-        cameraAnimationsModule.registerKeyBindings();
+        ReplayModHooks.onReplayModInit(replayMod -> {
+            cameraAnimationsModule.register();
+            cameraAnimationsModule.registerKeyBindings(replayMod);
+        });
+        
     }
 
     public CameraAnimationModule getCameraAnimationsModule() {

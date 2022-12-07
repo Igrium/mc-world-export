@@ -12,7 +12,8 @@
     "GuiRenderSettingsMixin",
     "VideoRendererMixin",
     "QuadrupedModelAccessor",
-    "TimelineMixin"
+    "TimelineMixin",
+    "ReplayModMixin"
   ],
   "injectors": {
     "defaultRequire": 1
