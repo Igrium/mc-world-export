@@ -109,6 +109,7 @@ public final class XMLUtils {
         if (list.charAt(0) != '[' || list.charAt(list.length() - 1) != ']') {
             throw new IllegalArgumentException("Unbalenced list brackets");
         }
+        list = list.substring(1, list.length() - 1);
         String[] vals = list.split(",");
         for (int i = 0; i < vals.length; i++) {
             vals[i] = vals[i].strip();

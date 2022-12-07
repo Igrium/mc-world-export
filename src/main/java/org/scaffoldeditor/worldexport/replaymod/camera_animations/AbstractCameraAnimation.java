@@ -101,9 +101,9 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     public Vec3d getPositionAt(double time) {
         int frame = getFrameNumber(time);
         if (frame < 0) {
-            return getPositionAt(0);
+            return getPosition(0);
         } else if (frame >= size()) {
-            return getPositionAt(size() - 1);
+            return getPosition(size() - 1);
         }
 
         if (frame + 1 < size()) {
@@ -112,7 +112,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
             Vec3d next = getPosition(frame + 1);
 
             return new Vec3d(
-                    MathHelper.lerp(delta, prev.x, next.y),
+                    MathHelper.lerp(delta, prev.x, next.x),
                     MathHelper.lerp(delta, prev.y, next.y),
                     MathHelper.lerp(delta, prev.z, next.z));
         } else {
@@ -128,9 +128,9 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     public Rotation getRotationAt(double time) {
         int frame = getFrameNumber(time);
         if (frame < 0) {
-            return getRotationAt(0);
+            return getRotation(0);
         } else if (frame >= size()) {
-            return getRotationAt(size() - 1);
+            return getRotation(size() - 1);
         }
 
         if (frame + 1 < size()) {
@@ -172,14 +172,14 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     }
 
     public int getFrameNumber(double time) {
-        return (int) Math.floor(time / getFps());
+        return (int) Math.floor(time * getFps());
     }
 
     public double getFrameDelta(double time) {
         double fps = getFps();
-        double framePrecise = time / fps;
-        double prev = Math.floor(time / fps);
-        double next = Math.ceil(time / fps);
+        double framePrecise = time * fps;
+        double prev = Math.floor(time * fps);
+        double next = Math.ceil(time * fps);
         
         return (framePrecise - prev) / (next - prev);
     }

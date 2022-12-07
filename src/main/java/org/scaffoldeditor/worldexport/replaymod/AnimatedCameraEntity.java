@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replaymod;
 
+import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 import org.scaffoldeditor.worldexport.replaymod.util.RollProvider;
 
@@ -11,7 +12,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.Packet;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 
 public class AnimatedCameraEntity extends Entity implements RollProvider {
@@ -87,8 +88,7 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
         this.lastRenderX = this.prevX = x;
         this.lastRenderY = this.prevY = y;
         this.lastRenderZ = this.prevZ = z;
-        this.setPos(x, y, z);
-        updateBoundingBox();
+        this.setPosition(x, y, z);
     }
 
     /**
@@ -98,6 +98,11 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
      * @param roll Roll in degrees
      */
     public void setCameraRotation(float yaw, float pitch, float roll) {
+        if (yaw != yaw || pitch != pitch) {
+            LogManager.getLogger().error("Cannot set camera to NaN rotation. Yaw: {}, Pitch: {}", yaw, pitch);
+            return;
+        }
+
         this.prevYaw = yaw;
         this.prevPitch = pitch;
         setPitch(pitch);
@@ -110,23 +115,22 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
      * @param rotation Abstracted rotation object.
      */
     public void setCameraRotation(Rotation rotation) {
-        setCameraRotation((float) Math.toDegrees(rotation.yaw()),
-                (float) Math.toDegrees(rotation.pitch()),
-                (float) Math.toDegrees(rotation.roll()));
+        float pitch = (float) Math.toDegrees(rotation.pitch());
+        float yaw = (float) Math.toDegrees(rotation.yaw());
+        float roll = (float) Math.toDegrees(rotation.roll());
+
+        // TODO: verify this isn't fixing a mistake in the Blender addon
+        yaw = -MathHelper.wrapDegrees(yaw + 180);
+        pitch = 90 - pitch; // Why is Minecraft's rotation system so weird?
+        
+        
+
+        setCameraRotation(yaw, pitch, roll);
     }
 
     public void setCameraPosRot(Location loc) {
         setCameraRotation(loc.getPitch(), loc.getYaw(), roll);
         setCameraPosition(loc.getX(), loc.getY(), loc.getZ());
-    }
-
-    private void updateBoundingBox() {
-        float width = getWidth();
-        float height = getHeight();
-
-        setBoundingBox(new Box(
-                this.getX() - width / 2, this.getY(), this.getZ() - width / 2,
-                this.getX() + width / 2, this.getY() + height, this.getZ() + width / 2));
     }
 
     @Override
@@ -149,5 +153,9 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
         return false;
     }
     
+    @Override
+    public boolean canHit() {
+        return true; // Allows player to spectate
+    }
 
 }

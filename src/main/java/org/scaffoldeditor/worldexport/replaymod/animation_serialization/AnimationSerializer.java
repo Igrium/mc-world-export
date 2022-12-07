@@ -269,7 +269,7 @@ public class AnimationSerializer {
             try {
                 anim.setOffset(XMLUtils.parseVector(element.getAttribute("offset")));
             } catch (IllegalArgumentException e) {
-                throw new XMLParseException("Unable to parse animation offset: " + e.getMessage());
+                throw new XMLParseException(e, "Unable to parse animation offset: " + e.getMessage());
             }
         }
         return anim;
