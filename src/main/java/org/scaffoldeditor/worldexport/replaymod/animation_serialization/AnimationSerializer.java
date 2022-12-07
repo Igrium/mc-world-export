@@ -265,6 +265,13 @@ public class AnimationSerializer {
         // IDs are only used internally; not in imported files.
         if (element.hasAttribute("id")) anim.setId(Integer.parseInt(element.getAttribute("id")));
         if (element.hasAttribute("name")) anim.setName(element.getAttribute("name"));
+        if (element.hasAttribute("offset")) {
+            try {
+                anim.setOffset(XMLUtils.parseVector(element.getAttribute("offset")));
+            } catch (IllegalArgumentException e) {
+                throw new XMLParseException("Unable to parse animation offset: " + e.getMessage());
+            }
+        }
         return anim;
     }
 
@@ -283,6 +290,7 @@ public class AnimationSerializer {
         element.setAttribute("fps", String.valueOf(animation.getFps()));
         element.setAttribute("id", String.valueOf(animation.getId()));
         element.setAttribute("name", animation.getName());
+        element.setAttribute("offset", XMLUtils.writeVector(animation.getOffset()));
 
         if (animation.isEmpty()) {
             element.appendChild(dom.createElement("anim_data"));

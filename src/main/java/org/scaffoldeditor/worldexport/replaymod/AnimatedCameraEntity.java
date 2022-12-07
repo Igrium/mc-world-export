@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replaymod;
 
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 import org.scaffoldeditor.worldexport.replaymod.util.RollProvider;
 
 import com.replaymod.replaystudio.util.Location;
@@ -102,6 +103,16 @@ public class AnimatedCameraEntity extends Entity implements RollProvider {
         setPitch(pitch);
         setYaw(yaw);
         setRoll(roll);
+    }
+
+    /**
+     * Sets the camera rotation.
+     * @param rotation Abstracted rotation object.
+     */
+    public void setCameraRotation(Rotation rotation) {
+        setCameraRotation((float) Math.toDegrees(rotation.yaw()),
+                (float) Math.toDegrees(rotation.pitch()),
+                (float) Math.toDegrees(rotation.roll()));
     }
 
     public void setCameraPosRot(Location loc) {

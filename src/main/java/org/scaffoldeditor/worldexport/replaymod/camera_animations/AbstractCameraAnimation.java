@@ -10,6 +10,7 @@ import net.minecraft.util.math.Vec3d;
 public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFrame> {
 
     protected int id;
+    protected Vec3d offset = new Vec3d(0, 0, 0);
     protected String name = "[unnamed]";
 
     public int getId() {
@@ -26,6 +27,14 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Vec3d getOffset() {
+        return offset;
+    }
+
+    public void setOffset(Vec3d offset) {
+        this.offset = offset;
     }
 
     /**

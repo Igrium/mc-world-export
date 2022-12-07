@@ -2,6 +2,10 @@ import math
 import xml.etree.ElementTree as ET
 
 from bpy.types import Camera, Context, Object
+from mathutils import Vector
+
+from . import data
+
 
 def write(file, obj: Object, context: Context):
     """Write a camera animation to an XML file
@@ -31,6 +35,12 @@ def write_data(obj: Object, context: Context):
     root = ET.Element("animation")
     root.set('fps', str(context.scene.render.fps / context.scene.render.fps_base))
     root.set('fov', str(math.degrees(camera.angle)))
+
+    offset: Vector = Vector(data.vcap_offset_mc(context.scene))
+    offset *= -1
+    if offset.length_squared > 0:
+        root.set('offset', '[' + str(offset[0]) + ', ' + str(offset[1]) + ', ' + str(offset[2]) + ']')
+
 
     root.append(channel('location', 3))
     quaternion = obj.rotation_mode == 'QUATERNION'

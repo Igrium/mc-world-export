@@ -172,11 +172,12 @@ public class CameraAnimationModule extends EventRegistrations {
             AnimatedCameraEntity camera = getCameraEntity(client.world, id);
 
             Vec3d pos = anim.getPositionAt(timeSeconds);
+            Vec3d offset = anim.getOffset();
             Rotation rot = anim.getRotationAt(timeSeconds);
             float fov = anim.getFovAt(timeSeconds);
 
-            camera.setCameraPosition(pos.x, pos.y, pos.z);
-            camera.setCameraRotation((float) rot.yaw(), (float) rot.pitch(), (float) rot.roll());
+            camera.setCameraPosition(pos.x + offset.x, pos.y + offset.y, pos.z + offset.z);
+            camera.setCameraRotation(rot);
             camera.setFov(fov);
         }
     }

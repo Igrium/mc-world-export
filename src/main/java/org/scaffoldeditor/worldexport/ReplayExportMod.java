@@ -58,7 +58,6 @@ public class ReplayExportMod implements ClientModInitializer {
         ReplayModels.registerDefaults();
         EntityRendererRegistry.register(ANIMATED_CAMERA, AnimatedCameraEntityRenderer::new);
 
-        // TODO: Make sure this only registers *after* the replay mod.
         ReplayModHooks.onReplayModInit(replayMod -> {
             cameraAnimationsModule.register();
             cameraAnimationsModule.registerKeyBindings(replayMod);
