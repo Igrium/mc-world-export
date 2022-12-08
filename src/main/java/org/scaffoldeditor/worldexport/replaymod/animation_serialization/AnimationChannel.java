@@ -25,19 +25,16 @@ public interface AnimationChannel<T> {
         return (AnimationChannel<T>) channel;
     }
 
-    public interface VectorProvidingChannel<E extends Vec3d> extends AnimationChannel<E> {
-        @Override
-        public double[] write(Vec3d value);
+    public interface VectorProvidingChannel<E extends Vec3d> extends AnimationChannel<Vec3d> {
+        E read(double... values);
     }
 
-    public interface RotationProvidingChannel<E extends Rotation> extends AnimationChannel<E> {
-        @Override
-        double[] write(Rotation value);
+    public interface RotationProvidingChannel<E extends Rotation> extends AnimationChannel<Rotation> {
+        E read(double... values);
     }
 
-    public interface ScalarProvidingChannel<E extends Number> extends AnimationChannel<E> {
-        @Override
-        double[] write(Number value);
+    public interface ScalarProvidingChannel<E extends Number> extends AnimationChannel<Number> {
+        E read(double... values);
     }
 
     public static class VectorChannel implements VectorProvidingChannel<Vec3d> {
@@ -134,6 +131,5 @@ public interface AnimationChannel<T> {
             Quaternion quat = value.quaternion();
             return new double[] { quat.getW(), quat.getX(), quat.getY(), quat.getZ() };
         }
-        
     }
 }
