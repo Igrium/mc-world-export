@@ -5,11 +5,14 @@ import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
-import org.scaffoldeditor.worldexport.util.MeshUtils;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
+import org.scaffoldeditor.worldexport.vcap.WrappedVertexConsumerProvider;
+
+import com.google.common.collect.ImmutableSet;
 
 import de.javagl.obj.Obj;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.json.ModelTransformation.Mode;
@@ -31,8 +34,14 @@ public class ReplayItemRenderer {
         if (stack.isEmpty()) return;
         
         obj.setActiveMaterialGroupName("item");
-        VertexConsumerProvider vertices = MeshUtils.wrapVertexConsumer(new ObjVertexConsumer(obj));
-        MinecraftClient.getInstance().getItemRenderer().renderItem(stack, renderMode, leftHanded, matrices, vertices, 255, 0, model);
+        // VertexConsumerProvider vertices = MeshUtils.wrapVertexConsumer(new ObjVertexConsumer(obj));
+        VertexConsumerProvider vertices = new WrappedVertexConsumerProvider(new ObjVertexConsumer(obj), null,
+                ImmutableSet.of(
+                        RenderLayer.getDirectGlint(),
+                        RenderLayer.getDirectEntityGlint()));
+
+        MinecraftClient.getInstance().getItemRenderer().renderItem(stack, renderMode, leftHanded, matrices, vertices,
+                255, 0, model);
     }
 
     /**
