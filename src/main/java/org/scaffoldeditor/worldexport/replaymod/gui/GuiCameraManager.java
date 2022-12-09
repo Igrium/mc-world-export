@@ -1,119 +1,130 @@
 package org.scaffoldeditor.worldexport.replaymod.gui;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 
-import com.replaymod.core.utils.Utils;
-import com.replaymod.lib.de.johni0702.minecraft.gui.container.AbstractGuiScreen;
+import com.replaymod.core.ReplayMod;
+import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiClickable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
-import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiElement;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
+import com.replaymod.lib.de.johni0702.minecraft.gui.function.Closeable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
-import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
-import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.GuiFileChooserPopup;
-import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.Colors;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.replay.ReplayHandler;
 
-import net.minecraft.util.crash.CrashReport;
+import net.minecraft.client.world.ClientWorld;
 
-public class GuiCameraManager extends AbstractGuiPopup<GuiCameraManager> {
+public class GuiCameraManager extends GuiScreen implements Closeable {
+    protected static final int ENTRY_WIDTH = 200;
 
-    public static GuiCameraManager openScreen(ReplayHandler handler) {
-        GuiScreen screen = new GuiScreen();
-        screen.setBackground(AbstractGuiScreen.Background.NONE);
+    public final GuiPanel contentPanel = new GuiPanel(this).setBackgroundColor(Colors.DARK_TRANSPARENT);
+    public final GuiLabel camerasLabel = new GuiLabel(contentPanel)
+            .setI18nText("worldexport.gui.allcameras");
+    public final GuiVerticalList camerasScrollable = new GuiVerticalList(contentPanel)
+            .setDrawSlider(true).setDrawShadow(true);
+    public final GuiButton importButton = new GuiButton(contentPanel)
+            .setI18nLabel("worldexport.input.importcamera");
 
-        GuiCameraManager popup = new GuiCameraManager(screen, handler);
-        popup.open();
-        screen.display();
-        return popup;
-    }
-
-    protected ReplayHandler handler;
-    protected final CameraAnimationModule cameraAnimations = CameraAnimationModule.getInstance();
-
-    public final GuiPanel contentPanel = new GuiPanel(popup).setBackgroundColor(new Color(0, 0, 0, 230));
-    public final GuiVerticalList camerasList = new GuiVerticalList(contentPanel).setDrawSlider(true);
-    public final GuiPanel buttonPanel = new GuiPanel(contentPanel).setLayout(new HorizontalLayout().setSpacing(4));
-
-    public final GuiButton cancelButton = new GuiButton(buttonPanel)
-            .setI18nLabel("replaymod.gui.cancel")
-            .setSize(100, 20)
-            .onClick(this::close);
-
-    public final GuiButton importButton = new GuiButton(buttonPanel)
-            .setLabel("Import Camera")
-            .setSize(100, 20)
-            .onClick(this::openFileChooser);
-
-    public GuiCameraManager(GuiContainer<?> container, ReplayHandler handler) {
-        super(container);
-        this.handler = handler;
-
-        camerasList.getListPanel().setLayout(new VerticalLayout().setSpacing(3));
-        contentPanel.setLayout(new CustomLayout<GuiPanel>() {
-
+    {
+        setBackground(Background.NONE);
+        setTitle(new GuiLabel().setI18nText("worldexport.gui.animatedcameras"));
+        setLayout(new CustomLayout<GuiScreen>() {
             @Override
-            protected void layout(GuiPanel container, int width, int height) {
-                size(camerasList, width - 4, height - height(buttonPanel) - 25);
-                pos(buttonPanel, width / 2 - width(buttonPanel) / 2, 5);
-                pos(camerasList, width / 2 - width(camerasList) / 2, y(buttonPanel) + height(buttonPanel) + 5);
-            }
-            
-            @Override
-            public ReadableDimension calcMinSize(GuiContainer<?> container) {
-                ReadableDimension screenSize = getContainer().getMinSize();
-                return new Dimension(screenSize.getWidth() - 120, screenSize.getHeight() - 40);
+            protected void layout(GuiScreen container, int width, int height) {
+                size(contentPanel, ENTRY_WIDTH + 30, height - 40);
+                pos(contentPanel, width / 2 - width(contentPanel) / 2, 20);
             }
         });
-        // refresh();
+        contentPanel.setLayout(new CustomLayout<GuiScreen>() {
+            @Override
+            protected void layout(GuiScreen container, int width, int height) {
+                pos(camerasLabel, 10, 10);
+                pos(camerasScrollable, 10, y(camerasLabel) + height(camerasLabel) + 5);
+                size(camerasScrollable, width - 10 - 5, height - 15 - height(importButton) - y(camerasScrollable));
+                pos(importButton, 10, height - 10 - height(importButton));
+            }
+        });
+    }
+
+    protected final CameraAnimationModule module;
+    protected final ReplayHandler handler;
+
+    public GuiCameraManager(CameraAnimationModule module, ReplayHandler handler) {
+        this.module = module;
+        this.handler = handler;
+
+        refreshList();
+        handler.getOverlay().setVisible(false);
+    }
+    
+    protected void refreshList() {
+        Map<Integer, AbstractCameraAnimation> animations = module.getAnimations(handler.getReplayFile());
+        List<Integer> ids = animations.keySet().stream().sorted().toList();
+
+        // For some reason there isn't a dedicated clear function.
+        // GuiPanel listPanel = camerasScrollable.getListPanel();
+        // Collection<GuiElement<?>> elements = Set.copyOf(listPanel.getElements().keySet());
+        // elements.forEach(listPanel::removeElement);
+        
+        for (int id : ids) {
+            AbstractCameraAnimation animation = animations.get(id);
+            GuiClickable panel = new GuiClickable().setLayout(new HorizontalLayout().setSpacing(2)).addElements(
+                    new HorizontalLayout.Data(0.5),
+                    new GuiLabel().setText(String.valueOf(id)),
+                    new GuiLabel().setText(animation.getName())
+            ).onClick(() -> {
+                AnimatedCameraEntity ent = module.getCameraEntity(
+                        (ClientWorld) handler.getCameraEntity().getWorld(), id);
+                handler.spectateEntity(ent);
+            });
+
+            new GuiPanel(camerasScrollable.getListPanel()).setLayout(new CustomLayout<GuiPanel>() {
+                @Override
+                protected void layout(GuiPanel container, int width, int height) {
+                    pos(panel, 5, 0);
+                }
+
+                @Override
+                public ReadableDimension calcMinSize(GuiContainer<?> container) {
+                    return new Dimension(ENTRY_WIDTH, panel.getMinSize().getHeight());
+                }
+            }).addElements(null, panel);
+        }
     }
 
     /**
-     * Called when the import button is clicked.
+     * Called when the import button ios clicked.
      */
     public void openFileChooser() {
         GuiFileChooserPopup chooser = GuiFileChooserPopup.openLoadGui(this, "Import Camera", "xml");
         chooser.onAccept(file -> {
             try {
-                CameraAnimationModule.getInstance().importAnimation(handler.getReplayFile(), file);
-                // refresh();
+                module.importAnimation(handler.getReplayFile(), file);
+                refreshList();
             } catch (IOException e) {
-                Utils.error(LogManager.getLogger("Camera Import"), getContainer(), CrashReport.create(e, "Importing Camera Animation"), () -> {});
+                LogManager.getLogger().error("Error importing camera animation: ", e);
+                ReplayMod.instance.printWarningToChat("worldexport.chat.camerafailed");
             }
         });
     }
 
-    @SuppressWarnings("rawtypes")
-    public void refresh() {
-        // For some reason there isn't a dedicated clear function.
-        Collection<GuiElement> elements = Set.copyOf(camerasList.getElements().keySet());
-        elements.forEach(camerasList::removeElement);
-
-        Map<Integer, AbstractCameraAnimation> anims = CameraAnimationModule.getInstance().getAnimations(handler.getReplayFile());
-        GuiElement[] newElements = anims.keySet().stream().sorted().map(id -> {
-            return new GuiLabel().setText(anims.get(id).getName());
-        }).toArray(GuiElement[]::new);
-
-        camerasList.addElements(new VerticalLayout.Data(), newElements);
-    }
-
     @Override
-    protected GuiCameraManager getThis() {
-        return this;
+    public void close() {
+        handler.getOverlay().setVisible(true);
     }
     
 }

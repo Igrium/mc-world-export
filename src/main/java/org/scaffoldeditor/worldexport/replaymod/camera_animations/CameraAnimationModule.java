@@ -106,7 +106,7 @@ public class CameraAnimationModule extends EventRegistrations {
 
     public void registerKeyBindings(ReplayMod replayMod) {
         replayMod.getKeyBindingRegistry().registerKeyBinding("worldexport.input.importcamera", 0, () -> {
-            GuiCameraManager.openScreen(currentReplay);
+            new GuiCameraManager(this, currentReplay).display();
         }, true);
     }
 

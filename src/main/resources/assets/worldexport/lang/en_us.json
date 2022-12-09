@@ -1,4 +1,7 @@
 {
     "worldexport.input.importcamera": "Import Camera",
-    "worldexport.gui.allcameras": "All Cameras"
+    "worldexport.gui.allcameras": "All Cameras",
+    "worldexport.gui.animatedcameras": "Animated Cameras",
+
+    "worldexport.chat.camerafailed": "Failed to import camera animation. See console for details."
 }
