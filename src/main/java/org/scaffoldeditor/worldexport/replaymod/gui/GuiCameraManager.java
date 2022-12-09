@@ -1,8 +1,10 @@
 package org.scaffoldeditor.worldexport.replaymod.gui;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
@@ -16,6 +18,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiElement;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Closeable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
@@ -37,7 +40,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
     public final GuiVerticalList camerasScrollable = new GuiVerticalList(contentPanel)
             .setDrawSlider(true).setDrawShadow(true);
     public final GuiButton importButton = new GuiButton(contentPanel)
-            .setI18nLabel("worldexport.input.importcamera");
+            .setI18nLabel("worldexport.input.importcamera").onClick(this::openFileChooser);
 
     {
         setBackground(Background.NONE);
@@ -49,9 +52,9 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                 pos(contentPanel, width / 2 - width(contentPanel) / 2, 20);
             }
         });
-        contentPanel.setLayout(new CustomLayout<GuiScreen>() {
+        contentPanel.setLayout(new CustomLayout<GuiPanel>() {
             @Override
-            protected void layout(GuiScreen container, int width, int height) {
+            protected void layout(GuiPanel container, int width, int height) {
                 pos(camerasLabel, 10, 10);
                 pos(camerasScrollable, 10, y(camerasLabel) + height(camerasLabel) + 5);
                 size(camerasScrollable, width - 10 - 5, height - 15 - height(importButton) - y(camerasScrollable));
@@ -76,9 +79,9 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
         List<Integer> ids = animations.keySet().stream().sorted().toList();
 
         // For some reason there isn't a dedicated clear function.
-        // GuiPanel listPanel = camerasScrollable.getListPanel();
-        // Collection<GuiElement<?>> elements = Set.copyOf(listPanel.getElements().keySet());
-        // elements.forEach(listPanel::removeElement);
+        GuiPanel listPanel = camerasScrollable.getListPanel();
+        Collection<GuiElement<?>> elements = Set.copyOf(listPanel.getElements().keySet());
+        elements.forEach(listPanel::removeElement);
         
         for (int id : ids) {
             AbstractCameraAnimation animation = animations.get(id);
@@ -107,7 +110,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
     }
 
     /**
-     * Called when the import button ios clicked.
+     * Called when the import button is clicked.
      */
     public void openFileChooser() {
         GuiFileChooserPopup chooser = GuiFileChooserPopup.openLoadGui(this, "Import Camera", "xml");
