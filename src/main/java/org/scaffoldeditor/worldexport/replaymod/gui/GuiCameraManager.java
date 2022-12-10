@@ -58,10 +58,12 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
         contentPanel.setLayout(new CustomLayout<GuiPanel>() {
             @Override
             protected void layout(GuiPanel container, int width, int height) {
+                pos(importButton, 10, height - 10 - height(importButton));
+                size(importButton, width - 10 - 5, height(importButton));
+
                 pos(camerasLabel, 10, 10);
                 pos(camerasScrollable, 10, y(camerasLabel) + height(camerasLabel) + 5);
                 size(camerasScrollable, width - 10 - 5, height - 15 - height(importButton) - y(camerasScrollable));
-                pos(importButton, 10, height - 10 - height(importButton));
             }
         });
     }
@@ -88,7 +90,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
         
         for (int id : ids) {
             AbstractCameraAnimation animation = animations.get(id);
-            GuiClickable panel = new GuiClickable().setLayout(new HorizontalLayout().setSpacing(2)).addElements(
+            GuiClickable panel = new GuiClickable().setLayout(new HorizontalLayout().setSpacing(5)).addElements(
                     new HorizontalLayout.Data(0.5),
                     new GuiLabel().setText(String.valueOf(id)),
                     new GuiLabel().setText(animation.getName())

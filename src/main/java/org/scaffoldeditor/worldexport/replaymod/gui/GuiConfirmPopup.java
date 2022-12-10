@@ -54,11 +54,11 @@ public class GuiConfirmPopup extends AbstractGuiPopup<GuiConfirmPopup> implement
             size(cancelButton, width / 2 - BUFFER * 2, 20);
             size(confirmButton, width / 2 - BUFFER * 2, 20);
 
-            pos(cancelButton, BUFFER, 0);
-            pos(confirmButton, width - BUFFER - width(confirmButton), 0);
+            pos(confirmButton, BUFFER, 0);
+            pos(cancelButton, width - BUFFER - width(cancelButton), 0);
         }
         
-    }).addElements(null, cancelButton, confirmButton).setSize(150, 20);
+    }).addElements(null, confirmButton, cancelButton).setSize(150, 20);
 
     private final GuiPanel info = new GuiPanel().setMinSize(new Dimension(320, 50))
             .setLayout(new VerticalLayout(VerticalLayout.Alignment.TOP).setSpacing(2));
