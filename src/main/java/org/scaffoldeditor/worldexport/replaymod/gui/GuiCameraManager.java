@@ -30,8 +30,11 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimensio
 import com.replaymod.replay.ReplayHandler;
 
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.Identifier;
 
 public class GuiCameraManager extends GuiScreen implements Closeable {
+    public static final Identifier TRASH_ICON = new Identifier("worldexport", "icons/trash.png");
+
     protected static final int ENTRY_WIDTH = 200;
 
     public final GuiPanel contentPanel = new GuiPanel(this).setBackgroundColor(Colors.DARK_TRANSPARENT);
@@ -94,19 +97,40 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                         (ClientWorld) handler.getCameraEntity().getWorld(), id);
                 handler.spectateEntity(ent);
             });
+            // GuiButton delete = new GuiButton().setTexture(TRASH_ICON).onClick(() -> delete(animation)).setSize(16, 16);
+            GuiIconButton<?> delete = new GuiTrashButton().onClick(() -> delete(animation));
 
             new GuiPanel(camerasScrollable.getListPanel()).setLayout(new CustomLayout<GuiPanel>() {
                 @Override
                 protected void layout(GuiPanel container, int width, int height) {
                     pos(panel, 5, 0);
+                    // size(delete, 8, 8);
+                    pos(delete, width - width(delete) - 5, height / 2 - height(delete) / 2);
                 }
 
                 @Override
                 public ReadableDimension calcMinSize(GuiContainer<?> container) {
-                    return new Dimension(ENTRY_WIDTH, panel.getMinSize().getHeight());
+                    return new Dimension(ENTRY_WIDTH, delete.getMinSize().getHeight());
                 }
-            }).addElements(null, panel);
+            }).addElements(null, panel, delete);
         }
+    }
+    
+    public void delete(AbstractCameraAnimation animation) {
+        GuiConfirmPopup.open(this,
+                "Are you sure you want to delete '" + animation.getName() + "'?")
+                .setConfirmLabel("Delete")
+                .onConfirmed(() -> deleteImpl(animation));
+        
+    }
+
+    protected void deleteImpl(AbstractCameraAnimation animation) {
+        try {
+            module.removeAnimation(handler.getReplayFile(), animation);
+        } catch (IOException e) {
+            LogManager.getLogger().error("Error removing animation from file.", e);
+        }
+        refreshList();
     }
 
     /**

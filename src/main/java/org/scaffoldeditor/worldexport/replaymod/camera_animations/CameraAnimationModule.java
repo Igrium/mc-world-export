@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -190,6 +191,42 @@ public class CameraAnimationModule extends EventRegistrations {
             Thread.currentThread().interrupt();
         }
         saveService = null;
+    }
+
+    /**
+     * Remove a collection of camera animations from the file.
+     * @param file The file to remove from.
+     * @param animations The animations to remove.
+     * @return The number of animations that were found.
+     * @throws IOException If an IO exception occurs while modifying the file.
+     */
+    public int removeAnimations(ReplayFile file, Collection<AbstractCameraAnimation> animations) throws IOException {
+        Map<Integer, AbstractCameraAnimation> anims = getAnimationsOrThrow(file);
+        BiMap<Integer, AbstractCameraAnimation> newAnims = HashBiMap.create();
+
+        int removed = 0;
+        for (int id : anims.keySet()) {
+            AbstractCameraAnimation anim = anims.get(id);
+            if (!animations.contains(anim)) {
+                newAnims.put(id, anim);
+            } else {
+                removed++;
+            }
+        }
+
+        writeAnimations(file, newAnims); 
+        return removed;
+    }
+
+    /**
+     * Renive an animation from the file.
+     * @param file The file to remove from.
+     * @param animation The animation to remove.
+     * @return If the animation was found in the file.
+     * @throws IOException If an IO exception occurs while modifying the file.
+     */
+    public boolean removeAnimation(ReplayFile file, AbstractCameraAnimation animation) throws IOException {
+        return removeAnimations(file, Collections.singleton(animation)) >= 1;
     }
 
     public AbstractCameraAnimation importAnimation(ReplayFile replayFile, File file) throws UnsupportedFileTypeException, IOException {
