@@ -7,10 +7,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModels;
 import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
-import org.scaffoldeditor.worldexport.replaymod.CameraEntityRenderer;
 import org.scaffoldeditor.worldexport.replaymod.ReplayModHooks;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
-import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityModel;
+import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityRenderer;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
@@ -20,6 +19,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.model.EntityModelLayer;
 import net.minecraft.entity.Entity;
@@ -64,8 +64,12 @@ public class ReplayExportMod implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
-        ClientCommandRegistrationCallback.EVENT.register(ExportCommand::register);
-        ClientCommandRegistrationCallback.EVENT.register(ReplayTestCommand::register);
+
+        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            ClientCommandRegistrationCallback.EVENT.register(ExportCommand::register);
+            ClientCommandRegistrationCallback.EVENT.register(ReplayTestCommand::register);
+        }
+
 
         ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
             blockUpdateListeners.forEach(listener -> listener.place(pos, state, world));
@@ -79,7 +83,7 @@ public class ReplayExportMod implements ClientModInitializer {
             cameraAnimationsModule.registerKeyBindings(replayMod);
         });
 
-        EntityModelLayerRegistry.registerModelLayer(CAMERA_MODEL_LAYER, CameraEntityModel::getTexturedModelData);
+        EntityModelLayerRegistry.registerModelLayer(CAMERA_MODEL_LAYER, CameraEntityRenderer::getTexturedModelData);
         
         // Allows you to spectate camera entity in replay editor.
         WorldRenderEvents.AFTER_SETUP.register(context -> {
