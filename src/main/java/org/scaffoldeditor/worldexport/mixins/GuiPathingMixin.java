@@ -23,19 +23,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(GuiPathing.class)
 public abstract class GuiPathingMixin {
 
-    @Shadow
-    abstract void abortPathPlayback();
+    @Shadow(remap = false)
+    private void abortPathPlayback() {
+        throw new AssertionError();
+    };
 
-    @Shadow
-    abstract Result<Timeline, String[]> preparePathsForPlayback(boolean ignoreTimeKeyframes);
+    @Shadow(remap = false)
+    private Result<Timeline, String[]> preparePathsForPlayback(boolean ignoreTimeKeyframes) {
+        throw new AssertionError();
+    };
 
-    @Shadow
+    @Shadow(remap = false)
     private ReplayHandler replayHandler;
 
-    @Shadow
+    @Shadow(remap = false)
     public GuiReplayOverlay overlay;
 
-    @Shadow
+    @Shadow(remap = false)
     public GuiPanel panel;
 
     public GuiButton exportButton;
