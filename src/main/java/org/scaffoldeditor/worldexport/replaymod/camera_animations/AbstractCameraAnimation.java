@@ -4,6 +4,7 @@ import java.util.AbstractList;
 
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
 
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -12,6 +13,8 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     protected int id;
     protected Vec3d offset = new Vec3d(0, 0, 0);
     protected String name = "[unnamed]";
+
+    protected Formatting color = Formatting.WHITE;
 
     public int getId() {
         return id;
@@ -35,6 +38,17 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
 
     public void setOffset(Vec3d offset) {
         this.offset = offset;
+    }
+
+    public Formatting getColor() {
+        return color;
+    }
+
+    public void setColor(Formatting color) {
+        if (!color.isColor()) {
+            throw new IllegalArgumentException("Only colors are allowed.");
+        }
+        this.color = color;
     }
 
     /**

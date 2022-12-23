@@ -14,6 +14,7 @@ import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.Packet;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
@@ -24,6 +25,8 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
 
     public float roll;
     public double fov;
+
+    private Formatting color = Formatting.WHITE;
 
     public AnimatedCameraEntity(EntityType<? extends AnimatedCameraEntity> type, World world) {
         super(type, world);
@@ -74,6 +77,17 @@ public class AnimatedCameraEntity extends Entity implements RollProvider, FovPro
     @Override
     protected float getEyeHeight(EntityPose pose, EntityDimensions dimensions) {
         return 0;
+    }
+
+    public Formatting getColor() {
+        return color;
+    }
+
+    public void setColor(Formatting color) {
+        if (!color.isColor()) {
+            throw new IllegalArgumentException("Only colors are allowed.");
+        }
+        this.color = color;
     }
 
     /**

@@ -43,9 +43,13 @@ public class CameraEntityRenderer extends EntityRenderer<AnimatedCameraEntity> {
         matrices.multiply(Vec3f.NEGATIVE_Y.getDegreesQuaternion(180 + entity.getYaw(tickDelta)));
         matrices.multiply(Vec3f.NEGATIVE_X.getDegreesQuaternion(entity.getPitch(tickDelta)));
         matrices.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(entity.getRoll()));
+        
+        int rgb = entity.getColor().getColorValue();
+        float r = ((rgb >> 16) & 0xFF) / 256f;
+        float g = ((rgb >> 8) & 0xFF) / 256f;
+        float b = (rgb & 0xFF) / 256f;
 
-
-        model.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV);
+        model.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, r, g, b, 1);
 
         matrices.pop();
     }

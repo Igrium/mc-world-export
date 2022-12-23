@@ -171,6 +171,7 @@ public class CameraAnimationModule extends EventRegistrations {
         for (int id : animations.keySet()) {
             AbstractCameraAnimation anim = animations.get(id);
             AnimatedCameraEntity camera = getCameraEntity(client.world, id);
+            camera.setColor(anim.getColor());
 
             Vec3d pos = anim.getPositionAt(timeSeconds);
             Vec3d offset = anim.getOffset();

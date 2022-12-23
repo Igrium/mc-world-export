@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import javax.management.modelmbean.XMLParseException;
@@ -44,6 +45,7 @@ import org.xml.sax.SAXException;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 
 public class AnimationSerializer {
@@ -61,6 +63,8 @@ public class AnimationSerializer {
 
     private DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
     private TransformerFactory transformerFactory = TransformerFactory.newInstance();
+
+    private final Random random = new Random();
 
     /**
      * Deserialize a single animation XML file.
@@ -272,11 +276,29 @@ public class AnimationSerializer {
                 throw new XMLParseException(e, "Unable to parse animation offset: " + e.getMessage());
             }
         }
+        parseColor(anim, element);
         return anim;
     }
 
     public static RotationProvidingChannel<?> getPreferredRotChannel(Rotation value) {
         return (value instanceof QuaternionRot) ? AnimationChannels.ROTATION_QUAT : AnimationChannels.ROTATION_EULER;
+    }
+
+    private static final List<Formatting> COLORS = Arrays.stream(Formatting.values()).filter(Formatting::isColor).toList();
+
+    private void parseColor(AbstractCameraAnimation animation, Element element) throws XMLParseException {
+        String colorName = element.getAttribute("preview_color");
+        if (!colorName.isEmpty()) {
+            Formatting color = Formatting.byName(colorName);
+            if (color == null) {
+                throw new XMLParseException("Unknown color: "+colorName);
+            } else if (!color.isColor()) {
+                throw new XMLParseException(color + " is not a color!");
+            }
+            animation.setColor(Formatting.byName(element.getAttribute("preview_color")));
+        } else {
+            animation.setColor(COLORS.get(random.nextInt(COLORS.size())));
+        }
     }
 
     /**
@@ -291,6 +313,7 @@ public class AnimationSerializer {
         element.setAttribute("id", String.valueOf(animation.getId()));
         element.setAttribute("name", animation.getName());
         element.setAttribute("offset", XMLUtils.writeVector(animation.getOffset()));
+        element.setAttribute("preview_color", animation.getColor().name().toLowerCase());
 
         if (animation.isEmpty()) {
             element.appendChild(dom.createElement("anim_data"));
