@@ -10,6 +10,7 @@ import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.ReplayModHooks;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityRenderer;
+import org.scaffoldeditor.worldexport.replaymod.render.CameraPathRenderer;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
@@ -51,7 +52,8 @@ public class ReplayExportMod implements ClientModInitializer {
     private final MinecraftClient client = MinecraftClient.getInstance();
 
     private Set<ClientBlockPlaceCallback> blockUpdateListeners = new HashSet<>();
-    private CameraAnimationModule cameraAnimationsModule = new CameraAnimationModule();
+    private final CameraAnimationModule cameraAnimationsModule = new CameraAnimationModule();
+    private final CameraPathRenderer cameraPathRenderer = new CameraPathRenderer(cameraAnimationsModule);
     
     public void onBlockUpdated(ClientBlockPlaceCallback listener) {
         blockUpdateListeners.add(listener);
@@ -81,6 +83,7 @@ public class ReplayExportMod implements ClientModInitializer {
         ReplayModHooks.onReplayModInit(replayMod -> {
             cameraAnimationsModule.register();
             cameraAnimationsModule.registerKeyBindings(replayMod);
+            cameraPathRenderer.register();
         });
 
         EntityModelLayerRegistry.registerModelLayer(CAMERA_MODEL_LAYER, CameraEntityRenderer::getTexturedModelData);
@@ -95,10 +98,14 @@ public class ReplayExportMod implements ClientModInitializer {
             }
         });
         
+        WorldRenderEvents.AFTER_ENTITIES.register(cameraPathRenderer::render);
     }
 
     public CameraAnimationModule getCameraAnimationsModule() {
         return cameraAnimationsModule;
     }
     
+    public CameraPathRenderer getCameraPathRenderer() {
+        return cameraPathRenderer;
+    }
 }

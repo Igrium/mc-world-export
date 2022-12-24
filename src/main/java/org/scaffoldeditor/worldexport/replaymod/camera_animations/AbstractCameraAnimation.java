@@ -67,7 +67,7 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
      * @return The length in seconds.
      */
     public double length() {
-        return size() * getFps();
+        return size() / getFps();
     }
 
     /**
