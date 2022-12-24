@@ -3,7 +3,13 @@ package org.scaffoldeditor.worldexport.replaymod.render;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 
+import net.minecraft.client.model.Dilation;
+import net.minecraft.client.model.ModelData;
 import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.ModelPartBuilder;
+import net.minecraft.client.model.ModelPartData;
+import net.minecraft.client.model.ModelTransform;
+import net.minecraft.client.model.TexturedModelData;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
@@ -18,14 +24,18 @@ import net.minecraft.util.math.Vec3f;
  */
 public class CameraModelRenderer {
 
-    public static final Identifier TEXTURE = new Identifier("replaymod", "camera_head.png");
-    // private final RenderLayer RENDER_LAYER = RenderLayer.getEntitySolid(TEXTURE);
-    private final RenderLayer RENDER_LAYER = RenderLayer.getEntityTranslucentEmissive(TEXTURE);
+    public static final Identifier TEXTURE = new Identifier("worldexport", "textures/camera.png");
+    private final RenderLayer RENDER_LAYER = RenderLayer.getEntitySolid(TEXTURE);
+    // private final RenderLayer RENDER_LAYER = RenderLayer.getEntityTranslucentEmissive(TEXTURE);
 
-    private final ModelPart model;
+    private final ModelPart root;
+    private final ModelPart main;
+    private final ModelPart tinted;
 
     public CameraModelRenderer() {
-        model = CameraEntityRenderer.getTexturedModelData().createModel();
+        root = getTexturedModelData().createModel();
+        main = root.getChild("main");
+        tinted = root.getChild("tinted");
     }
 
     public void render(AbstractCameraAnimation animation, double time, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
@@ -40,13 +50,28 @@ public class CameraModelRenderer {
         matrices.multiply(Vec3f.NEGATIVE_X.getRadialQuaternion((float) (Math.toRadians(90) - rot.pitch())));
         matrices.multiply(Vec3f.POSITIVE_Z.getRadialQuaternion((float) rot.roll()));
         
-        // int rgb = animation.getColor().getColorValue();
-        // float r = ((rgb >> 16) & 0xFF) / 256f;
-        // float g = ((rgb >> 8) & 0xFF) / 256f;
-        // float b = (rgb & 0xFF) / 256f;
+        int rgb = animation.getColor().getColorValue();
+        float r = ((rgb >> 16) & 0xFF) / 256f;
+        float g = ((rgb >> 8) & 0xFF) / 256f;
+        float b = (rgb & 0xFF) / 256f;
 
-        model.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
+        // root.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
+        main.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV);
+        tinted.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, r, g, b, 1f);
 
         matrices.pop();
+    }
+
+    public static TexturedModelData getTexturedModelData() {
+        ModelData modelData = new ModelData();
+        ModelPartData modelPartData = modelData.getRoot();
+        modelPartData.addChild("tinted",
+                ModelPartBuilder.create().uv(0, 16).cuboid(-3.0F, -3.0F, 4.0F, 6.0F, 6.0F, 1.0F, new Dilation(0.0F)),
+                ModelTransform.pivot(0.0F, 0.0F, 0.0F));
+
+        modelPartData.addChild("main",
+                ModelPartBuilder.create().uv(0, 0).cuboid(-4.0F, -4.0F, -4.0F, 8.0F, 8.0F, 8.0F, new Dilation(0.0F)),
+                ModelTransform.pivot(0.0F, 0.0F, 0.0F));
+        return TexturedModelData.of(modelData, 32, 32);
     }
 }
