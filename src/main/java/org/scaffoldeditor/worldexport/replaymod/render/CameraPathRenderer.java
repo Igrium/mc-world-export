@@ -1,18 +1,21 @@
 package org.scaffoldeditor.worldexport.replaymod.render;
 
 import java.util.Map;
+import java.util.Optional;
 
+import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
 import org.scaffoldeditor.worldexport.util.RenderUtils;
 
-import com.replaymod.core.ReplayMod;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.EventRegistrations;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replay.events.ReplayClosedCallback;
 import com.replaymod.replay.events.ReplayOpenedCallback;
+import com.replaymod.simplepathing.ReplayModSimplePathing;
 import com.replaymod.simplepathing.Setting;
+import com.replaymod.simplepathing.gui.GuiPathing;
 import com.replaymod.simplepathing.preview.PathPreviewRenderer;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
@@ -33,14 +36,17 @@ import net.minecraft.util.math.Vec3f;
 public class CameraPathRenderer extends EventRegistrations {
     private static final MinecraftClient client = MinecraftClient.getInstance();
     private final CameraAnimationModule module;
+    private final ReplayModSimplePathing simplePathing;
+    private final CameraModelRenderer modelRenderer = new CameraModelRenderer();
 
     // private static final float PATH_STEP
     private static final float MAX_DISTANCE_SQUARED = 6;
 
     private ReplayHandler replayHandler;
 
-    public CameraPathRenderer(CameraAnimationModule module) {
+    public CameraPathRenderer(CameraAnimationModule module, ReplayModSimplePathing simplePathing) {
         this.module = module;
+        this.simplePathing = simplePathing;
 
         on(ReplayOpenedCallback.EVENT, replayHandler -> {
             this.replayHandler = replayHandler;
@@ -49,6 +55,10 @@ public class CameraPathRenderer extends EventRegistrations {
         on(ReplayClosedCallback.EVENT, replayHandler -> {
             this.replayHandler = null;
         });
+    }
+
+    public CameraModelRenderer getModelRenderer() {
+        return modelRenderer;
     }
 
     public ReplayHandler getReplayHandler() {
@@ -65,6 +75,7 @@ public class CameraPathRenderer extends EventRegistrations {
      */
     public synchronized void render(WorldRenderContext context) {
         if (!shouldRender()) return;
+
         Vec3d cameraPos = context.camera().getPos();
         MatrixStack matrices = context.matrixStack();
         matrices.push();
@@ -73,6 +84,19 @@ public class CameraPathRenderer extends EventRegistrations {
         Map<Integer, AbstractCameraAnimation> animations = module.getAnimations(replayHandler.getReplayFile());
         for (AbstractCameraAnimation animation : animations.values()) {
             renderAnimPath(matrices, context.consumers(), animation);
+        }
+        
+        // Apparently Johni doesn't understand frontend / backend separation.
+        // I should *not* have to go into UI code to get this.
+        GuiPathing guiPathing = simplePathing.getGuiPathing();
+        if (guiPathing == null) return;
+        double time = guiPathing.timeline.getCursorPosition() / 1000d;
+
+        for (AbstractCameraAnimation animation : animations.values()) {
+            Optional<AnimatedCameraEntity> ent = module.optCameraEntity(client.world, animation.getId());
+            // Don't render if we're currently viewing from this camera.
+            if (ent.isPresent() && ent.get().equals(client.cameraEntity)) continue;
+            modelRenderer.render(animation, time, matrices, context.consumers(), 15);
         }
 
         matrices.pop();
@@ -92,14 +116,6 @@ public class CameraPathRenderer extends EventRegistrations {
             }
             prevPos = pos;
         }
-        // double frameTime = 1f / PATH_RESOLUTION;
-        // for (double d = 0; d < animation.length(); d += frameTime) {
-        //     Vec3f pos = new Vec3f(animation.getPositionAt(d));
-        //     if (prevPos != null) {
-        //         drawLine(matrices, consumer, prevPos, pos, color);
-        //     }
-        //     prevPos = pos;
-        // }
         
     }
 
@@ -151,7 +167,7 @@ public class CameraPathRenderer extends EventRegistrations {
     protected boolean shouldRender() {
         return (replayHandler != null
                 && !client.options.hudHidden
-                && ReplayMod.instance.getSettingsRegistry().get(Setting.PATH_PREVIEW)
+                && simplePathing.getCore().getSettingsRegistry().get(Setting.PATH_PREVIEW)
                 && replayHandler.getReplaySender().isAsyncMode());
     }
 }

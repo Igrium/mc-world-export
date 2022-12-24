@@ -136,6 +136,25 @@ public class CameraAnimationModule extends EventRegistrations {
         return camera;
     }
 
+    /**
+     * Get the animated camera entity with a specific id, only if it already exists.
+     * @param world The world to search in.
+     * @param id The camera ID.
+     * @return This camera's entity.
+     */
+    public Optional<AnimatedCameraEntity> optCameraEntity(ClientWorld world, int id) {
+        int entId = getEntId(id);
+        Entity entity = world.getEntityById(entId);
+        if (entity != null) {
+            if (!(entity instanceof AnimatedCameraEntity)) {
+                throw new IllegalStateException("A client entity was found with the id " + entId
+                        + " but it is not a camera! (" + entity.getClass().getName() + ")");
+            }
+            return Optional.of((AnimatedCameraEntity) entity);
+        }
+        return Optional.empty();
+    }
+
     private void onReplayOpened(ReplayHandler handler) throws IOException {
         currentReplay = handler;
         saveService = Executors.newSingleThreadExecutor();

@@ -14,6 +14,8 @@ import org.scaffoldeditor.worldexport.replaymod.render.CameraPathRenderer;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 
+import com.replaymod.simplepathing.ReplayModSimplePathing;
+
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
@@ -53,7 +55,7 @@ public class ReplayExportMod implements ClientModInitializer {
 
     private Set<ClientBlockPlaceCallback> blockUpdateListeners = new HashSet<>();
     private final CameraAnimationModule cameraAnimationsModule = new CameraAnimationModule();
-    private final CameraPathRenderer cameraPathRenderer = new CameraPathRenderer(cameraAnimationsModule);
+    private CameraPathRenderer cameraPathRenderer;
     
     public void onBlockUpdated(ClientBlockPlaceCallback listener) {
         blockUpdateListeners.add(listener);
@@ -83,7 +85,10 @@ public class ReplayExportMod implements ClientModInitializer {
         ReplayModHooks.onReplayModInit(replayMod -> {
             cameraAnimationsModule.register();
             cameraAnimationsModule.registerKeyBindings(replayMod);
+            cameraPathRenderer = new CameraPathRenderer(cameraAnimationsModule, ReplayModSimplePathing.instance);
             cameraPathRenderer.register();
+            
+            WorldRenderEvents.AFTER_ENTITIES.register(cameraPathRenderer::render);
         });
 
         EntityModelLayerRegistry.registerModelLayer(CAMERA_MODEL_LAYER, CameraEntityRenderer::getTexturedModelData);
@@ -97,8 +102,6 @@ public class ReplayExportMod implements ClientModInitializer {
                 }
             }
         });
-        
-        WorldRenderEvents.AFTER_ENTITIES.register(cameraPathRenderer::render);
     }
 
     public CameraAnimationModule getCameraAnimationsModule() {
