@@ -101,6 +101,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
             });
             // GuiButton delete = new GuiButton().setTexture(TRASH_ICON).onClick(() -> delete(animation)).setSize(16, 16);
             GuiIconButton<?> delete = new GuiTrashButton().onClick(() -> delete(animation));
+            GuiIconButton<?> edit = new GuiTrashButton().onClick(() -> edit(animation));
 
             new GuiPanel(camerasScrollable.getListPanel()).setLayout(new CustomLayout<GuiPanel>() {
                 @Override
@@ -108,13 +109,14 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                     pos(panel, 5, 0);
                     // size(delete, 8, 8);
                     pos(delete, width - width(delete) - 5, height / 2 - height(delete) / 2);
+                    pos(edit, width - width(delete) - width(edit) - 10, height / 2 - height(edit) / 2);
                 }
 
                 @Override
                 public ReadableDimension calcMinSize(GuiContainer<?> container) {
                     return new Dimension(ENTRY_WIDTH, delete.getMinSize().getHeight());
                 }
-            }).addElements(null, panel, delete);
+            }).addElements(null, panel, edit, delete);
         }
     }
     
@@ -124,6 +126,16 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                 .setConfirmLabel("Delete")
                 .onConfirmed(() -> deleteImpl(animation));
         
+    }
+
+    public void edit(AbstractCameraAnimation animation) {
+        new GuiEditCamera(this, animation).onSave(anim -> {
+            module.addAnimationsAsync(handler.getReplayFile(), Map.of(anim.getId(), anim)).exceptionally((e) -> {
+                LogManager.getLogger().error("Error saving camera animation: ", e);
+                ReplayMod.instance.printWarningToChat("worldexport.chat.camerasavefailed");
+                return null;
+            });
+        }).open();
     }
 
     protected void deleteImpl(AbstractCameraAnimation animation) {

@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.management.modelmbean.XMLParseException;
@@ -44,6 +45,7 @@ import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableSet;
 
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
@@ -284,7 +286,12 @@ public class AnimationSerializer {
         return (value instanceof QuaternionRot) ? AnimationChannels.ROTATION_QUAT : AnimationChannels.ROTATION_EULER;
     }
 
-    private static final List<Formatting> COLORS = Arrays.stream(Formatting.values()).filter(Formatting::isColor).toList();
+    private static final Set<Formatting> BANNED_COLORS = ImmutableSet.of(
+            Formatting.BLACK,
+            Formatting.WHITE,
+            Formatting.DARK_GRAY);
+    private static final List<Formatting> COLORS = Arrays.stream(Formatting.values())
+            .filter(color -> color.isColor() && !BANNED_COLORS.contains(color)).toList();
 
     private void parseColor(AbstractCameraAnimation animation, Element element) throws XMLParseException {
         String colorName = element.getAttribute("preview_color");

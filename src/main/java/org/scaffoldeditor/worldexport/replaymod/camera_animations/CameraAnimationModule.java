@@ -23,6 +23,7 @@ import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiCameraManager;
+import org.scaffoldeditor.worldexport.util.FutureUtils;
 import org.scaffoldeditor.worldexport.util.UnsupportedFileTypeException;
 
 import com.google.common.collect.BiMap;
@@ -321,6 +322,61 @@ public class CameraAnimationModule extends EventRegistrations {
     public Optional<AbstractCameraAnimation> getAnimation(ReplayFile file, int id) {
         return Optional.ofNullable(getAnimations(file).get(id));
     }
+
+    /**
+     * Save a set of animations to an existing replay file, in addition to the
+     * animations that were already there. If there are conflicting IDs, the new
+     * animations override the old animations.
+     * 
+     * @param file  The file.
+     * @param anims The animations.
+     * @throws IOException If an IO exception occurs while reading the file or writing the animations.
+     */
+    public void addAnimations(ReplayFile file, Map<Integer, AbstractCameraAnimation> anims) throws IOException {
+        Map<Integer, AbstractCameraAnimation> map = HashBiMap.create();
+        map.putAll(getAnimationsOrThrow(file));
+        map.putAll(anims);
+        writeAnimations(file, map);
+    }
+
+    /**
+     * <p>
+     * Save a set of animations to an existing replay file asynchronously, in
+     * addition to the animations that were already there. If there are conflicting
+     * IDs, the new animations override the old animations.
+     * </p>
+     * <p>
+     * If the file is already cached, the changes are written to the cache instantly
+     * and only the file write deferred. If not, the entire method must be run
+     * asynchronously.
+     * </p>
+     * 
+     * @param file  The file.
+     * @param anims The animations.
+     * @return A future that completes when its finished writing and fails if
+     *         there's an error.
+     * @throws IllegalStateException If the save service is not running.
+     */
+    public CompletableFuture<Void> addAnimationsAsync(ReplayFile file, Map<Integer, AbstractCameraAnimation> anims) throws IllegalStateException {
+        if (saveService == null) {
+            throw new IllegalStateException("The save service is not running!");
+        }
+        synchronized(animCache) {
+            if (animCache.containsKey(file)) {
+                // If it's cached, we can retrieve (and update) immedietly without blocking.
+                try {
+                    Map<Integer, AbstractCameraAnimation> map = HashBiMap.create(getAnimationsOrThrow(file));
+                    map.putAll(anims);
+                    return writeAnimsAsync(file, map);
+                } catch (IOException e) {
+                    return CompletableFuture.failedFuture(e);
+                }
+            } else {
+                // If not, we need to do the entire thing on the save service.
+                return FutureUtils.runAsync(() -> addAnimations(file, anims), saveService);
+            }
+        }
+    }
     
     /**
      * Write all camera animations to a replay file.
@@ -352,18 +408,12 @@ public class CameraAnimationModule extends EventRegistrations {
         if (saveService == null) {
             throw new IllegalStateException("The save service is not running!");
         }
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
         animCache.put(file, HashBiMap.create(anims));
-        saveService.submit(() -> {
-            try (OutputStream out = file.write(ENTRY_ANIMATIONS)) {
-                serializer.writeAnimations(anims, out);
-                future.complete(null);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
-            }
-        });
-        return future;
+        return FutureUtils.runAsync(() -> {
+            OutputStream out = file.write(ENTRY_ANIMATIONS);
+            serializer.writeAnimations(anims, out);
+            out.close();
+        }, client);
     }
 
     private BiMap<Integer, AbstractCameraAnimation> cacheAnimations(ReplayFile file) throws IOException {

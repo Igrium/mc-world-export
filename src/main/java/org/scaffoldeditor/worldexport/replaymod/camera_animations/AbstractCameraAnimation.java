@@ -13,6 +13,8 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     protected int id;
     protected Vec3d offset = new Vec3d(0, 0, 0);
     protected String name = "[unnamed]";
+    protected double startTime = 0;
+
 
     protected Formatting color = Formatting.WHITE;
 
@@ -49,6 +51,14 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
             throw new IllegalArgumentException("Only colors are allowed.");
         }
         this.color = color;
+    }
+
+    public double getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(double startTime) {
+        this.startTime = startTime;
     }
 
     /**

@@ -109,6 +109,9 @@ public class GuiConfirmPopup extends AbstractGuiPopup<GuiConfirmPopup> implement
         if (keyCode == Keyboard.KEY_ESCAPE) {
             cancelButton.onClick();
             return true;
+        } else if (keyCode == Keyboard.KEY_RETURN) {
+            confirmButton.onClick();
+            return true;
         }
         return false;
     }
