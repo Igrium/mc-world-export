@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GuiPathing.class)
-public abstract class GuiPathingMixin {
+public class GuiPathingMixin {
 
     @Shadow(remap = false)
     private void abortPathPlayback() {

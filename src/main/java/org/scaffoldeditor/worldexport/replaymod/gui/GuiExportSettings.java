@@ -76,7 +76,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             VideoRenderer videoRenderer = new VideoRenderer(settings, replayHandler, timeline);
             videoRenderer.renderVideo();
         } catch (Throwable e) {
-            Utils.error(LogManager.getLogger("Replay Export"), this, CrashReport.create(e, "Exporting Replay"), () -> {});
+            Utils.error(LogManager.getLogger("Replay Export"), getContainer(), CrashReport.create(e, "Exporting Replay"), () -> {});
             screen.display();
             // error(LogManager.getLogger(), this, CrashReport.create(e, "Exporting replay"), () -> {});
             // this.getScreen().display();

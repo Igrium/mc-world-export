@@ -1,0 +1,14 @@
+{
+    "worldexport.input.importcamera": "Import Camera",
+    "worldexport.gui.allcameras": "All Cameras",
+    "worldexport.gui.animatedcameras": "Animated Cameras",
+
+    "worldexport.gui.editcamera.title": "Animated Camera Properties",
+    "worldexport.gui.editcamera.id": "Camera ID",
+    "worldexport.gui.editcamera.name": "Name",
+    "worldexport.gui.editcamera.start_time": "Start Time (seconds)",
+    "worldexport.gui.editcamera.color": "Display Color",
+
+    "worldexport.chat.camerafailed": "Failed to import camera animation. See console for details.",
+    "worldexport.chat.camerasavefailed": "Failed to save camera animation. See console for details."
+}

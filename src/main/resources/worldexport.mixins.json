@@ -11,7 +11,10 @@
     "ModelPartAccessor",
     "GuiRenderSettingsMixin",
     "VideoRendererMixin",
-    "QuadrupedModelAccessor"
+    "QuadrupedModelAccessor",
+    "TimelineMixin",
+    "ReplayModMixin",
+    "GameRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
