@@ -20,14 +20,18 @@ import com.replaymod.simplepathing.preview.PathPreviewRenderer;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix3f;
 import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3f;
+import net.minecraft.world.BlockRenderView;
+import net.minecraft.world.LightType;
 
 /**
  * Renders animated cameras and their paths.
@@ -96,10 +100,17 @@ public class CameraPathRenderer extends EventRegistrations {
             Optional<AnimatedCameraEntity> ent = module.optCameraEntity(client.world, animation.getId());
             // Don't render if we're currently viewing from this camera.
             if (ent.isPresent() && ent.get().equals(client.cameraEntity)) continue;
-            modelRenderer.render(animation, time, matrices, context.consumers(), 15);
+            BlockPos pos = new BlockPos(animation.getPositionAt(time));
+
+            modelRenderer.render(animation, time, matrices, context.consumers(), getLight(pos, context.world()));
         }
 
         matrices.pop();
+    } 
+    
+    private int getLight(BlockPos pos, BlockRenderView world) {
+        return LightmapTextureManager.pack(world.getLightLevel(LightType.BLOCK, pos),
+                world.getLightLevel(LightType.SKY, pos));
     }
 
     private void renderAnimPath(MatrixStack matrices, VertexConsumerProvider vertexConsumers, AbstractCameraAnimation animation) {
