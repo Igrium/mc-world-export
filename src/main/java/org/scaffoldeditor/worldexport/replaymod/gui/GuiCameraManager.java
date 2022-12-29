@@ -79,13 +79,14 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
         handler.getOverlay().setVisible(false);
     }
     
+    @SuppressWarnings("rawtypes")
     protected void refreshList() {
         Map<Integer, AbstractCameraAnimation> animations = module.getAnimations(handler.getReplayFile());
         List<Integer> ids = animations.keySet().stream().sorted().toList();
 
         // For some reason there isn't a dedicated clear function.
         GuiPanel listPanel = camerasScrollable.getListPanel();
-        Collection<GuiElement<?>> elements = Set.copyOf(listPanel.getElements().keySet());
+        Collection<GuiElement> elements = Set.copyOf(listPanel.getElements().keySet());
         elements.forEach(listPanel::removeElement);
         
         for (int id : ids) {
