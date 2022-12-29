@@ -114,12 +114,15 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         override_channel_types[channel] = type
     
     # Parent mesh to armature
+    def attach_armature(obj: Object, armature: Object):
+        obj.parent = armature
+        mod = obj.modifiers.new('Armature', 'ARMATURE')
+        mod.object = armature
 
     if len(parsed_objs) > 0:
         if separate_parts:
             for obj in parsed_objs:
-                obj.parent = armature_obj
-                obj.parent_type = 'ARMATURE'
+                attach_armature(obj, armature_obj)
             final_objects = parsed_objs
         else:
             final_objects = []
@@ -141,8 +144,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
             bpy.ops.object.join()
             
             for obj in final_objects:
-                obj.parent = armature_obj
-                obj.parent_type = 'ARMATURE'
+                attach_armature(obj, armature_obj)
     else:
         print(f"Entity {name} has no meshes!")
     

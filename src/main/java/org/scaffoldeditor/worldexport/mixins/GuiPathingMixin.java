@@ -24,11 +24,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class GuiPathingMixin {
 
     @Shadow(remap = false)
-    private void abortPathPlayback() {};
+    private void abortPathPlayback() {
+        throw new AssertionError();
+    };
 
     @Shadow(remap = false)
     private Result<Timeline, String[]> preparePathsForPlayback(boolean ignoreTimeKeyframes) {
-        throw new IllegalStateException();
+        throw new AssertionError();
     };
 
     @Shadow(remap = false)

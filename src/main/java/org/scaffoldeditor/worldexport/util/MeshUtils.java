@@ -5,11 +5,11 @@ import javax.annotation.Nullable;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
+import org.scaffoldeditor.worldexport.vcap.WrappedVertexConsumerProvider;
 
 import de.javagl.obj.Obj;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.model.ModelPart.Cuboid;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
@@ -52,15 +52,10 @@ public final class MeshUtils {
      * Create a vertex consumer provider that always provides this vertex consumer (not suitable for rendering)
      * @param consumer The vertex consumer to use.
      * @return The generated vertex comsumer provider.
+     * @deprecated Use {@link WrappedVertexConsumerProvider} instead.
      */
+    @Deprecated
     public static VertexConsumerProvider wrapVertexConsumer(VertexConsumer consumer) {
-        return new VertexConsumerProvider() {
-
-            @Override
-            public VertexConsumer getBuffer(RenderLayer layer) {
-                return consumer;
-            }
-            
-        };
+        return new WrappedVertexConsumerProvider(consumer);
     }
 }
