@@ -36,6 +36,8 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
         return this;
     }
 
+    public final GuiLabel title = new GuiLabel().setI18nText("worldexport.gui.editcamera.title").setColor(Colors.BLACK);
+
     /*
      * INPUTS
      */
@@ -46,8 +48,9 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
     public final GuiTextField nameField = new GuiTextField().setSize(FIELD_SIZE);
     public final GuiNumberField<Double> startTimeField = new GuiDoubleField().setSize(FIELD_SIZE);
     
-    private final Formatting[] COLORS = Arrays.stream(Formatting.values())
+    private static final Formatting[] COLORS = Arrays.stream(Formatting.values())
             .filter(Formatting::isColor).toArray(Formatting[]::new);
+
     public final GuiDropdownMenu<Formatting> colorDropdown = new GuiDropdownMenu<Formatting>()
             .setToString(s -> getColorTranslation(s.getName()))
             .setValues(COLORS);
@@ -64,10 +67,10 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
     private final GuiPanel inputPanel = new GuiPanel()
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(3).setSpacingY(5))
             .addElements(new GridLayout.Data(1, 0.5),
-                    new GuiLabel().setI18nText("worldexport.gui.editcamera.id"), idField,
-                    new GuiLabel().setI18nText("worldexport.gui.editcamera.name"), nameField,
-                    new GuiLabel().setI18nText("worldexport.gui.editcamera.start_time"), startTimeField,
-                    new GuiLabel().setI18nText("worldexport.gui.editcamera.color"), colorDropdown);
+                    new GuiLabel().setI18nText("worldexport.gui.editcamera.id").setColor(Colors.BLACK), idField,
+                    new GuiLabel().setI18nText("worldexport.gui.editcamera.name").setColor(Colors.BLACK), nameField,
+                    new GuiLabel().setI18nText("worldexport.gui.editcamera.start_time").setColor(Colors.BLACK), startTimeField,
+                    new GuiLabel().setI18nText("worldexport.gui.editcamera.color").setColor(Colors.BLACK), colorDropdown);
 
     /*
      * BUTTONS
@@ -86,7 +89,7 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
     {
         setBackgroundColor(Colors.DARK_TRANSPARENT);
         popup.setLayout(new VerticalLayout().setSpacing(10))
-                .addElements(new VerticalLayout.Data(.5, false), inputPanel, buttons);
+                .addElements(new VerticalLayout.Data(.5, false), title, inputPanel, buttons);
     }
 
     @Override

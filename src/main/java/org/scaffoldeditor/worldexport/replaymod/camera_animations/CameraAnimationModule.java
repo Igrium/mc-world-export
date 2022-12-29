@@ -347,7 +347,7 @@ public class CameraAnimationModule extends EventRegistrations {
      * </p>
      * <p>
      * If the file is already cached, the changes are written to the cache instantly
-     * and only the file write deferred. If not, the entire method must be run
+     * and only the file write is deferred. If not, the entire method must be run
      * asynchronously.
      * </p>
      * 

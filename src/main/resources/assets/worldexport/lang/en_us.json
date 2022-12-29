@@ -3,6 +3,7 @@
     "worldexport.gui.allcameras": "All Cameras",
     "worldexport.gui.animatedcameras": "Animated Cameras",
 
+    "worldexport.gui.editcamera.title": "Animated Camera Properties",
     "worldexport.gui.editcamera.id": "Camera ID",
     "worldexport.gui.editcamera.name": "Name",
     "worldexport.gui.editcamera.start_time": "Start Time (seconds)",

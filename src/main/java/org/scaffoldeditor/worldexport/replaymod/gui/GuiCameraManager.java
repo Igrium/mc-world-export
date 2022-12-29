@@ -100,8 +100,8 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                 handler.spectateEntity(ent);
             });
             // GuiButton delete = new GuiButton().setTexture(TRASH_ICON).onClick(() -> delete(animation)).setSize(16, 16);
-            GuiIconButton<?> delete = new GuiTrashButton().onClick(() -> delete(animation));
-            GuiIconButton<?> edit = new GuiTrashButton().onClick(() -> edit(animation));
+            GuiIconButton<?> delete = GuiIconButtons.TRASH.create().onClick(() -> delete(animation));
+            GuiIconButton<?> edit = GuiIconButtons.PENCIL.create().onClick(() -> edit(animation));
 
             new GuiPanel(camerasScrollable.getListPanel()).setLayout(new CustomLayout<GuiPanel>() {
                 @Override
@@ -135,6 +135,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
                 ReplayMod.instance.printWarningToChat("worldexport.chat.camerasavefailed");
                 return null;
             });
+            refreshList();
         }).open();
     }
 
