@@ -24,6 +24,7 @@ import org.scaffoldeditor.worldexport.replaymod.TimelineUpdateCallback;
 import org.scaffoldeditor.worldexport.replaymod.animation_serialization.AnimationSerializer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiCameraManager;
 import org.scaffoldeditor.worldexport.util.FutureUtils;
+import org.scaffoldeditor.worldexport.util.RenderUtils;
 import org.scaffoldeditor.worldexport.util.UnsupportedFileTypeException;
 
 import com.google.common.collect.BiMap;
@@ -191,7 +192,7 @@ public class CameraAnimationModule extends EventRegistrations {
         for (int id : animations.keySet()) {
             AbstractCameraAnimation anim = animations.get(id);
             AnimatedCameraEntity camera = getCameraEntity(client.world, id);
-            camera.setColor(anim.getColor());
+            camera.setColor(RenderUtils.colorToARGB(anim.getColor()));
 
             Vec3d pos = anim.getPositionAt(timeSeconds);
             Vec3d offset = anim.getOffset();

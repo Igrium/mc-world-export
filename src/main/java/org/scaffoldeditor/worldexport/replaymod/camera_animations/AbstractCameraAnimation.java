@@ -4,7 +4,9 @@ import java.util.AbstractList;
 
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
 
-import net.minecraft.util.Formatting;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.Colors;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableColor;
+
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -16,7 +18,8 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
     protected double startTime = 0;
 
 
-    protected Formatting color = Formatting.WHITE;
+    // protected Formatting color = Formatting.WHITE;
+    protected ReadableColor color = Colors.WHITE;
 
     public int getId() {
         return id;
@@ -42,14 +45,11 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
         this.offset = offset;
     }
 
-    public Formatting getColor() {
+    public ReadableColor getColor() {
         return color;
     }
 
-    public void setColor(Formatting color) {
-        if (!color.isColor()) {
-            throw new IllegalArgumentException("Only colors are allowed.");
-        }
+    public void setColor(ReadableColor color) {
         this.color = color;
     }
 

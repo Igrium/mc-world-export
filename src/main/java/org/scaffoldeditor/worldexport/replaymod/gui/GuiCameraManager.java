@@ -93,7 +93,7 @@ public class GuiCameraManager extends GuiScreen implements Closeable {
             GuiClickable panel = new GuiClickable().setLayout(new HorizontalLayout().setSpacing(5)).addElements(
                     new HorizontalLayout.Data(0.5),
                     new GuiLabel().setText(String.valueOf(id)),
-                    new GuiLabel().setText(animation.getName())
+                    new GuiLabel().setText(animation.getName()).setColor(animation.getColor())
             ).onClick(() -> {
                 AnimatedCameraEntity ent = module.getCameraEntity(
                         (ClientWorld) handler.getCameraEntity().getWorld(), id);

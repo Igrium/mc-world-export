@@ -3,6 +3,8 @@ package org.scaffoldeditor.worldexport.replaymod.render;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableColor;
+
 import net.minecraft.client.model.Dilation;
 import net.minecraft.client.model.ModelData;
 import net.minecraft.client.model.ModelPart;
@@ -50,10 +52,10 @@ public class CameraModelRenderer {
         matrices.multiply(Vec3f.NEGATIVE_X.getRadialQuaternion((float) (Math.toRadians(90) - rot.pitch())));
         matrices.multiply(Vec3f.POSITIVE_Z.getRadialQuaternion((float) rot.roll()));
         
-        int rgb = animation.getColor().getColorValue();
-        float r = ((rgb >> 16) & 0xFF) / 256f;
-        float g = ((rgb >> 8) & 0xFF) / 256f;
-        float b = (rgb & 0xFF) / 256f;
+        ReadableColor color = animation.getColor();
+        float r = color.getRed() / 255f;
+        float g = color.getGreen() / 255f;
+        float b = color.getBlue() / 255f;
 
         // root.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, 1, 1, 1, 1);
         main.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV);

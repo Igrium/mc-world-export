@@ -114,7 +114,7 @@ public class CameraPathRenderer extends EventRegistrations {
     }
 
     private void renderAnimPath(MatrixStack matrices, VertexConsumerProvider vertexConsumers, AbstractCameraAnimation animation) {
-        int color = RenderUtils.stripAlpha(animation.getColor().getColorValue());
+        int color = RenderUtils.stripAlpha(RenderUtils.colorToARGB(animation.getColor()));
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLines());
 
         Vec3f prevPos = null;

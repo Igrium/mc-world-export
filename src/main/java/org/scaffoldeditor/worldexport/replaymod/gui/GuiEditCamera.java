@@ -1,11 +1,10 @@
 package org.scaffoldeditor.worldexport.replaymod.gui;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
-import org.scaffoldeditor.worldexport.replaymod.gui.GuiNumberField.GuiIntField;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiNumberField.GuiDoubleField;
+import org.scaffoldeditor.worldexport.replaymod.gui.GuiNumberField.GuiIntField;
 
 import com.replaymod.core.versions.MCVer.Keyboard;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
@@ -13,7 +12,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiTextField;
-import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiDropdownMenu;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiColorPicker;
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Typeable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
@@ -22,9 +21,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.Colors;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
-
-import net.minecraft.client.resource.language.I18n;
-import net.minecraft.util.Formatting;
 
 public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Typeable {
 
@@ -47,22 +43,23 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
     public final GuiNumberField<Integer> idField = new GuiIntField().setSize(FIELD_SIZE).setDisabled();
     public final GuiTextField nameField = new GuiTextField().setSize(FIELD_SIZE);
     public final GuiNumberField<Double> startTimeField = new GuiDoubleField().setSize(FIELD_SIZE);
+    public final GuiColorPicker colorPicker = new GuiColorPicker().setSize(FIELD_SIZE);
     
-    private static final Formatting[] COLORS = Arrays.stream(Formatting.values())
-            .filter(Formatting::isColor).toArray(Formatting[]::new);
+    // private static final Formatting[] COLORS = Arrays.stream(Formatting.values())
+    //         .filter(Formatting::isColor).toArray(Formatting[]::new);
 
-    public final GuiDropdownMenu<Formatting> colorDropdown = new GuiDropdownMenu<Formatting>()
-            .setToString(s -> getColorTranslation(s.getName()))
-            .setValues(COLORS);
+    // public final GuiDropdownMenu<Formatting> colorDropdown = new GuiDropdownMenu<Formatting>()
+    //         .setToString(s -> getColorTranslation(s.getName()))
+    //         .setValues(COLORS);
     
-    private static String getColorTranslation(String colorName) {
-        String key = "worldexport.gui.color."+colorName;
-        if (I18n.hasTranslation(key)) {
-            return I18n.translate(key);
-        } else {
-            return colorName;
-        }
-    }
+    // private static String getColorTranslation(String colorName) {
+    //     String key = "worldexport.gui.color."+colorName;
+    //     if (I18n.hasTranslation(key)) {
+    //         return I18n.translate(key);
+    //     } else {
+    //         return colorName;
+    //     }
+    // }
 
     private final GuiPanel inputPanel = new GuiPanel()
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(3).setSpacingY(5))
@@ -70,7 +67,7 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
                     new GuiLabel().setI18nText("worldexport.gui.editcamera.id").setColor(Colors.BLACK), idField,
                     new GuiLabel().setI18nText("worldexport.gui.editcamera.name").setColor(Colors.BLACK), nameField,
                     new GuiLabel().setI18nText("worldexport.gui.editcamera.start_time").setColor(Colors.BLACK), startTimeField,
-                    new GuiLabel().setI18nText("worldexport.gui.editcamera.color").setColor(Colors.BLACK), colorDropdown);
+                    new GuiLabel().setI18nText("worldexport.gui.editcamera.color").setColor(Colors.BLACK), colorPicker);
 
     /*
      * BUTTONS
@@ -104,7 +101,8 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
         idField.setValue(animation.getId());
         nameField.setText(animation.getName());
         startTimeField.setValue(animation.getStartTime());
-        colorDropdown.setSelected(animation.getColor());
+        colorPicker.setColor(animation.getColor());
+        // colorDropdown.setSelected(animation.getColor());
 
         startTimeField.onTextChanged(str -> {
             saveButton.setEnabled(startTimeField.isValid());
@@ -126,7 +124,7 @@ public class GuiEditCamera extends AbstractGuiPopup<GuiEditCamera> implements Ty
     public void save() {
         animation.setName(nameField.getText());
         animation.setStartTime(startTimeField.doubleValue());
-        animation.setColor(colorDropdown.getSelectedValue());
+        animation.setColor(colorPicker.getColor());
 
         close();
         onSave.accept(animation);

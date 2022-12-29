@@ -14,7 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.management.modelmbean.XMLParseException;
@@ -36,8 +35,9 @@ import org.scaffoldeditor.worldexport.replaymod.animation_serialization.Animatio
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationImpl;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
+import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
+import org.scaffoldeditor.worldexport.util.RenderUtils;
 import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -45,9 +45,8 @@ import org.xml.sax.SAXException;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableSet;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
 
-import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 
 public class AnimationSerializer {
@@ -286,26 +285,23 @@ public class AnimationSerializer {
         return (value instanceof QuaternionRot) ? AnimationChannels.ROTATION_QUAT : AnimationChannels.ROTATION_EULER;
     }
 
-    private static final Set<Formatting> BANNED_COLORS = ImmutableSet.of(
-            Formatting.BLACK,
-            Formatting.WHITE,
-            Formatting.DARK_GRAY);
-    private static final List<Formatting> COLORS = Arrays.stream(Formatting.values())
-            .filter(color -> color.isColor() && !BANNED_COLORS.contains(color)).toList();
-
     private void parseColor(AbstractCameraAnimation animation, Element element) throws XMLParseException {
-        String colorName = element.getAttribute("preview_color");
-        if (!colorName.isEmpty()) {
-            Formatting color = Formatting.byName(colorName);
-            if (color == null) {
-                throw new XMLParseException("Unknown color: "+colorName);
-            } else if (!color.isColor()) {
-                throw new XMLParseException(color + " is not a color!");
+        String colorHex = element.getAttribute("preview_color");
+        if (!colorHex.isEmpty()) {
+            try {
+                int colorInt = RenderUtils.stripAlpha((int) Long.parseLong(colorHex, 16));
+                animation.setColor(RenderUtils.argbToColor(colorInt, new Color()));
+            } catch (NumberFormatException e) {
+                LogManager.getLogger().error("Illegal color hex: "+colorHex, e);
+                animation.setColor(randomColor());
             }
-            animation.setColor(Formatting.byName(element.getAttribute("preview_color")));
         } else {
-            animation.setColor(COLORS.get(random.nextInt(COLORS.size())));
+            animation.setColor(randomColor());
         }
+    }
+
+    private Color randomColor() {
+        return RenderUtils.hsvToColor(random.nextFloat(), .6f, 1f, new Color());
     }
 
     /**
@@ -320,7 +316,7 @@ public class AnimationSerializer {
         element.setAttribute("id", String.valueOf(animation.getId()));
         element.setAttribute("name", animation.getName());
         element.setAttribute("offset", XMLUtils.writeVector(animation.getOffset()));
-        element.setAttribute("preview_color", animation.getColor().name().toLowerCase());
+        element.setAttribute("preview_color", Integer.toHexString(RenderUtils.colorToARGB(animation.getColor())));
 
         if (animation.isEmpty()) {
             element.appendChild(dom.createElement("anim_data"));
