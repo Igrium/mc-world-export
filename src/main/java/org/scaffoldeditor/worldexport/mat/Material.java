@@ -2,9 +2,9 @@ package org.scaffoldeditor.worldexport.mat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -15,10 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 
-import org.apache.commons.io.IOUtils;
 import org.joml.Vector3dc;
-import org.scaffoldeditor.worldexport.mat.Field.FieldDeserializer;
-import org.scaffoldeditor.worldexport.mat.Field.FieldSerializer;
 
 /**
  * Represents a simple material that can be imported into Blender.
@@ -79,23 +76,26 @@ public class Material {
     private Field roughness;
     private Field metallic;
     private Field normal;
+    private Field emission;
+
+    private float emissionStrength;
 
     private Set<String> tags = new HashSet<>();
     private Map<String, String> overrides = new HashMap<>();
 
-    public Set<String> getTags() {
+    public Set<String> tags() {
         return tags;
     }
 
-    public Map<String, String> getOverrides() {
+    public Map<String, String> overrides() {
         return overrides;
     }
 
     /**
      * Add a material override to this material. Material overrides allow attributes to be controlled per-object.
      * @param field The field to add the override to.
-     * @param value The 
-     * @return
+     * @param value The The override name.
+     * @return <code>this</code>
      */
     public Material addOverride(String field, String value) {
         overrides.put(field, value);
@@ -182,6 +182,22 @@ public class Material {
         return this;
     }
 
+    public Field getEmission() {
+        return emission;
+    }
+
+    public void setEmission(Field emissive) {
+        this.emission = emissive;
+    }
+
+    public float getEmissionStrength() {
+        return emissionStrength;
+    }
+
+    public void setEmissionStrength(float emissionStrength) {
+        this.emissionStrength = emissionStrength;
+    }
+
     @Deprecated
     public boolean getTransparent() {
         return blendMode != AlphaMode.OPAQUE;
@@ -200,15 +216,14 @@ public class Material {
         this.blendMode = blendMode;
         return this;
     }
+
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+            .create();
     
     public String serialize() {
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Field.class, new FieldSerializer())
-                .setPrettyPrinting()
-                .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                .create();
-
-        return gson.toJson(this);
+        return GSON.toJson(this);
     }
 
     public void serialize(OutputStream out) {
@@ -218,14 +233,10 @@ public class Material {
     }
 
     public static Material load(String src) throws JsonParseException {
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Field.class, new FieldDeserializer())
-                .create();
-        
-        return gson.fromJson(src, Material.class);
+        return GSON.fromJson(src, Material.class);
     }
 
     public static Material load(InputStream is) throws IOException, JsonParseException {
-        return load(IOUtils.toString(is, Charset.forName("UTF-8")));
+        return GSON.fromJson(new InputStreamReader(is), Material.class);
     }
 }

@@ -10,10 +10,12 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.JsonAdapter;
 
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
 
+@JsonAdapter(FieldJsonAdapter.class)
 public class Field {
     public enum FieldType {
         SCALAR, VECTOR, TEXTURE
@@ -58,50 +60,48 @@ public class Field {
         return this.texture;
     }
 
-    public static class FieldSerializer implements JsonSerializer<Field> {
+}
 
-        public JsonElement serialize(Field src, Type typeOfSrc, JsonSerializationContext context) {
-            switch(src.mode) {
-                case SCALAR:
-                    return new JsonPrimitive(src.getScalar());
-                case VECTOR:
-                    JsonArray array = new JsonArray();
-                    Vector3dc vec = src.getVector();
-                    array.add(vec.x()); array.add(vec.y()); array.add(vec.z());
+class FieldJsonAdapter implements JsonDeserializer<Field>, JsonSerializer<Field> {
 
-                    return array;
-                case TEXTURE:
-                    return new JsonPrimitive(src.getTexture());
-                default:
-                    throw new RuntimeException("Somehow, the field has an unknown value type.");
-            }
+    @Override
+    public Field deserialize(JsonElement src, Type typeOfSrc, JsonDeserializationContext context)
+            throws JsonParseException {
+        if (src.isJsonArray()) {
+            JsonArray array = src.getAsJsonArray();
+            return new Field(
+                new Vector3d(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble())
+            );
+        }
+        if (!src.isJsonPrimitive()) {
+            throw new JsonParseException("Field must be an array, a string, or a number.");
+        }
+
+        if (src.getAsJsonPrimitive().isNumber()) {
+            return new Field(src.getAsDouble());
+        } else if (src.getAsJsonPrimitive().isString()) {
+            return new Field(src.getAsString());
+        } else {
+            throw new JsonParseException("Field must be an array, a string, or a number.");
         }
     }
 
-    public static class FieldDeserializer implements JsonDeserializer<Field> {
+    @Override
+    public JsonElement serialize(Field src, Type typeOfSrc, JsonSerializationContext context) {
+        switch(src.mode) {
+            case SCALAR:
+                return new JsonPrimitive(src.getScalar());
+            case VECTOR:
+                JsonArray array = new JsonArray();
+                Vector3dc vec = src.getVector();
+                array.add(vec.x()); array.add(vec.y()); array.add(vec.z());
 
-        @Override
-        public Field deserialize(JsonElement src, Type typeOfSrc, JsonDeserializationContext context)
-                throws JsonParseException {
-            if (src.isJsonArray()) {
-                JsonArray array = src.getAsJsonArray();
-                return new Field(
-                    new Vector3d(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble())
-                );
-            }
-            if (!src.isJsonPrimitive()) {
-                throw new JsonParseException("Field must be an array, a string, or a number.");
-            }
-
-            if (src.getAsJsonPrimitive().isNumber()) {
-                return new Field(src.getAsDouble());
-            } else if (src.getAsJsonPrimitive().isString()) {
-                return new Field(src.getAsString());
-            } else {
-                throw new JsonParseException("Field must be an array, a string, or a number.");
-            }
+                return array;
+            case TEXTURE:
+                return new JsonPrimitive(src.getTexture());
+            default:
+                throw new RuntimeException("Unknown value type: "+src.mode);
         }
-        
     }
-
+    
 }

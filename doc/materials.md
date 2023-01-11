@@ -30,6 +30,10 @@ As of this specification, the attributes available to control the material are a
 
 - `normal` (field, default: `[0.5, 0.5, 1.0]`): The material's OpenGL-formatted normal map.
 
+- `emission` (field, default: `0`): The PBR emission of the material.
+
+- `emission_strength` (float, default: `1.0`): A uniform "multiplier" to apply to the emission channel.
+
 - `blend_mode` (string, default: `"opaque"`): The alpha blending mode to use on this material. Implementation depends on render engine.
   
   - Must be one of `opaque`, `clip`, `hashed` or `blend`.

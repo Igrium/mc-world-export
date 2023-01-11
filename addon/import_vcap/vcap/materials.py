@@ -12,6 +12,8 @@ COLOR = 0
 ALPHA = 21
 ROUGHNESS = 9
 METALLIC = 6
+EMISSION = 19
+EMISSION_STRENGTH = 20
 NORMAL = 22
 
 VERTEX_COLOR = "$VERTEX_COLOR"
@@ -229,6 +231,11 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
     
     load_field('roughness', principled_node, ROUGHNESS, True)
     load_field('metallic', principled_node, METALLIC, True)
+    load_field('emission', principled_node, EMISSION, False)
+    # This isn't TECHNICALLY a field, but implementing it as a field
+    # makes it a superset of the spec, so it's fine.
+    load_field('emission_strength', principled_node, EMISSION_STRENGTH, True)
+    
     if 'normal' in obj and isinstance(obj['normal'], str):
         normal = node_tree.nodes.new('ShaderNodeNormalMap')
         node_tree.links.new(normal.outputs[0], principled_node.inputs[NORMAL])
