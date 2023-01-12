@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import org.scaffoldeditor.worldexport.util.ThreadUtils;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.AbstractTexture;
@@ -52,12 +52,7 @@ public class PromisedReplayTexture implements ReplayTexture {
      * Extract the texture from the GPU on the next frame.
      */
     public CompletableFuture<Void> extractLater() {
-        if (RenderSystem.isOnRenderThread()) {
-            extract();
-            return CompletableFuture.completedFuture(null);
-        } else {
-            return CompletableFuture.runAsync(this::extract, MinecraftClient.getInstance());
-        }
+        return ThreadUtils.onRenderThread(this::extract);
     }
 
     @Override
