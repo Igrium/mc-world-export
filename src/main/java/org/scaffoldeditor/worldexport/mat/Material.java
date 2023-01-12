@@ -190,6 +190,18 @@ public class Material {
         this.emission = emissive;
     }
 
+    public void setEmission(float scalar) {
+        this.emission = new Field(scalar);
+    }
+
+    public void setEmission(String texture) {
+        this.emission = new Field(texture);
+    }
+
+    public void setEmission(Vector3dc vector) {
+        this.emission = new Field(vector);
+    }
+
     public float getEmissionStrength() {
         return emissionStrength;
     }

@@ -8,8 +8,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
+
+import com.google.common.collect.BiMap;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
@@ -25,10 +28,10 @@ import net.minecraft.util.math.random.Random;
 public final class MeshWriter {
     private MeshWriter() {}
 
-    public static final String WORLD_MAT = "world";
-    public static final String TRANSPARENT_MAT = "world_transparent";
-    public static final String TINTED_MAT = "world_tinted";
-    public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
+    // public static final String WORLD_MAT = "world";
+    // public static final String TRANSPARENT_MAT = "world_transparent";
+    // public static final String TINTED_MAT = "world_tinted";
+    // public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
     public static final String EMPTY_MESH = "empty";
 
     public static class MeshInfo {
@@ -46,11 +49,12 @@ public final class MeshWriter {
     }
     
 
-    public static MeshInfo writeBlockMesh(ModelEntry entry, Random random) {
+    public static MeshInfo writeBlockMesh(ModelEntry entry, Random random, Consumer<VcapWorldMaterial> materialConsumer) {
         Obj obj = Objs.create();
         BakedModel model = entry.model();
         BlockState blockState = entry.blockState();
         boolean transparent = entry.transparent();
+        boolean emissive = entry.emissive();
 
         List<Set<float[]>> fLayers = new ArrayList<>();
 
@@ -58,14 +62,14 @@ public final class MeshWriter {
             if (!entry.isFaceVisible(direction)) continue;
             List<BakedQuad> quads = model.getQuads(blockState, direction, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, transparent, fLayers);
+                addFace(quad, obj, transparent, emissive, fLayers, materialConsumer);
             }
         }
         {
             // Quads that aren't assigned to a direction.
             List<BakedQuad> quads = model.getQuads(blockState, null, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, transparent, fLayers);
+                addFace(quad, obj, transparent, emissive, fLayers, materialConsumer);
             }
         }
         return new MeshInfo(obj, fLayers.size());
@@ -79,21 +83,25 @@ public final class MeshWriter {
      * @param fLayers A list of lists of 12-float arrays indicating what quads already exist. Used for material stacking.
      * @return The face layer index this face was added to.
      */
-    public static int addFace(BakedQuad quad, Obj obj, boolean transparent, @Nullable List<Set<float[]>> fLayers) {
+    public static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
+            @Nullable List<Set<float[]>> fLayers, Consumer<VcapWorldMaterial> materialConsumer) {
 
-        if (transparent) {
-            if (quad.hasColor()) {
-                obj.setActiveMaterialGroupName(TRANSPARENT_TINTED_MAT);
-            } else {
-                obj.setActiveMaterialGroupName(TRANSPARENT_MAT);
-            }
-        } else {
-            if (quad.hasColor()) {
-                obj.setActiveMaterialGroupName(TINTED_MAT);
-            } else {
-                obj.setActiveMaterialGroupName(WORLD_MAT);
-            }
-        }
+        // if (transparent) {
+        //     if (quad.hasColor()) {
+        //         obj.setActiveMaterialGroupName(TRANSPARENT_TINTED_MAT);
+        //     } else {
+        //         obj.setActiveMaterialGroupName(TRANSPARENT_MAT);
+        //     }
+        // } else {
+        //     if (quad.hasColor()) {
+        //         obj.setActiveMaterialGroupName(TINTED_MAT);
+        //     } else {
+        //         obj.setActiveMaterialGroupName(WORLD_MAT);
+        //     }
+        // }
+        VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
+        materialConsumer.accept(mat);
+        obj.setActiveMaterialGroupName(mat.getName());
 
         int[] vertData = quad.getVertexData();
 

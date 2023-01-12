@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.vcap.ModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
@@ -41,12 +42,29 @@ public final class BlockExporter {
             Direction.DOWN };
     
     static final MinecraftClient client = MinecraftClient.getInstance();
+    /**
+     * The minimum light value at which blocks will be considered emissive.
+     */
+    public static final int EMISSIVE_THRESHOLD = 4;
     
     public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
         NbtCompound tag = new NbtCompound();
         tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer));
         NbtIo.writeCompressed(tag, os);
+    }
+
+    /**
+     * Prepare elements of a model entry that aren't dependend on position in the world.
+     * @param state Block state to use.
+     * @return The generated builder.
+     */
+    public static ModelEntry.Builder prepareEntry(BlockState state) {
+        BlockRenderManager dispatcher = client.getBlockRenderManager();
+        ModelEntry.Builder builder = new Builder(dispatcher.getModel(state), state);
+        builder.transparent(!state.isOpaque());
+        builder.emissive(state.getLuminance() >= EMISSIVE_THRESHOLD);
+        return builder;
     }
 
     public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
@@ -83,13 +101,10 @@ public final class BlockExporter {
     public static String exportBlock(WorldAccess world, BlockPos pos, ExportContext context) {
         BlockState state = world.getBlockState(pos);
         String id;
-        BlockRenderManager dispatcher = client.getBlockRenderManager();
 
-        ModelEntry.Builder builder = new ModelEntry.Builder(dispatcher.getModel(state), state)
-                .transparent(!state.isOpaque());
+        ModelEntry.Builder builder = prepareEntry(state);
 
         BlockPos.Mutable mutable = pos.mutableCopy();
-
         for (Direction direction : Direction.values()) {
             mutable.set(pos, direction);
             builder.face(direction, Block.shouldDrawSide(state, world, pos, direction, mutable));
@@ -118,7 +133,6 @@ public final class BlockExporter {
     private static NbtCompound writeSection(ChunkSection section, WorldAccess world,
             int sectionX, int sectionY, int sectionZ, ExportContext context, @Nullable FluidConsumer fluidConsumer) {
 
-        BlockRenderManager dispatcher = client.getBlockRenderManager();
         LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
 
         NbtCompound tag = new NbtCompound();
@@ -157,8 +171,7 @@ public final class BlockExporter {
 
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
-                        ModelEntry.Builder builder = new ModelEntry.Builder(dispatcher.getModel(state), state)
-                                .transparent(!state.isOpaque());
+                        ModelEntry.Builder builder = prepareEntry(state);
 
                         for (Direction direction : Direction.values()) {
                             mutable.set(worldPos, direction);

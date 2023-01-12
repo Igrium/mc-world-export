@@ -33,6 +33,7 @@ import org.scaffoldeditor.worldexport.vcap.PFrame;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
 import org.scaffoldeditor.worldexport.vcap.VcapMeta;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings;
+import org.scaffoldeditor.worldexport.vcap.VcapWorldMaterial;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
@@ -163,7 +164,7 @@ public class VcapExporter {
             String id = context.models.get(model);
             LOGGER.debug("Writing mesh: "+id);
 
-            MeshInfo info = MeshWriter.writeBlockMesh(model, random);
+            MeshInfo info = MeshWriter.writeBlockMesh(model, random, context.worldMaterials::add);
             writeMesh(info.mesh, id, out);
 
             if (info.numLayers > numLayers) {
@@ -180,41 +181,46 @@ public class VcapExporter {
         writeMesh(MeshWriter.empty().mesh, MeshWriter.EMPTY_MESH, out);
 
         // MATERIALS
-        Material opaque = new Material();
-        opaque.setColor("world");
-        opaque.setRoughness(1);
+        for (VcapWorldMaterial mat : context.worldMaterials) {
+            out.putNextEntry(new ZipEntry("mat/"+mat.getName()+".json"));
+            mat.genMaterial().serialize(out);
+            out.closeEntry();
+        }
+        // Material opaque = new Material();
+        // opaque.setColor("world");
+        // opaque.setRoughness(1);
         
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
-        opaque.serialize(out);
-        out.closeEntry();
+        // out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
+        // opaque.serialize(out);
+        // out.closeEntry();
 
-        Material transparent = new Material();
-        transparent.setColor("world");
-        transparent.setRoughness(1);
-        transparent.setTransparent(true);
+        // Material transparent = new Material();
+        // transparent.setColor("world");
+        // transparent.setRoughness(1);
+        // transparent.setTransparent(true);
 
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
-        transparent.serialize(out);
-        out.closeEntry();
+        // out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
+        // transparent.serialize(out);
+        // out.closeEntry();
 
-        Material opaque_tinted = new Material();
-        opaque_tinted.setColor("world");
-        opaque_tinted.setRoughness(1);
-        opaque_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
+        // Material opaque_tinted = new Material();
+        // opaque_tinted.setColor("world");
+        // opaque_tinted.setRoughness(1);
+        // opaque_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
 
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
-        opaque_tinted.serialize(out);
-        out.closeEntry();
+        // out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
+        // opaque_tinted.serialize(out);
+        // out.closeEntry();
 
-        Material transparent_tinted = new Material();
-        transparent_tinted.setColor("world");
-        transparent_tinted.setRoughness(1);
-        transparent_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
-        transparent_tinted.setTransparent(true);
+        // Material transparent_tinted = new Material();
+        // transparent_tinted.setColor("world");
+        // transparent_tinted.setRoughness(1);
+        // transparent_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
+        // transparent_tinted.setTransparent(true);
 
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_TINTED_MAT+".json"));
-        transparent_tinted.serialize(out);
-        out.closeEntry();
+        // out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_TINTED_MAT+".json"));
+        // transparent_tinted.serialize(out);
+        // out.closeEntry();
 
         // TEXTURE ATLAS
         CompletableFuture<NativeImage> textureExtraction = new CompletableFuture<>();

@@ -33,7 +33,7 @@ public final class LegacyFluidHandler {
         }
 
         Obj mesh = Objs.create();
-        mesh.setActiveMaterialGroupName(MeshWriter.TRANSPARENT_TINTED_MAT);
+        // mesh.setActiveMaterialGroupName(MeshWriter.TRANSPARENT_TINTED_MAT);
         Vec3d offset = new Vec3d(-(worldPos.getX() & 15), -(worldPos.getY() & 15), -(worldPos.getZ() & 15));
         ObjVertexConsumer consumer = new ObjVertexConsumer(mesh, offset);
 

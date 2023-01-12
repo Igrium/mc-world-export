@@ -10,6 +10,7 @@ import org.scaffoldeditor.worldexport.util.MeshComparator;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
+import org.scaffoldeditor.worldexport.vcap.VcapWorldMaterial;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
@@ -126,7 +127,9 @@ public class FluidDomain {
         MinecraftClient client = MinecraftClient.getInstance();
 
         Obj mesh = Objs.create();
-        mesh.setActiveMaterialGroupName(MeshWriter.TRANSPARENT_TINTED_MAT);
+        VcapWorldMaterial material = new VcapWorldMaterial(true, true, false);
+        context.worldMaterials.add(material);
+        mesh.setActiveMaterialGroupName(material.getName());
 
         ObjVertexConsumer consumer = new ObjVertexConsumer(mesh);
 

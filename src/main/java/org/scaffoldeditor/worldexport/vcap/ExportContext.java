@@ -1,7 +1,9 @@
 package org.scaffoldeditor.worldexport.vcap;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +33,11 @@ public class ExportContext {
      * The fluid meshes in the export context.
      */
     public final BiMap<String, Obj> extraModels = HashBiMap.create();
+
+    /**
+     * A set of world materials used in this vcap.
+     */
+    public final Set<VcapWorldMaterial> worldMaterials = new HashSet<>();
 
     private VcapSettings settings = new VcapSettings();
     private MeshComparator meshComparator = new MeshComparator();
