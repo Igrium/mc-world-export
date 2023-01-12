@@ -10,7 +10,6 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
@@ -18,7 +17,6 @@ import de.javagl.obj.Obj;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.nbt.NbtByteArray;
@@ -87,18 +85,17 @@ public final class BlockExporter {
         String id;
         BlockRenderManager dispatcher = client.getBlockRenderManager();
 
+        ModelEntry.Builder builder = new ModelEntry.Builder(dispatcher.getModel(state), state)
+                .transparent(!state.isOpaque());
 
         BlockPos.Mutable mutable = pos.mutableCopy();
-        boolean[] faces = new boolean[6];
 
-        for (int i = 0; i < DIRECTIONS.length; i++) {
-            Direction direction = DIRECTIONS[i];
+        for (Direction direction : Direction.values()) {
             mutable.set(pos, direction);
-            faces[i] = Block.shouldDrawSide(state, world, pos, direction, mutable);
+            builder.face(direction, Block.shouldDrawSide(state, world, pos, direction, mutable));
         }
 
-        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-        id = context.getID(entry, BlockModels.getModelId(state).toString());
+        id = context.getID(builder.build());
 
         return id;
     }
@@ -160,16 +157,15 @@ public final class BlockExporter {
 
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
-                        boolean[] faces = new boolean[6];
-    
-                        for (int i = 0; i < DIRECTIONS.length; i++) {
-                            Direction direction = DIRECTIONS[i];
+                        ModelEntry.Builder builder = new ModelEntry.Builder(dispatcher.getModel(state), state)
+                                .transparent(!state.isOpaque());
+
+                        for (Direction direction : Direction.values()) {
                             mutable.set(worldPos, direction);
-                            faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
+                            builder.face(direction, Block.shouldDrawSide(state, world, worldPos, direction, mutable));
                         }
-    
-                        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-                        id = context.getID(entry, BlockModels.getModelId(state).toString());
+
+                        id = context.getID(builder.build());
                     }
                     
                     int color = client.getBlockColors().getColor(state, world, worldPos, 0);

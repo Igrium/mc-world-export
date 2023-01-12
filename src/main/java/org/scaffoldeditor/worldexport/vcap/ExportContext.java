@@ -1,13 +1,10 @@
 package org.scaffoldeditor.worldexport.vcap;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
 
@@ -15,8 +12,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 
 import de.javagl.obj.Obj;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
@@ -24,53 +21,6 @@ import net.minecraft.util.registry.Registry;
  * Contains various values passed around throughout the export process.
  */
 public class ExportContext {
-    public static class ModelEntry {
-        /**
-         * The baked model to use.
-         */
-        public final BakedModel model;
-
-        /**
-         * A 6-element array dictating which faces are visible,
-         * in the order NORTH, SOUTH, EAST, WEST, UP, DOWN
-         */
-        public final boolean[] faces;
-
-        public final boolean transparent;
-
-        @Nullable
-        public final BlockState blockState;
-
-        /**
-         * Create a model entry.
-         * @param model The baked model to use.
-         * @param faces A 6-element array dictating which faces are visible,
-         * in the order NORTH, SOUTH, EAST, WEST, UP, DOWN
-         * @param blockState The blockstate of the model.
-         */
-        public ModelEntry(BakedModel model, boolean[] faces, boolean transparent, @Nullable BlockState blockState) {
-            this.model = model;
-            this.faces = faces;
-            this.transparent = transparent;
-            this.blockState = blockState;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(model, Arrays.hashCode(faces), hashBlock(blockState));
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return hashCode() == obj.hashCode();
-        }
-
-        private static int hashBlock(BlockState state) {
-            Identifier id = Registry.BLOCK.getId(state.getBlock());
-            return Objects.hash(id, state.getEntries());
-        }
-    
-    }
 
     /**
      * The model entries in the cache and their IDs.
@@ -135,11 +85,17 @@ public class ExportContext {
     public synchronized String getID(ModelEntry entry, String name) {
         String id = models.get(entry);
         if (id == null) {
-            if (name == null) name = String.valueOf(entry.model.hashCode());
-            id = makeNameUnique(name+Arrays.toString(entry.faces));
+            if (name == null) name = genName(entry.blockState());
+            id = makeNameUnique(name + "." + Integer.toHexString(entry.faces()));
             models.put(entry, id);
         }
         return id;
+    }
+
+    private String genName(BlockState state) {
+        Identifier id = Registry.BLOCK.getId(state.getBlock());
+        int stateId = Block.getRawIdFromState(state);
+        return id.toUnderscoreSeparatedString() + "#" + Integer.toHexString(stateId);
     }
 
     public synchronized String makeNameUnique(String name) {
@@ -162,7 +118,7 @@ public class ExportContext {
      */
     public void getIDMapping(Map<String, String> map) {
         for (ModelEntry entry : models.keySet()) {
-            map.put(models.get(entry), Registry.BLOCK.getId(entry.blockState.getBlock()).toString());
+            map.put(models.get(entry), Registry.BLOCK.getId(entry.blockState().getBlock()).toString());
         }
     }
 

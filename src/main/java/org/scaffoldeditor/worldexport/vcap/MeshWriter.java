@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;
 import de.javagl.obj.Objs;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
@@ -48,21 +48,24 @@ public final class MeshWriter {
 
     public static MeshInfo writeBlockMesh(ModelEntry entry, Random random) {
         Obj obj = Objs.create();
-        BakedModel model = entry.model;
+        BakedModel model = entry.model();
+        BlockState blockState = entry.blockState();
+        boolean transparent = entry.transparent();
 
         List<Set<float[]>> fLayers = new ArrayList<>();
-        for (int d = 0; d < BlockExporter.DIRECTIONS.length; d++) {
-            if (!entry.faces[d]) continue;
-            Direction direction = BlockExporter.DIRECTIONS[d];
-            List<BakedQuad> quads = model.getQuads(entry.blockState, direction, random);
+
+        for (Direction direction : Direction.values()) {
+            if (!entry.isFaceVisible(direction)) continue;
+            List<BakedQuad> quads = model.getQuads(blockState, direction, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, entry.transparent, fLayers);
+                addFace(quad, obj, transparent, fLayers);
             }
         }
-        {   // Quads that aren't assigned to a direction.   
-            List<BakedQuad> quads = model.getQuads(entry.blockState, null, random);
+        {
+            // Quads that aren't assigned to a direction.
+            List<BakedQuad> quads = model.getQuads(blockState, null, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, entry.transparent, fLayers);
+                addFace(quad, obj, transparent, fLayers);
             }
         }
         return new MeshInfo(obj, fLayers.size());
