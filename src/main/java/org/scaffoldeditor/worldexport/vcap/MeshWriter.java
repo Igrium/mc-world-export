@@ -12,8 +12,6 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.BiMap;
-
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;
@@ -77,28 +75,18 @@ public final class MeshWriter {
 
     /**
      * Add a baked quad to a 3d mesh.
-     * @param quad Quad to add.
-     * @param obj Mesh to add to.
-     * @param transparent Assign transparent material.
-     * @param fLayers A list of lists of 12-float arrays indicating what quads already exist. Used for material stacking.
+     * 
+     * @param quad             Quad to add.
+     * @param obj              Mesh to add to.
+     * @param transparent      Assign transparent material.
+     * @param fLayers          A list of sets of 12-float arrays indicating what
+     *                         quads already exist. Used for material stacking.
+     * @param materialConsumer For all the generated vcap world materials.
      * @return The face layer index this face was added to.
      */
     public static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
             @Nullable List<Set<float[]>> fLayers, Consumer<VcapWorldMaterial> materialConsumer) {
 
-        // if (transparent) {
-        //     if (quad.hasColor()) {
-        //         obj.setActiveMaterialGroupName(TRANSPARENT_TINTED_MAT);
-        //     } else {
-        //         obj.setActiveMaterialGroupName(TRANSPARENT_MAT);
-        //     }
-        // } else {
-        //     if (quad.hasColor()) {
-        //         obj.setActiveMaterialGroupName(TINTED_MAT);
-        //     } else {
-        //         obj.setActiveMaterialGroupName(WORLD_MAT);
-        //     }
-        // }
         VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
         materialConsumer.accept(mat);
         obj.setActiveMaterialGroupName(mat.getName());

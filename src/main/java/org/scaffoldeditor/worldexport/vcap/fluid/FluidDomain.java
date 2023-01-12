@@ -7,8 +7,8 @@ import java.util.Set;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
+import org.scaffoldeditor.worldexport.vcap.BlockExporter;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
 import org.scaffoldeditor.worldexport.vcap.VcapWorldMaterial;
 
@@ -126,8 +126,11 @@ public class FluidDomain {
     protected Obj captureMesh(WorldAccess world) {
         MinecraftClient client = MinecraftClient.getInstance();
 
+        BlockState rootState = world.getBlockState(rootPos);
+
         Obj mesh = Objs.create();
-        VcapWorldMaterial material = new VcapWorldMaterial(true, true, false);
+        VcapWorldMaterial material = new VcapWorldMaterial(true, true,
+                rootState.getLuminance() >= BlockExporter.EMISSIVE_THRESHOLD);
         context.worldMaterials.add(material);
         mesh.setActiveMaterialGroupName(material.getName());
 
