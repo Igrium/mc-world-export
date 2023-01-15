@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.vcap;
+package org.scaffoldeditor.worldexport.vcap.model;
 
 import org.scaffoldeditor.worldexport.mat.Material;
 
@@ -6,13 +6,13 @@ import org.scaffoldeditor.worldexport.mat.Material;
  * A "prototype" material for the world atlas that will be generated at a later
  * time during export.
  */
-public record VcapWorldMaterial(boolean transparent, boolean tinted, boolean emissive) {
+public record VcapWorldMaterial(boolean transparent, boolean tinted, boolean emissive) implements MaterialProvider {
 
     /**
      * Generate this material.
      * @return Replay material.
      */
-    public Material genMaterial() {
+    public Material writeMaterial() {
         Material material = new Material();
         material.setColor("world");
         material.setRoughness(1);

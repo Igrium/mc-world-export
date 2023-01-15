@@ -6,18 +6,16 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,15 +25,20 @@ import org.scaffoldeditor.worldexport.vcap.ExportContext;
 import org.scaffoldeditor.worldexport.vcap.Frame;
 import org.scaffoldeditor.worldexport.vcap.IFrame;
 import org.scaffoldeditor.worldexport.vcap.MeshWriter;
-import org.scaffoldeditor.worldexport.vcap.ModelEntry;
 import org.scaffoldeditor.worldexport.vcap.PFrame;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
 import org.scaffoldeditor.worldexport.vcap.VcapMeta;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings;
-import org.scaffoldeditor.worldexport.vcap.VcapWorldMaterial;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
-import de.javagl.obj.Obj;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import de.javagl.obj.ObjWriter;
+import de.javagl.obj.Objs;
+import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
@@ -44,7 +47,6 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 
@@ -155,34 +157,56 @@ public class VcapExporter {
         NbtIo.write(worldData, new DataOutputStream(out));
         out.closeEntry();
 
+        Map<String, MaterialProvider> materials = new HashMap<>(context.materials);
+
         // MODELS
-        Random random = Random.create();
         int numLayers = 0;
 
-        for (ModelEntry model : context.models.keySet()) {
-            String id = context.models.get(model);
+        for (Map.Entry<String, ModelProvider> entry : context.models.entrySet()) {
+            String id = entry.getKey();
+            ModelProvider modelProvider = entry.getValue();
+
             LOGGER.debug("Writing mesh: "+id);
+            ModelInfo model = modelProvider.writeMesh();
+            writeMesh(model.mesh(), id, out);
 
-            MeshInfo info = MeshWriter.writeBlockMesh(model, random, context.worldMaterials::add);
-            writeMesh(info.mesh, id, out);
-
-            if (info.numLayers > numLayers) {
-                numLayers = info.numLayers;
+            if (model.numLayers() > numLayers) {
+                numLayers = model.numLayers();
             }
+
+            model.materials().forEach(materials::putIfAbsent);
         }
 
-        for (String id : context.extraModels.keySet()) {
-            LOGGER.debug("Writing fluid mesh: "+id);
-            writeMesh(context.extraModels.get(id), id, out);
-        }
+        // for (BlockModelEntry model : context.models.keySet()) {
+        //     String id = context.models.get(model);
+        //     LOGGER.debug("Writing mesh: "+id);
+
+        //     MeshInfo info = MeshWriter.writeBlockMesh(model, random, context.worldMaterials::add);
+        //     writeMesh(info.mesh, id, out);
+
+        //     if (info.numLayers > numLayers) {
+        //         numLayers = info.numLayers;
+        //     }
+        // }
+
+        // for (String id : context.extraModels.keySet()) {
+        //     LOGGER.debug("Writing fluid mesh: "+id);
+        //     writeMesh(context.extraModels.get(id), id, out);
+        // }
 
         // Fluid meshes assume empty mesh is written.
-        writeMesh(MeshWriter.empty().mesh, MeshWriter.EMPTY_MESH, out);
+        writeMesh(Objs.create(), MeshWriter.EMPTY_MESH, out);
 
         // MATERIALS
-        for (VcapWorldMaterial mat : context.worldMaterials) {
-            out.putNextEntry(new ZipEntry("mat/"+mat.getName()+".json"));
-            mat.genMaterial().serialize(out);
+        // for (VcapWorldMaterial mat : context.worldMaterials) {
+        //     out.putNextEntry(new ZipEntry("mat/"+mat.getName()+".json"));
+        //     mat.writeMaterial().serialize(out);
+        //     out.closeEntry();
+        // }
+
+        for (Map.Entry<String, MaterialProvider> entry : materials.entrySet()) {
+            out.putNextEntry(new ZipEntry("mat/"+entry.getKey()+".json"));
+            entry.getValue().writeMaterial().serialize(out);
             out.closeEntry();
         }
 
@@ -222,9 +246,9 @@ public class VcapExporter {
         out.finish();
     }
 
-    private static void writeMesh(Obj mesh, String id, ZipOutputStream out) throws IOException {
+    private static void writeMesh(ReadableObj mesh, String id, ZipOutputStream out) throws IOException {
         ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
-        out.putNextEntry(modelEntry);
+        out.putNextEntry(modelEntry);   
         ObjWriter.write(mesh, out);
         out.closeEntry();
     }

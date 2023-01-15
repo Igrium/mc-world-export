@@ -10,11 +10,10 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.vcap.ModelEntry.Builder;
+import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
-import de.javagl.obj.Obj;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -36,10 +35,6 @@ import net.minecraft.world.chunk.ChunkSection;
 public final class BlockExporter {
     private BlockExporter() {
     };
-
-    // Directions must follow this order.
-    public static Direction[] DIRECTIONS = { Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP,
-            Direction.DOWN };
     
     static final MinecraftClient client = MinecraftClient.getInstance();
     /**
@@ -59,9 +54,9 @@ public final class BlockExporter {
      * @param state Block state to use.
      * @return The generated builder.
      */
-    public static ModelEntry.Builder prepareEntry(BlockState state) {
+    public static BlockModelEntry.Builder prepareEntry(BlockState state) {
         BlockRenderManager dispatcher = client.getBlockRenderManager();
-        ModelEntry.Builder builder = new Builder(dispatcher.getModel(state), state);
+        BlockModelEntry.Builder builder = new Builder(dispatcher.getModel(state), state);
         builder.transparent(!state.isOpaque());
         builder.emissive(state.getLuminance() >= EMISSIVE_THRESHOLD);
         return builder;
@@ -102,7 +97,7 @@ public final class BlockExporter {
         BlockState state = world.getBlockState(pos);
         String id;
 
-        ModelEntry.Builder builder = prepareEntry(state);
+        BlockModelEntry.Builder builder = prepareEntry(state);
 
         BlockPos.Mutable mutable = pos.mutableCopy();
         for (Direction direction : Direction.values()) {
@@ -110,7 +105,7 @@ public final class BlockExporter {
             builder.face(direction, Block.shouldDrawSide(state, world, pos, direction, mutable));
         }
 
-        id = context.getID(builder.build());
+        id = context.addBlock(builder.build());
 
         return id;
     }
@@ -163,22 +158,22 @@ public final class BlockExporter {
                         }
 
                         if (thisDomain.get().getRootPos().equals(worldPos)) {
-                            Obj mesh = thisDomain.get().getMesh();
-                            id = context.addExtraModel("fluid.0", mesh);
+                            // Name conflict resolution will create the final name.
+                            id = context.addModel("fluid.0", thisDomain.get().getModel());
                         } else {
                             id = MeshWriter.EMPTY_MESH;
                         }
 
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
-                        ModelEntry.Builder builder = prepareEntry(state);
+                        BlockModelEntry.Builder builder = prepareEntry(state);
 
                         for (Direction direction : Direction.values()) {
                             mutable.set(worldPos, direction);
                             builder.face(direction, Block.shouldDrawSide(state, world, worldPos, direction, mutable));
                         }
 
-                        id = context.getID(builder.build());
+                        id = context.addBlock(builder.build());
                     }
                     
                     int color = client.getBlockColors().getColor(state, world, worldPos, 0);

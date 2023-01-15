@@ -5,12 +5,17 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
@@ -32,22 +37,7 @@ public final class MeshWriter {
     // public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
     public static final String EMPTY_MESH = "empty";
 
-    public static class MeshInfo {
-        public final Obj mesh;
-        public final int numLayers;
-
-        public MeshInfo(Obj mesh, int numLayers) {
-            this.mesh = mesh;
-            this.numLayers = numLayers;
-        }
-    }
-
-    public static MeshInfo empty() {
-        return new MeshInfo(Objs.create(), 1);
-    }
-    
-
-    public static MeshInfo writeBlockMesh(ModelEntry entry, Random random, Consumer<VcapWorldMaterial> materialConsumer) {
+    public static ModelInfo writeBlockMesh(BlockModelEntry entry, Random random) {
         Obj obj = Objs.create();
         BakedModel model = entry.model();
         BlockState blockState = entry.blockState();
@@ -55,22 +45,24 @@ public final class MeshWriter {
         boolean emissive = entry.emissive();
 
         List<Set<float[]>> fLayers = new ArrayList<>();
+        Map<String, MaterialProvider> materials = new HashMap<>();
 
         for (Direction direction : Direction.values()) {
             if (!entry.isFaceVisible(direction)) continue;
             List<BakedQuad> quads = model.getQuads(blockState, direction, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, transparent, emissive, fLayers, materialConsumer);
+                addFace(quad, obj, transparent, emissive, fLayers, materials::put);
             }
         }
         {
             // Quads that aren't assigned to a direction.
             List<BakedQuad> quads = model.getQuads(blockState, null, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, transparent, emissive, fLayers, materialConsumer);
+                addFace(quad, obj, transparent, emissive, fLayers, materials::put);
             }
         }
-        return new MeshInfo(obj, fLayers.size());
+        
+        return new ModelInfo(obj, fLayers.size(), materials);
     }
 
     /**
@@ -85,10 +77,10 @@ public final class MeshWriter {
      * @return The face layer index this face was added to.
      */
     public static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
-            @Nullable List<Set<float[]>> fLayers, Consumer<VcapWorldMaterial> materialConsumer) {
+            @Nullable List<Set<float[]>> fLayers, BiConsumer<String, MaterialProvider> materialConsumer) {
 
         VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
-        materialConsumer.accept(mat);
+        materialConsumer.accept(mat.getName(), mat);
         obj.setActiveMaterialGroupName(mat.getName());
 
         int[] vertData = quad.getVertexData();

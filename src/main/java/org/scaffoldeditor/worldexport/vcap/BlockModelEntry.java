@@ -2,14 +2,17 @@ package org.scaffoldeditor.worldexport.vcap;
 
 import java.util.BitSet;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.registry.Registry;
 
 /**
  * The complete model data of a blockstate.
  */
-public record ModelEntry(BakedModel model, BlockState blockState, byte faces, boolean transparent, boolean emissive) {
+public record BlockModelEntry(BakedModel model, BlockState blockState, byte faces, boolean transparent, boolean emissive) {
 
     public boolean isFaceVisible(int id) {
         if (id < 0 || id >= 6) {
@@ -21,6 +24,16 @@ public record ModelEntry(BakedModel model, BlockState blockState, byte faces, bo
 
     public boolean isFaceVisible(Direction direction) {
         return isFaceVisible(direction.getId());
+    }
+
+    /**
+     * Get the model ID that this entry will save with.
+     * @return The model ID.
+     */
+    public String getID() {
+        Identifier id = Registry.BLOCK.getId(blockState.getBlock());
+        int stateId = Block.getRawIdFromState(blockState);
+        return id.toUnderscoreSeparatedString() + "#" + Integer.toHexString(stateId) + "." + Integer.toHexString(faces);
     }
 
     /**
@@ -47,14 +60,14 @@ public record ModelEntry(BakedModel model, BlockState blockState, byte faces, bo
          * Apply this builder and create a model entry.
          * @return The built model entry.
          */
-        public ModelEntry build() {
+        public BlockModelEntry build() {
             byte faces;
             if (this.faces.isEmpty()) {
                 faces = 0;
             } else {
                 faces = this.faces.toByteArray()[0];
             }
-            return new ModelEntry(model, blockState, faces, transparent, emissive);
+            return new BlockModelEntry(model, blockState, faces, transparent, emissive);
         }
 
         /**

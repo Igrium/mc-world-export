@@ -1,22 +1,21 @@
 package org.scaffoldeditor.worldexport.vcap;
 
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import org.scaffoldeditor.worldexport.vcap.model.BlockModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
 import de.javagl.obj.Obj;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
 /**
@@ -24,20 +23,31 @@ import net.minecraft.util.registry.Registry;
  */
 public class ExportContext {
 
-    /**
-     * The model entries in the cache and their IDs.
-     */
-    public final BiMap<ModelEntry, String> models = HashBiMap.create();
+    // /**
+    //  * The model entries in the cache and their IDs.
+    //  */
+    // public final BiMap<ModelEntry, String> models = HashBiMap.create();
+
+    // /**
+    //  * The fluid meshes in the export context.
+    //  */
+    // public final BiMap<String, Obj> extraModels = HashBiMap.create();
 
     /**
-     * The fluid meshes in the export context.
+     * The models used in this vcap.
      */
-    public final BiMap<String, Obj> extraModels = HashBiMap.create();
+    public final Map<String, ModelProvider> models = new HashMap<>();
 
     /**
-     * A set of world materials used in this vcap.
+     * A cache of model entries so they can be re-used.
      */
-    public final Set<VcapWorldMaterial> worldMaterials = new HashSet<>();
+    private final Map<BlockModelEntry, String> modelCache = new HashMap<>();
+
+    /**
+     * The materials used in this vcap.
+     */
+    public final Map<String, MaterialProvider> materials = new HashMap<>();
+    // public final Set<VcapWorldMaterial> worldMaterials = new HashSet<>();
 
     private VcapSettings settings = new VcapSettings();
     private MeshComparator meshComparator = new MeshComparator();
@@ -72,49 +82,72 @@ public class ExportContext {
      * Add an "extra" model to the vcap file.
      * @param desiredName The name to use.
      * @param model The model to add.
-     * @return The name the model was given.
+     * @return The name the model was given after name conflict resolution.
      */
+    @Deprecated
     public synchronized String addExtraModel(String desiredName, Obj model) {
-        if (extraModels.containsValue(model)) {
-            return extraModels.inverse().get(model);
-        }
         String name = makeNameUnique(desiredName);
-        extraModels.put(name, model);
+        ModelInfo info = new ModelInfo(model, 0, Collections.emptyMap());
+        models.put(name, () -> info);
         return name;
     }
 
     /**
-     * Generate the ID of a model entry. Returns the current ID if it already exists.
-     * @param entry Entry to generate the ID for.
-     * @param name Base name of model.
-     * @return ID.
+     * Add a model to the vcap file.
+     * @param name The name to use.
+     * @param model The model to add.
+     * @return The name the model was given after name conflict resolution.
      */
-    public synchronized String getID(ModelEntry entry, String name) {
-        String id = models.get(entry);
-        if (id == null) {
-            if (name == null) name = genName(entry.blockState());
-            id = makeNameUnique(name + "." + Integer.toHexString(entry.faces()));
-            models.put(entry, id);
-        }
-        return id;
+    public synchronized String addModel(String name, ModelInfo model) {
+        name = makeNameUnique(name);
+        models.put(name, () -> model);
+        return name;
     }
 
-    private String genName(BlockState state) {
-        Identifier id = Registry.BLOCK.getId(state.getBlock());
-        int stateId = Block.getRawIdFromState(state);
-        return id.toUnderscoreSeparatedString() + "#" + Integer.toHexString(stateId);
+    /**
+     * Add a block model to the vcap.
+     * @param model Block model entry.
+     * @return The name that was generated.
+     */
+    public synchronized String addBlock(BlockModelEntry model) {
+        if (modelCache.containsKey(model)) return modelCache.get(model);
+        String name = makeNameUnique(model.getID());
+        models.put(name, new BlockModelProvider(model));
+        modelCache.put(model, name);
+        return name;
     }
+
+    // /**
+    //  * Generate the ID of a model entry. Returns the current ID if it already exists.
+    //  * @param entry Entry to generate the ID for.
+    //  * @param name Base name of model.
+    //  * @return ID.
+    //  */
+    // public synchronized String getID(ModelEntry entry, String name) {
+    //     String id = models.get(entry);
+    //     if (id == null) {
+    //         if (name == null) name = genName(entry.blockState());
+    //         id = makeNameUnique(name + "." + Integer.toHexString(entry.faces()));
+    //         models.put(entry, id);
+    //     }
+    //     return id;
+    // }
+    
+
 
     public synchronized String makeNameUnique(String name) {
-        while (models.containsValue(name) || extraModels.containsKey(name)) {
+        // while (models.containsValue(name) || extraModels.containsKey(name)) {
+        //     name = iterateName(name);
+        // }
+        while (models.containsKey(name)) {
             name = iterateName(name);
         }
         return name;
     }
 
-    public String getID(ModelEntry entry) {
-        return getID(entry, null);
-    }
+    // public String getID(ModelEntry entry) {
+    //     return getID(entry, null);
+    // }
 
     /**
      * Get a mapping of model IDs and the blockstate they belong to. For use in
@@ -124,9 +157,12 @@ public class ExportContext {
      * @see ExportContext#getIDMapping()
      */
     public void getIDMapping(Map<String, String> map) {
-        for (ModelEntry entry : models.keySet()) {
-            map.put(models.get(entry), Registry.BLOCK.getId(entry.blockState().getBlock()).toString());
-        }
+        models.forEach((id, model) -> {
+            Optional<BlockState> blockstate = model.getBlockstate();
+            if (blockstate.isPresent()) {
+                map.put(id, Registry.BLOCK.getId(blockstate.get().getBlock()).toString());
+            }
+        });
     }
 
     /**
