@@ -1,6 +1,9 @@
 package org.scaffoldeditor.worldexport.vcap.model;
 
+import java.util.function.BiConsumer;
+
 import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 
 /**
  * A "prototype" material for the world atlas that will be generated at a later
@@ -8,11 +11,7 @@ import org.scaffoldeditor.worldexport.mat.Material;
  */
 public record VcapWorldMaterial(boolean transparent, boolean tinted, boolean emissive) implements MaterialProvider {
 
-    /**
-     * Generate this material.
-     * @return Replay material.
-     */
-    public Material writeMaterial() {
+    public Material writeMaterial(BiConsumer<String, ReplayTexture> textureConsumer) {
         Material material = new Material();
         material.setColor("world");
         material.setRoughness(1);

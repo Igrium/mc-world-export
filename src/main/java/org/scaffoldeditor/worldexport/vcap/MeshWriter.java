@@ -31,10 +31,6 @@ import net.minecraft.util.math.random.Random;
 public final class MeshWriter {
     private MeshWriter() {}
 
-    // public static final String WORLD_MAT = "world";
-    // public static final String TRANSPARENT_MAT = "world_transparent";
-    // public static final String TINTED_MAT = "world_tinted";
-    // public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
     public static final String EMPTY_MESH = "empty";
 
     public static ModelInfo writeBlockMesh(BlockModelEntry entry, Random random) {

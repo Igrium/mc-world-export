@@ -7,6 +7,9 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
 import org.scaffoldeditor.worldexport.vcap.model.BlockModelProvider;
@@ -21,17 +24,7 @@ import net.minecraft.util.registry.Registry;
 /**
  * Contains various values passed around throughout the export process.
  */
-public class ExportContext {
-
-    // /**
-    //  * The model entries in the cache and their IDs.
-    //  */
-    // public final BiMap<ModelEntry, String> models = HashBiMap.create();
-
-    // /**
-    //  * The fluid meshes in the export context.
-    //  */
-    // public final BiMap<String, Obj> extraModels = HashBiMap.create();
+public class ExportContext implements MaterialConsumer {
 
     /**
      * The models used in this vcap.
@@ -47,7 +40,11 @@ public class ExportContext {
      * The materials used in this vcap.
      */
     public final Map<String, MaterialProvider> materials = new HashMap<>();
-    // public final Set<VcapWorldMaterial> worldMaterials = new HashSet<>();
+
+    /**
+     * The textures to write to the vcap file.
+     */
+    public final Map<String, ReplayTexture> textures = new HashMap<>();
 
     private VcapSettings settings = new VcapSettings();
     private MeshComparator meshComparator = new MeshComparator();
@@ -117,37 +114,12 @@ public class ExportContext {
         return name;
     }
 
-    // /**
-    //  * Generate the ID of a model entry. Returns the current ID if it already exists.
-    //  * @param entry Entry to generate the ID for.
-    //  * @param name Base name of model.
-    //  * @return ID.
-    //  */
-    // public synchronized String getID(ModelEntry entry, String name) {
-    //     String id = models.get(entry);
-    //     if (id == null) {
-    //         if (name == null) name = genName(entry.blockState());
-    //         id = makeNameUnique(name + "." + Integer.toHexString(entry.faces()));
-    //         models.put(entry, id);
-    //     }
-    //     return id;
-    // }
-    
-
-
     public synchronized String makeNameUnique(String name) {
-        // while (models.containsValue(name) || extraModels.containsKey(name)) {
-        //     name = iterateName(name);
-        // }
         while (models.containsKey(name)) {
             name = iterateName(name);
         }
         return name;
     }
-
-    // public String getID(ModelEntry entry) {
-    //     return getID(entry, null);
-    // }
 
     /**
      * Get a mapping of model IDs and the blockstate they belong to. For use in
@@ -188,6 +160,36 @@ public class ExportContext {
         } else {
             return name+'1';
         }
+    }
+
+    @Override
+    public void putMaterial(String name, Material mat) {
+        materials.put(name, (textures) -> mat);
+    }
+
+    @Override
+    public boolean hasMaterial(String name) {
+        return materials.containsKey(name);
+    }
+
+    @Override
+    public Material getMaterial(String name) {
+        return materials.getOrDefault(name, (textures) -> null).writeMaterial((texName, tex) -> {});
+    }
+
+    @Override
+    public void putTexture(String name, ReplayTexture texture) {
+        textures.put(name, texture);
+    }
+
+    @Override
+    public boolean hasTexture(String name) {
+        return textures.containsKey(name);
+    }
+
+    @Override
+    public ReplayTexture getTexture(String name) {
+        return textures.get(name);
     }
     
 

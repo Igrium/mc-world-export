@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.mat;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.scaffoldeditor.worldexport.util.ThreadUtils;
 
@@ -57,7 +58,13 @@ public class PromisedReplayTexture implements ReplayTexture {
 
     @Override
     public void save(OutputStream out) throws IOException {
-        extract();
+        try {
+            extractLater().get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new IOException("Error extracting promised replay texture.", e);
+        }
         TextureExtractor.writeTextureToFile(image, out);
     }
 

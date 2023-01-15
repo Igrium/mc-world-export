@@ -14,12 +14,16 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
 import org.scaffoldeditor.worldexport.vcap.Frame;
@@ -40,8 +44,7 @@ import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
 import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
+
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
@@ -177,55 +180,48 @@ public class VcapExporter {
             model.materials().forEach(materials::putIfAbsent);
         }
 
-        // for (BlockModelEntry model : context.models.keySet()) {
-        //     String id = context.models.get(model);
-        //     LOGGER.debug("Writing mesh: "+id);
-
-        //     MeshInfo info = MeshWriter.writeBlockMesh(model, random, context.worldMaterials::add);
-        //     writeMesh(info.mesh, id, out);
-
-        //     if (info.numLayers > numLayers) {
-        //         numLayers = info.numLayers;
-        //     }
-        // }
-
-        // for (String id : context.extraModels.keySet()) {
-        //     LOGGER.debug("Writing fluid mesh: "+id);
-        //     writeMesh(context.extraModels.get(id), id, out);
-        // }
-
         // Fluid meshes assume empty mesh is written.
         writeMesh(Objs.create(), MeshWriter.EMPTY_MESH, out);
 
         // MATERIALS
-        // for (VcapWorldMaterial mat : context.worldMaterials) {
-        //     out.putNextEntry(new ZipEntry("mat/"+mat.getName()+".json"));
-        //     mat.writeMaterial().serialize(out);
-        //     out.closeEntry();
-        // }
+
+        Map<String, ReplayTexture> textures = new HashMap<>();
+        textures.put("world", new PromisedReplayTexture(TextureExtractor.getAtlasTexture()));
 
         for (Map.Entry<String, MaterialProvider> entry : materials.entrySet()) {
             out.putNextEntry(new ZipEntry("mat/"+entry.getKey()+".json"));
-            entry.getValue().writeMaterial().serialize(out);
+            entry.getValue().writeMaterial(textures::putIfAbsent).serialize(out);
             out.closeEntry();
         }
 
-        // TEXTURE ATLAS
-        CompletableFuture<NativeImage> textureExtraction = new CompletableFuture<>();
-        MinecraftClient.getInstance().execute(() -> {
-            LOGGER.info("Extracting world texture...");
-            textureExtraction.complete(TextureExtractor.getAtlas());
-        });
+        textures.putAll(context.textures);
 
-        out.putNextEntry(new ZipEntry("tex/world.png"));
+        // Extract all textures
+        LogManager.getLogger().info("Extracting world textures...");
+        CompletableFuture<?>[] futures = textures.values().stream().map(texture -> {
+            if (texture instanceof PromisedReplayTexture) {
+                return ((PromisedReplayTexture) texture).extractLater();
+            } else {
+                return CompletableFuture.completedFuture(null);
+            }
+        }).toArray(CompletableFuture<?>[]::new);
+        
+
         try {
-            TextureExtractor.writeTextureToFile(textureExtraction.get(), out);
+            CompletableFuture.allOf(futures).get(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            throw new RuntimeException("Texture extractor was interrupted.", e);
+            throw new RuntimeException(e);
         } catch (ExecutionException e) {
-            throw new IOException("Error extracting world atlas texture.", e);
+            throw new IOException("Error extracting world textures.", e);
+        } catch (TimeoutException e) {
+            throw new IOException("Texture extraction timed out.");
         }
-        out.closeEntry();
+
+        for (String name : textures.keySet()) {
+            ReplayTexture texture = textures.get(name);
+            out.putNextEntry(new ZipEntry("tex/"+name+".png"));
+            texture.save(out);
+        }
         
         // META
         LOGGER.info("Writing Vcap metadata.");
