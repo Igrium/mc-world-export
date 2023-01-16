@@ -1,5 +1,6 @@
 import json
 import numbers
+import os
 from typing import IO, Callable, Type, Union
 
 import bpy
@@ -29,12 +30,41 @@ def load_texture(tex_id: str, context: VCAPContext, is_data=False):
     if tex_id in context.textures:
         return context.textures[tex_id]
 
+    if f'tex/{tex_id}.json' in context.archive.namelist():
+        return _load_animated_texture(tex_id, context, is_data)
+    
     filename = f'tex/{tex_id}.png'
-    file = context.archive.open(filename)
-
-    image = util.import_image(file, tex_id, is_data=is_data)
+    with context.archive.open(filename, 'r') as file:
+        image = util.import_image(file, tex_id, is_data=is_data)
+        
     context.textures[tex_id] = image
     return image
+
+def _load_animated_texture(tex_id: str, context: VCAPContext, is_data=False):
+    filename = f'tex/{tex_id}.json'
+    with context.archive.open(filename, 'r') as metaFile:
+        meta = json.load(metaFile)
+    
+    framerate: float = meta['framerate'] if 'framerate' in meta else 20
+    basename = os.path.basename(tex_id)
+
+    frame_num = 0
+    os.makedirs(bpy.path.abspath(f'//textures/{basename}'))
+    for frame_id in meta['frames']:
+        frame_id: str
+        
+        with context.archive.open(f'tex/{frame_id}.png', 'r') as frame:
+            frame_path = bpy.path.abspath(f'//textures/{basename}/{basename}_{frame_num}.png')
+            with open(frame_path, 'wb') as outfile:
+                outfile.write(frame.read())
+        frame_num += 1
+    
+    image = bpy.data.images.new(basename, 1024, 1024, alpha=True, is_data=is_data)
+    image.file_format = 'PNG'
+    image.source = 'SEQUENCE'
+    image.filepath = f'//textures/{basename}/{basename}_0.png'
+    
+    image['framerate'] = framerate # Save metadata for later
 
 def read(file: IO, name: str, context: VCAPContext):
     """Read a vcap material entry.
