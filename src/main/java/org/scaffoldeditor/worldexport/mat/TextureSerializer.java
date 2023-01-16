@@ -6,12 +6,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.Logger;
+import org.scaffoldeditor.worldexport.util.FutureUtils;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -51,6 +48,9 @@ public class TextureSerializer {
      */
     public void save(Map<String, ? extends ReplayTexture> textures) throws IOException {
         Map<String, ReplayTexture> texMap = new HashMap<>(textures);
+        
+        if (logger != null) logger.info("Extracting textures.");
+        FutureUtils.getOrThrow(ReplayTexture.prepareAll(texMap.values()));
 
         Set<ReplayTexture> newDependencies = new HashSet<>(texMap.values());
         // Recursively resolve all dependencies.
@@ -68,20 +68,8 @@ public class TextureSerializer {
                 }
             }
         }
-
-        if (logger != null) logger.info("Extracting textures.");
-        CompletableFuture<?>[] futures = texMap.values().stream().map(ReplayTexture::prepare)
-                .toArray(CompletableFuture[]::new);
-
-        try {
-            CompletableFuture.allOf(futures).get(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            throw new IOException("Exception preparing textures: ", e);
-        } catch (TimeoutException e) {
-            throw new IOException("Texture preparation timed out.");
-        }
+        // Prepare any new dependencies.
+        FutureUtils.getOrThrow(ReplayTexture.prepareAll(texMap.values()));
 
         for (String texId : texMap.keySet()) {
             ReplayTexture texture = texMap.get(texId);

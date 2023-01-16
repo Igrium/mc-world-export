@@ -18,4 +18,8 @@ public interface MaterialProvider {
      * @return The generated material.
      */
     Material writeMaterial(BiConsumer<String, ReplayTexture> textureConsumer);
+
+    public static MaterialProvider of(Material material) {
+        return textures -> material;
+    }
 }

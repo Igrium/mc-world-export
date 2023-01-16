@@ -14,6 +14,7 @@ import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.SpriteMaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
@@ -25,6 +26,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 
@@ -72,12 +74,27 @@ public final class MeshWriter {
      * @param materialConsumer For all the generated vcap world materials.
      * @return The face layer index this face was added to.
      */
-    public static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
+    private static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
             @Nullable List<Set<float[]>> fLayers, BiConsumer<String, MaterialProvider> materialConsumer) {
 
-        VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
-        materialConsumer.accept(mat.getName(), mat);
-        obj.setActiveMaterialGroupName(mat.getName());
+        Sprite sprite = quad.getSprite();
+
+        boolean useAnimation = sprite.getAnimation() != null;
+        MaterialProvider material;
+        String matName;
+
+        if (useAnimation) {
+            SpriteMaterialProvider mat = new SpriteMaterialProvider(sprite, transparent, quad.hasColor(), emissive);
+            matName = mat.getName();
+            material = mat;
+        } else {
+            VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
+            matName = mat.getName();
+            material = mat;
+        }
+
+        materialConsumer.accept(matName, material);
+        obj.setActiveMaterialGroupName(matName);
 
         int[] vertData = quad.getVertexData();
 
@@ -100,6 +117,12 @@ public final class MeshWriter {
 
             float u = buffer.getFloat(16);
             float v = buffer.getFloat(20);
+
+            // Convert to sprite coordinates
+            if (useAnimation) {
+                u = makeLocal(sprite.getMinU(), sprite.getMaxU(), u);
+                v = makeLocal(sprite.getMinV(), sprite.getMaxV(), v);
+            }
 
             obj.addTexCoord(u, 1 - v);
             obj.addVertex(x, y, z);
@@ -134,6 +157,10 @@ public final class MeshWriter {
         obj.addFace(indices, indices, null);
 
         return layerIndex;
+    }
+
+    private static float makeLocal(float globalMin, float globalMax, float globalVal) {
+        return (globalVal - globalMin) / (globalMax - globalMin);
     }
 
     private static boolean contains(Collection<float[]> collection, float[] array) {

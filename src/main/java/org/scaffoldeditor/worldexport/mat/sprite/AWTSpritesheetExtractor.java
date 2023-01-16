@@ -53,6 +53,7 @@ public class AWTSpritesheetExtractor implements SpritesheetExtractor {
             int src_y1 = spriteHeight * i;
 
             img_creator.drawImage(awtSpritesheet, null, 0, -src_y1);
+            images.add(image);
         }
 
         return images.stream().map(AWTReplayTexture::new).toList();

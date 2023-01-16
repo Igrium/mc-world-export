@@ -1,8 +1,12 @@
 package org.scaffoldeditor.worldexport.util;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 /**
@@ -59,5 +63,25 @@ public final class FutureUtils {
             }
         });
         return future;
+    }
+
+    /**
+     * Wait up to five seconds for this future to return and get the value. Throw an
+     * IO exception if something goes wrong.
+     * 
+     * @param <T>    Return type of the future.
+     * @param future The future to get the value of.
+     * @return The completed value.
+     * @throws IOException      If the future execution fails or times out.
+     * @throws RuntimeException If the thread is interrupted.
+     */
+    public static <T> T getOrThrow(Future<T> future) throws IOException, RuntimeException {
+        try {
+            return future.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new IOException(e);
+        }
     }
 }

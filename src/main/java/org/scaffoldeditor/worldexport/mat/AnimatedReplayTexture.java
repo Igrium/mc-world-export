@@ -19,6 +19,9 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.util.Identifier;
 
+/**
+ * A replay texture containing a sprite animation.
+ */
 public class AnimatedReplayTexture implements ReplayTexture {
 
     private final Sprite sprite;
@@ -26,6 +29,8 @@ public class AnimatedReplayTexture implements ReplayTexture {
     private SpritesheetExtractor extractor = SpritesheetExtractor.create();
 
     private List<? extends ReplayTexture> spriteTextures;
+
+    private CompletableFuture<?> prepareFuture;
 
     /**
      * Create an animated replay texture.
@@ -86,10 +91,11 @@ public class AnimatedReplayTexture implements ReplayTexture {
 
     @Override
     public CompletableFuture<?> prepare() {
-        if (spriteTextures != null) return CompletableFuture.completedFuture(null);
-        return extractor.extract(spritesheet, spritesheet.getWidth()).thenAccept(sprites -> {
+        if (prepareFuture != null) return prepareFuture;
+        prepareFuture = extractor.extract(spritesheet, spritesheet.getWidth()).thenAccept(sprites -> {
             spriteTextures = sprites;
         }).thenCompose(v -> ReplayTexture.prepareAll(spriteTextures));
+        return prepareFuture;
     }
 
     /**
@@ -97,6 +103,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
      * the best way to count the frames in the sprite sheet.
      */
     private int countFrames() {
+        // TODO: Properly read animation meta
         return spritesheet.getHeight() / spritesheet.getWidth();
     }
 
