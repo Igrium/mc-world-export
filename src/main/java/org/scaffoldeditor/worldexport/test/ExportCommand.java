@@ -20,8 +20,8 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
-import org.scaffoldeditor.worldexport.VcapExporter;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
+import org.scaffoldeditor.worldexport.vcap.VcapExporter;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;

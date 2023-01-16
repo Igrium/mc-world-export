@@ -17,9 +17,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
+import org.scaffoldeditor.worldexport.mat.TextureSerializer;
 import org.scaffoldeditor.worldexport.Constants;
 import org.scaffoldeditor.worldexport.mat.Field;
 import org.scaffoldeditor.worldexport.mat.Field.FieldType;
+import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
 
 public abstract class BaseReplayFile<T extends BaseReplayEntity> {
     public abstract Set<T> getEntities();
@@ -87,13 +89,9 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
             out.closeEntry();
         }
 
-        for (String id : getTextures().keySet()) {
-            ReplayTexture tex = getTextures().get(id);
-
-            out.putNextEntry(new ZipEntry("tex/"+id+".png"));
-            tex.save(out);
-            out.closeEntry();
-        }
+        TextureSerializer serializer = new TextureSerializer(
+                filename -> new ZipEntryOutputStream(out, new ZipEntry("tex/" + filename)));
+        serializer.save(getTextures());
 
         LOGGER.info("Finished writing replay file.");
         out.finish();

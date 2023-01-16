@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,25 +13,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
+import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
-import org.scaffoldeditor.worldexport.vcap.ExportContext;
-import org.scaffoldeditor.worldexport.vcap.Frame;
-import org.scaffoldeditor.worldexport.vcap.IFrame;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter;
-import org.scaffoldeditor.worldexport.vcap.PFrame;
-import org.scaffoldeditor.worldexport.vcap.VcapMeta;
-import org.scaffoldeditor.worldexport.vcap.VcapSettings;
+import org.scaffoldeditor.worldexport.mat.TextureSerializer;
+import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
@@ -44,7 +38,6 @@ import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
 import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
-
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
@@ -196,32 +189,12 @@ public class VcapExporter {
 
         textures.putAll(context.textures);
 
-        // Extract all textures
-        LogManager.getLogger().info("Extracting world textures...");
-        CompletableFuture<?>[] futures = textures.values().stream().map(texture -> {
-            if (texture instanceof PromisedReplayTexture) {
-                return ((PromisedReplayTexture) texture).extractLater();
-            } else {
-                return CompletableFuture.completedFuture(null);
-            }
-        }).toArray(CompletableFuture<?>[]::new);
-        
+        // TEXTURES
+        TextureSerializer serializer = new TextureSerializer(
+                filename -> new ZipEntryOutputStream(out, new ZipEntry("tex/" + filename)));
+        serializer.logger = LogManager.getLogger();
 
-        try {
-            CompletableFuture.allOf(futures).get(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            throw new IOException("Error extracting world textures.", e);
-        } catch (TimeoutException e) {
-            throw new IOException("Texture extraction timed out.");
-        }
-
-        for (String name : textures.keySet()) {
-            ReplayTexture texture = textures.get(name);
-            out.putNextEntry(new ZipEntry("tex/"+name+".png"));
-            texture.save(out);
-        }
+        serializer.save(textures);
         
         // META
         LOGGER.info("Writing Vcap metadata.");

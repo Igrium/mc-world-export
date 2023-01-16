@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.scaffoldeditor.worldexport.util.ThreadUtils;
 
@@ -48,21 +50,28 @@ public class PromisedReplayTexture implements ReplayTexture {
         if (isExtracted()) return;
         this.image = TextureExtractor.getTexture(texture);
     }
+
+    @Override
+    public CompletableFuture<Void> prepare() {
+        return ThreadUtils.onRenderThread(this::extract);
+    }
     
     /**
      * Extract the texture from the GPU on the next frame.
+     * @deprecated Use {@link ReplayTexture#prepare()}
      */
+    @Deprecated
     public CompletableFuture<Void> extractLater() {
-        return ThreadUtils.onRenderThread(this::extract);
+        return prepare();
     }
 
     @Override
     public void save(OutputStream out) throws IOException {
         try {
-            extractLater().get();
+            extractLater().get(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | TimeoutException e) {
             throw new IOException("Error extracting promised replay texture.", e);
         }
         TextureExtractor.writeTextureToFile(image, out);

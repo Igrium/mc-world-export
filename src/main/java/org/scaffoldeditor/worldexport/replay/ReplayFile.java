@@ -7,10 +7,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.scaffoldeditor.worldexport.VcapExporter;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
+import org.scaffoldeditor.worldexport.vcap.VcapExporter;
 
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
