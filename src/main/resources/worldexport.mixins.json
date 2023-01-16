@@ -12,6 +12,7 @@
     "GuiRenderSettingsMixin",
     "VideoRendererMixin",
     "QuadrupedModelAccessor",
+    "SpriteAccessor",
     "TimelineMixin",
     "ReplayModMixin",
     "GameRendererMixin"

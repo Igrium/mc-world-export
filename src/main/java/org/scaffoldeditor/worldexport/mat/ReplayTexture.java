@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.mat;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -51,6 +52,17 @@ public interface ReplayTexture {
      */
     default String getFileExtension() {
         return ".png";
+    }
+
+    /**
+     * Prepare all of the replay textures in a collection.
+     * @param textures Textures to prepare.
+     * @return A future that completes once all the textures have been prepared.
+     * @see ReplayTexture#prepare()
+     */
+    public static CompletableFuture<Void> prepareAll(Collection<? extends ReplayTexture> textures) {
+        CompletableFuture<?>[] futures = textures.stream().map(ReplayTexture::prepare).toArray(CompletableFuture[]::new);
+        return CompletableFuture.allOf(futures);
     }
 
     public static class NativeImageReplayTexture implements ReplayTexture {
