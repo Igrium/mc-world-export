@@ -6,11 +6,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 
 public class AnimatedTextureMeta {
 
@@ -34,13 +33,18 @@ public class AnimatedTextureMeta {
         this.framerate = framerate;
     }
 
-    private List<String> frames = new ArrayList<>();
+    @SerializedName("frame_count")
+    private int frameCount;
 
-    /**
-     * A list of texture ids for all the frames in this animation.
-     */
-    public List<String> getFrames() {
-        return frames;
+    public int getFrameCount() {
+        return frameCount;
+    }
+
+    public void setFrameCount(int frameCount) {
+        if (frameCount <= 0) {
+            throw new IllegalArgumentException("Frame count must be greater than zero.");
+        }
+        this.frameCount = frameCount;
     }
     
     public void toJson(OutputStream out) throws IOException {

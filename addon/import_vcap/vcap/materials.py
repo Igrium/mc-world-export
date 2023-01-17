@@ -4,10 +4,11 @@ import os
 from typing import IO, Callable, Type, Union
 
 import bpy
-from bpy.types import Image, Material, Node, NodeSocket, NodeTree
+from bpy.types import Image, Material, Node, NodeSocket, NodeTree, ShaderNodeTexImage, ShaderNodeGroup
 from mathutils import Vector
 from .context import VCAPContext
 from . import util
+from . import node_groups
 
 COLOR = 0
 ALPHA = 21
@@ -30,41 +31,22 @@ def load_texture(tex_id: str, context: VCAPContext, is_data=False):
     if tex_id in context.textures:
         return context.textures[tex_id]
 
+    anim_data = None
     if f'tex/{tex_id}.json' in context.archive.namelist():
-        return _load_animated_texture(tex_id, context, is_data)
-    
-    filename = f'tex/{tex_id}.png'
+        filename = f'tex/{tex_id}_spritesheet.png'
+        with context.archive.open(f'tex/{tex_id}.json') as json_file:
+            anim_data = json.load(json_file)
+    else:
+        filename = f'tex/{tex_id}.png'
     with context.archive.open(filename, 'r') as file:
         image = util.import_image(file, tex_id, is_data=is_data)
-        
+    
+    if anim_data is not None:
+        # Attach anim data to image datablock
+        image['anim_data'] = anim_data
+        ...
     context.textures[tex_id] = image
     return image
-
-def _load_animated_texture(tex_id: str, context: VCAPContext, is_data=False):
-    filename = f'tex/{tex_id}.json'
-    with context.archive.open(filename, 'r') as metaFile:
-        meta = json.load(metaFile)
-    
-    framerate: float = meta['framerate'] if 'framerate' in meta else 20
-    basename = os.path.basename(tex_id)
-
-    frame_num = 0
-    os.makedirs(bpy.path.abspath(f'//textures/{basename}'))
-    for frame_id in meta['frames']:
-        frame_id: str
-        
-        with context.archive.open(f'tex/{frame_id}.png', 'r') as frame:
-            frame_path = bpy.path.abspath(f'//textures/{basename}/{basename}_{frame_num}.png')
-            with open(frame_path, 'wb') as outfile:
-                outfile.write(frame.read())
-        frame_num += 1
-    
-    image = bpy.data.images.new(basename, 1024, 1024, alpha=True, is_data=is_data)
-    image.file_format = 'PNG'
-    image.source = 'SEQUENCE'
-    image.filepath = f'//textures/{basename}/{basename}_0.png'
-    
-    image['framerate'] = framerate # Save metadata for later
 
 def read(file: IO, name: str, context: VCAPContext):
     """Read a vcap material entry.
@@ -155,6 +137,11 @@ def parse(obj, name: str, context: VCAPContext):
     group_node.node_tree = group
     material_output = node_tree.nodes.get('Material Output')
     node_tree.links.new(group_node.outputs[0], material_output.inputs[0])
+    
+    texcoord = node_tree.nodes.new('ShaderNodeTexCoord')
+    texcoord.location = (-200, -0)
+    
+    node_tree.links.new(texcoord.outputs[2], group_node.inputs[0])
 
     if ('blend_mode' in obj):
         mat.blend_method = str.upper(obj['blend_mode'])
@@ -188,26 +175,56 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
     Returns:
         tuple[Node, Node]: (Node Frame, Output Node, Alpha Socket)
     """
-
+            
+    
     def parse_field(value, target: Node, index: int, is_data = False):
         if isinstance(value, numbers.Number):
             target.inputs[index].default_value = value
         elif isinstance(value, str):
-            tex: Node = node_tree.nodes.new('ShaderNodeTexImage')
-            node_tree.links.new(tex.outputs[0], target.inputs[index])
-
-            tex.image = image_provider(value, is_data)
-            tex.interpolation = 'Closest'
-            tex.parent = frame
-
-            if uv_input:
-                node_tree.links.new(uv_input, tex.inputs[0])
-            return tex
-
+            tex_node = parse_image(value, is_data)
+            node_tree.links.new(tex_node.outputs[0], target.inputs[index])
+            return tex_node
         elif isinstance(value, list):
             target.inputs[index].default_value = (value[0], value[1], value[2])
         else:
             print(f'Cannot add input with type {type(value)} from material {name}.')
+            
+    def parse_image(id: str, is_data = False):
+        tex_node: ShaderNodeTexImage = node_tree.nodes.new('ShaderNodeTexImage')
+        image = image_provider(id, is_data)
+        tex_node.image = image
+        tex_node.interpolation = 'Closest'
+        tex_node.parent = frame
+        
+        # Animated texture
+        if (image is not None) and ('anim_data' in image):
+            anim_data = image['anim_data']
+            spritesheetMaping: ShaderNodeGroup = node_tree.nodes.new('ShaderNodeGroup')
+            spritesheetMaping.node_tree = node_groups.spritesheet_mapping()
+            
+            spritesheetMaping.inputs[1].default_value = anim_data['frame_count']
+            
+            node_tree.links.new(spritesheetMaping.outputs[0], tex_node.inputs[0])
+            
+            # Extract scene fps
+            render = bpy.context.scene.render
+            fps = render.fps / render.fps_base
+            
+            driver = spritesheetMaping.inputs[2].driver_add("default_value").driver
+            driver.expression = f"frame * {anim_data['framerate'] / fps}"
+            uv_output = spritesheetMaping.inputs[0]
+        else:
+            uv_output = tex_node.inputs[0]
+
+        
+        if uv_input is not None:
+            node_tree.links.new(uv_input, uv_output)
+        else:
+            # Spritesheet must have an input
+            texcoord = node_tree.nodes.new("ShaderNodeTexCoord")
+            node_tree.links.new(texcoord.outputs[2], uv_output)
+        
+        return tex_node
 
     if 'overrides' in obj:
         overrides = obj['overrides']
@@ -285,7 +302,7 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
     principled_node.parent = frame
 
     alpha_socket = None
-    if (color_tex.bl_idname == 'ShaderNodeTexImage'):
+    if (color_tex and color_tex.bl_idname == 'ShaderNodeTexImage'):
         alpha_socket = color_tex.outputs[1]
         node_tree.links.new(alpha_socket, principled_node.inputs[ALPHA])
 

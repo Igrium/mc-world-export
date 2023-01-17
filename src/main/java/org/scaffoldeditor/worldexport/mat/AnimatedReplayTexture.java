@@ -2,9 +2,6 @@ package org.scaffoldeditor.worldexport.mat;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -12,8 +9,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
-import org.scaffoldeditor.worldexport.mat.sprite.SpritesheetExtractor;
 import org.scaffoldeditor.worldexport.mixins.SpriteAccessor;
+
+import com.google.common.collect.ImmutableMap;
 
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
@@ -26,9 +24,8 @@ public class AnimatedReplayTexture implements ReplayTexture {
 
     private final Sprite sprite;
     private NativeImage spritesheet;
-    private SpritesheetExtractor extractor = SpritesheetExtractor.create();
 
-    private List<? extends ReplayTexture> spriteTextures;
+    ReplayTexture spritesheetTexture;
 
     private CompletableFuture<?> prepareFuture;
 
@@ -39,6 +36,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
     public AnimatedReplayTexture(Sprite sprite) {
         this.sprite = sprite;
         this.spritesheet = ((SpriteAccessor) sprite).getImages()[0];
+        spritesheetTexture = new NativeImageReplayTexture(spritesheet);
     }
 
     @Override
@@ -54,19 +52,11 @@ public class AnimatedReplayTexture implements ReplayTexture {
 
     @Override
     public Map<String, Supplier<ReplayTexture>> getTextureDependencies() {
-        Map<String, Supplier<ReplayTexture>> map = new HashMap<>();
-        int i = 0;
-        for (String texId : genSpriteNames()) {
-            int index = i;
-            map.put(texId, () -> prepareAndGetSprite(index));
-            i++;
-        }
-
-        return map;
+        return ImmutableMap.of(getTexName(sprite.getId()) + "_spritesheet", () -> spritesheetTexture);
     }
 
     private void assertPrepared() throws IOException {
-        if (spriteTextures == null) {
+        if (prepareFuture == null || !prepareFuture.isDone()) {
             try {
                 prepare().get(5, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -77,24 +67,10 @@ public class AnimatedReplayTexture implements ReplayTexture {
         }
     }
 
-    private ReplayTexture prepareAndGetSprite(int index) {
-        if (spriteTextures == null) {
-            try {
-                prepare().get(5, TimeUnit.SECONDS);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return spriteTextures.get(index);
-    }
-
     @Override
     public CompletableFuture<?> prepare() {
         if (prepareFuture != null) return prepareFuture;
-        prepareFuture = extractor.extract(spritesheet, spritesheet.getWidth()).thenAccept(sprites -> {
-            spriteTextures = sprites;
-        }).thenCompose(v -> ReplayTexture.prepareAll(spriteTextures));
+        prepareFuture = spritesheetTexture.prepare();
         return prepareFuture;
     }
 
@@ -107,18 +83,9 @@ public class AnimatedReplayTexture implements ReplayTexture {
         return spritesheet.getHeight() / spritesheet.getWidth();
     }
 
-    private List<String> genSpriteNames() {
-        int numFrames = countFrames();
-        List<String> list = new ArrayList<>(numFrames);
-        for (int i = 0; i < numFrames; i++) {
-            list.add(getTexName(sprite.getId()) + "_" + i);
-        }
-        return list;
-    }
-
     public AnimatedTextureMeta getMetadata() {
         AnimatedTextureMeta meta = new AnimatedTextureMeta();
-        meta.getFrames().addAll(genSpriteNames());
+        meta.setFrameCount(countFrames());
         return meta;
     }
     

@@ -25,7 +25,7 @@ public record SpriteMaterialProvider(Sprite sprite, boolean transparent, boolean
         }
         
         if (emissive) {
-            material.setEmission("world");
+            material.setEmission(texName);
             material.setEmissionStrength(2);
         }
         
