@@ -27,12 +27,23 @@ public interface ChunkView extends BlockRenderView {
     }
 
     /**
+     * Because this is a modded interface, some implementations may wrap another
+     * implementation. This method retrieves the base implementation for equality
+     * checks.
+     * 
+     * @return The base implementation.
+     */
+    default BlockRenderView getBase() {
+        return this;
+    }
+
+    /**
      * A wrapper around a WorldAccess that implements ChunkView
      */
-    public static class WorldAccessWrapper implements ChunkView {
+    public static class Wrapper implements ChunkView {
         public final WorldAccess base;
 
-        public WorldAccessWrapper(WorldAccess base) {
+        public Wrapper(WorldAccess base) {
             this.base = base;
         }
 
@@ -87,6 +98,11 @@ public interface ChunkView extends BlockRenderView {
 
             Chunk chunk = base.getChunk(x, z);
             return chunk.getSection(chunk.sectionCoordToIndex(y)) != null;
+        }
+
+        @Override
+        public BlockRenderView getBase() {
+            return base;
         }
     }
 }

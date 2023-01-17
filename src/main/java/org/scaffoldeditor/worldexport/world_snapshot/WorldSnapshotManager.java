@@ -56,13 +56,13 @@ public final class WorldSnapshotManager implements ClientBlockPlaceCallback {
      * @return The snapshot.
      */
     public WorldSnapshot snapshot(WorldAccess world) {
-        return snapshot(new ChunkView.WorldAccessWrapper(world));
+        return snapshot(new ChunkView.Wrapper(world));
     }
 
     @Override
     public synchronized void place(BlockPos pos, @Nullable BlockState oldState, BlockState state, World world) {
         snapshots.forEach(snapshot -> {
-            if (world.equals(snapshot.getWorld())) snapshot.onBlockUpdated(pos, oldState, state);
+            if (world.equals(snapshot.getWorld().getBase())) snapshot.onBlockUpdated(pos, oldState, state);
         });
     }
 

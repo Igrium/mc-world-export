@@ -70,7 +70,7 @@ public final class BlockExporter {
                 if (!world.isChunkLoaded(x, z))
                     continue;
                 for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
-                    if (world.isSectionLoaded(x, y, z)) continue;
+                    if (!world.isSectionLoaded(x, y, z)) continue;
                     if (y < context.getSettings().getLowerDepth()) continue;
 
                     sectionTag.add(writeSection(world, x, y, z, context, fluidConsumer));

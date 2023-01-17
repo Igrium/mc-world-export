@@ -46,7 +46,7 @@ public class PFrame implements Frame {
     public static PFrame capture(ChunkView world,
             Set<BlockPos> blocks,
             double timestamp,
-            Frame previous,
+            Optional<Frame> previous,
             ExportContext context) {
 
         PFrame frame = new PFrame(world, previous, timestamp);
@@ -61,12 +61,12 @@ public class PFrame implements Frame {
     private Map<BlockPos, FluidDomain> fluids = new HashMap<>();
     private Set<BlockPos> handledFluids = new HashSet<>();
 
-    public final Frame previous;
+    protected Optional<Frame> previous;
     public final double timestamp;
     public final ChunkView world;
 
     public PFrame(Map<BlockPos, String> updated, Map<BlockPos, BlockState> states, ChunkView world,
-            Frame previous, double timestamp) {
+            Optional<Frame> previous, double timestamp) {
         this.updated = updated;
         this.states = states;
         this.timestamp = timestamp;
@@ -74,7 +74,7 @@ public class PFrame implements Frame {
         this.world = world;
     }
 
-    protected PFrame(ChunkView world, Frame previous, double timestamp) {
+    protected PFrame(ChunkView world, Optional<Frame> previous, double timestamp) {
         this.timestamp = timestamp;
         this.previous = previous;
         this.world = world;
@@ -98,13 +98,13 @@ public class PFrame implements Frame {
                 if (!context.getSettings().isInExport(pos)) continue;
                 if (updated.containsKey(adjacent)) continue;
                 
-                if (previous.fluidAt(adjacent).isPresent()) {
+                if (getPrevious().fluidAt(adjacent).isPresent()) {
                     fluidPositions.add(adjacent);
                 }
 
                 String old;
                 try {
-                    old = previous.modelAt(adjacent);
+                    old = getPrevious().modelAt(adjacent);
                 } catch (IndexOutOfBoundsException e) {
                     continue;
                 }
@@ -125,7 +125,7 @@ public class PFrame implements Frame {
         // We've already exported this fluid.
         if (handledFluids.contains(pos)) return;
         FluidState fluidState = world.getBlockState(pos).getFluidState();
-        Optional<FluidDomain> lastFrame = previous.fluidAt(pos);
+        Optional<FluidDomain> lastFrame = getPrevious().fluidAt(pos);
         
         if (fluidState.isEmpty()) {
             // Clean up last frame
@@ -235,7 +235,7 @@ public class PFrame implements Frame {
         if (updated.containsKey(pos)) {
             return updated.get(pos);
         } else {
-            return previous.modelAt(pos);
+            return getPrevious().modelAt(pos);
         }
     }
 
@@ -244,8 +244,20 @@ public class PFrame implements Frame {
         if (fluids.containsKey(pos)) {
             return Optional.of(fluids.get(pos));
         } else {
-            return previous.fluidAt(pos);
+            return getPrevious().fluidAt(pos);
         }
+    }
+    
+    /**
+     * Get the previous frame, or an empty frame if no previous was set.
+     * @return The previous frame.
+     */
+    public Frame getPrevious() {
+        return previous.orElse(Frame.EMPTY);
+    }
+
+    public void setPrevious(Optional<Frame> previous) {
+        this.previous = previous;
     }
     
 }

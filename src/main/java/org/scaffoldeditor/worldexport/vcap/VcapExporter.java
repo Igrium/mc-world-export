@@ -5,14 +5,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -31,8 +34,6 @@ import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
-import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshot;
-import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -62,7 +63,7 @@ public class VcapExporter {
      */
     public final WorldAccess world;
 
-    public final List<Frame> frames = new ArrayList<>();
+    public final List<Frame> frames = Collections.synchronizedList(new ArrayList<>());
     public final ExportContext context;
     
     public VcapSettings getSettings() {
@@ -80,7 +81,6 @@ public class VcapExporter {
         this.world = world;
         context = new ExportContext();        
         setBBox(minChunk, maxChunk);
-
     }
 
     /**
@@ -240,11 +240,45 @@ public class VcapExporter {
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
-        WorldSnapshot snapshot = WorldSnapshotManager.getInstance().snapshot(world);
-
-        IFrame iFrame = IFrame.capture(new ChunkView.WorldAccessWrapper(world), getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
+        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getMinChunk(),
+                getSettings().getMaxChunk(), context, time);
         frames.add(iFrame);
         return iFrame;
+    }
+
+    /**
+     * Asynchronously capture an intracoded frame and add it to the vcap.
+     * 
+     * @param time     Time stamp of the frame, in seconds since the beginning of
+     *                 the animation.
+     * @param executor The executor to use for the capture.
+     * @return A future that completes once the frame has been captured and added to
+     *         the vcap.
+     */
+    public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor) {
+        int index = frames.size();
+        return IFrame.captureAsync(new ChunkView.Wrapper(world), getMinChunk(), getMaxChunk(), context, time, executor).thenApply(frame -> {
+            addFrame(index, frame);
+            LogManager.getLogger().info("Finished capturing world at {} seconds.", time);
+            return frame;
+        });
+    }
+
+    /**
+     * Insert a frame into this vcap, adjusting subsiquent P frames as necessary.
+     * @param index The index to insert at.
+     * @param frame The frame to insert.
+     */
+    public void addFrame(int index, Frame frame) {
+        synchronized(frames) {
+            if (index < 0 || index > frames.size()) {
+                throw new IndexOutOfBoundsException(index);
+            }
+            if (index < frames.size() && frames.get(index) instanceof PFrame) {
+                ((PFrame) frames.get(index)).setPrevious(Optional.of(frame));
+            }
+            frames.add(index, frame);
+        }
     }
 
     /**
@@ -275,7 +309,8 @@ public class VcapExporter {
      * @return The captured frame.
      */
     public PFrame capturePFrame(double time, Set<BlockPos> blocks, WorldAccess world) {
-        PFrame pFrame = PFrame.capture(new ChunkView.WorldAccessWrapper(world), blocks, time, frames.get(frames.size() - 1), context);
+        Optional<Frame> previous = !frames.isEmpty() ? Optional.of(frames.get(frames.size() - 1)) : Optional.empty();
+        PFrame pFrame = PFrame.capture(new ChunkView.Wrapper(world), blocks, time, previous, context);
         frames.add(pFrame);
         return pFrame;
     }

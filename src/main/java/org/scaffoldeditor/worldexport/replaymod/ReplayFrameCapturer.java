@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.annotation.Nullable;
 
@@ -27,6 +30,7 @@ import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.vcap.IFrame;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -47,8 +51,12 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     protected Map<Entity, ReplayEntity<?>> entityCache = new HashMap<>();
     protected Set<Entity> skippedEnts = new HashSet<>();
 
+    protected CompletableFuture<IFrame> initialWorldCapture;
+
     private float tickDelta = 0;
     private MinecraftClient client = MinecraftClient.getInstance();
+
+    private ExecutorService worldCaptureService;
 
     public ReplayFrameCapturer(RenderInfo renderInfo, ReplayExportSettings settings) {
         this.renderInfo = renderInfo;
@@ -74,6 +82,10 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     
 
     protected void setup() {
+        if (worldCaptureService == null || worldCaptureService.isShutdown()) {
+            worldCaptureService = Executors.newSingleThreadExecutor(r -> new Thread(r, "Vcap World Capture"));
+        }
+
         if (exporter == null) {
             // int viewDistance = client.options.viewDistance;
             int viewDistance = settings.getViewDistance();
@@ -93,7 +105,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
                 .setLowerDepth(settings.getLowerDepth());
 
         LogManager.getLogger().info("Capturing initial world");
-        exporter.getWorldExporter().captureIFrame(0);
+        initialWorldCapture = exporter.getWorldExporter().captureIFrameAsync(0, worldCaptureService);
         ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);
     }
 
@@ -159,6 +171,9 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         File target = folder.resolve(FilenameUtils.getBaseName(output.getName())+".replay").normalize().toFile();
 
         LogManager.getLogger().info("Saving replay file to "+target);
+
+        // Wait for initial world capture to finish.
+        initialWorldCapture.join();
         
         FileOutputStream out = new FileOutputStream(target);
         exporter.save(out);
@@ -170,6 +185,8 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
      */
     public void cleanUp() {
         ReplayExportMod.getInstance().removeOnBlockUpdated(blockUpdateListener);
+        worldCaptureService.shutdown();
+        worldCaptureService = null;
     }
     
 }

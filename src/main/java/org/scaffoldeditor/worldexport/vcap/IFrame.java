@@ -3,10 +3,14 @@ package org.scaffoldeditor.worldexport.vcap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshot;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
@@ -41,6 +45,27 @@ public class IFrame implements Frame, FluidConsumer {
         IFrame iFrame = new IFrame();
         iFrame.captureData(world, minChunk, maxChunk, context, time);
         return iFrame;
+    }
+
+    /**
+     * Asynchronously capture an intracoded frame.
+     * 
+     * @param world    World to capture.
+     * @param minChunk Bounding box min.
+     * @param maxChunk Bounding box max.
+     * @param context  The export context.
+     * @param time     Time stamp of the frame, in seconds since the beginning of
+     *                 the animation.
+     * @param executor The executor to use for capture.
+     * @return A future that completes with the captured frame.
+     */
+    public static CompletableFuture<IFrame> captureAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, Executor executor) {
+        WorldSnapshot snapshot = WorldSnapshotManager.getInstance().snapshot(world);
+        return CompletableFuture.supplyAsync(() -> {
+            IFrame iFrame = new IFrame();
+            iFrame.captureData(snapshot, minChunk, maxChunk, context, time);
+            return iFrame;
+        }, executor);
     }
 
     protected void captureData(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time) {
