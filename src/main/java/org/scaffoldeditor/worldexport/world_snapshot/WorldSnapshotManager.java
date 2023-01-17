@@ -12,7 +12,7 @@ import org.scaffoldeditor.worldexport.ReplayExportMod;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.WorldView;
+import net.minecraft.world.WorldAccess;
 
 public final class WorldSnapshotManager implements ClientBlockPlaceCallback {
     private final Set<WorldSnapshot> snapshots = Collections.newSetFromMap(new WeakHashMap<>());
@@ -32,7 +32,7 @@ public final class WorldSnapshotManager implements ClientBlockPlaceCallback {
     }
 
     /**
-     * Take a "snapshot" of a world in time. This snapshot does <code>not</code>
+     * Take a "snapshot" of a world in time. This snapshot does <i>not</i>
      * copy the block data. Instead, it sets up a thread-safe view of it that
      * accounts for any potential updates. This way, a world can be captured and
      * iterated through off-thread.
@@ -40,10 +40,23 @@ public final class WorldSnapshotManager implements ClientBlockPlaceCallback {
      * @param world The world to capture.
      * @return The snapshot.
      */
-    public synchronized WorldSnapshot snapshot(WorldView world) {
+    public synchronized WorldSnapshot snapshot(ChunkView world) {
         WorldSnapshot snapshot = new WorldSnapshot(world);
         snapshots.add(snapshot);
         return snapshot;
+    }
+
+    /**
+     * Take a "snapshot" of a world in time. This snapshot does <i>not</i>
+     * copy the block data. Instead, it sets up a thread-safe view of it that
+     * accounts for any potential updates. This way, a world can be captured and
+     * iterated through off-thread.
+     * 
+     * @param world The world to capture.
+     * @return The snapshot.
+     */
+    public WorldSnapshot snapshot(WorldAccess world) {
+        return snapshot(new ChunkView.WorldAccessWrapper(world));
     }
 
     @Override

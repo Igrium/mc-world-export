@@ -31,6 +31,8 @@ import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshot;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -238,6 +240,8 @@ public class VcapExporter {
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
+        WorldSnapshot snapshot = WorldSnapshotManager.getInstance().snapshot(world);
+
         IFrame iFrame = IFrame.capture(new ChunkView.WorldAccessWrapper(world), getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
         frames.add(iFrame);
         return iFrame;

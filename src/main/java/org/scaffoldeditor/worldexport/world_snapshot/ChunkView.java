@@ -5,6 +5,7 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.chunk.Chunk;
@@ -17,8 +18,12 @@ import net.minecraft.world.level.ColorResolver;
 public interface ChunkView extends BlockRenderView {
     boolean isChunkLoaded(int x, int z);
 
-    default boolean sectionExists(int x, int y, int z) {
+    default boolean isSectionLoaded(int x, int y, int z) {
         return isChunkLoaded(x, z);
+    }
+
+    default boolean isSectionLoaded(Vec3i pos) {
+        return isSectionLoaded(pos.getX(), pos.getY(), pos.getZ());
     }
 
     /**
@@ -77,7 +82,7 @@ public interface ChunkView extends BlockRenderView {
         }
         
         @Override
-        public boolean sectionExists(int x, int y, int z) {
+        public boolean isSectionLoaded(int x, int y, int z) {
             if (!isChunkLoaded(x, z)) return false;
 
             Chunk chunk = base.getChunk(x, z);
