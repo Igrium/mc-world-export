@@ -11,7 +11,7 @@ public interface MaterialConsumer {
      * @param mat Material.
      */
     default void addMaterial(String name, Material mat) {
-        if (getMaterial(name) == null) putMaterial(name, mat);
+        if (!hasMaterial(name)) putMaterial(name, mat);
     }
 
     /**
@@ -20,7 +20,25 @@ public interface MaterialConsumer {
      * @param texture Texture.
      */
     default void addTexture(String name, ReplayTexture texture) {
-        if (getTexture(name) == null) putTexture(name, texture);
+        if (!hasTexture(name)) putTexture(name, texture);
+    }
+
+    /**
+     * Determine if this consumer already has a material by the given name.
+     * @param name Material name.
+     * @return If that material exists.
+     */
+    default boolean hasMaterial(String name) {
+        return getMaterial(name) != null;
+    }
+
+    /**
+     * Determine if this consumer already has a texture by the given name.
+     * @param name Texture name.
+     * @return If that texture exists.
+     */
+    default boolean hasTexture(String name) {
+        return getTexture(name) != null;
     }
 
     /**

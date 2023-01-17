@@ -160,7 +160,8 @@ public class PFrame implements Frame {
             handledFluids.add(fluidPos);
         }
 
-        String meshId = context.addExtraModel("fluid.0", fluid.getMesh());
+
+        String meshId = context.addModel("fluid.0", fluid.getModel());
         putBlock(fluid.getRootPos(), meshId, world.getBlockState(fluid.getRootPos()));
     }
 

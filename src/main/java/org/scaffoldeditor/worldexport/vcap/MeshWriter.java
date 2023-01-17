@@ -5,92 +5,96 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.SpriteMaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;
 import de.javagl.obj.Objs;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 
 public final class MeshWriter {
     private MeshWriter() {}
 
-    public static final String WORLD_MAT = "world";
-    public static final String TRANSPARENT_MAT = "world_transparent";
-    public static final String TINTED_MAT = "world_tinted";
-    public static final String TRANSPARENT_TINTED_MAT = "world_trans_tinted";
     public static final String EMPTY_MESH = "empty";
 
-    public static class MeshInfo {
-        public final Obj mesh;
-        public final int numLayers;
-
-        public MeshInfo(Obj mesh, int numLayers) {
-            this.mesh = mesh;
-            this.numLayers = numLayers;
-        }
-    }
-
-    public static MeshInfo empty() {
-        return new MeshInfo(Objs.create(), 1);
-    }
-    
-
-    public static MeshInfo writeBlockMesh(ModelEntry entry, Random random) {
+    public static ModelInfo writeBlockMesh(BlockModelEntry entry, Random random) {
         Obj obj = Objs.create();
-        BakedModel model = entry.model;
+        BakedModel model = entry.model();
+        BlockState blockState = entry.blockState();
+        boolean transparent = entry.transparent();
+        boolean emissive = entry.emissive();
 
         List<Set<float[]>> fLayers = new ArrayList<>();
-        for (int d = 0; d < BlockExporter.DIRECTIONS.length; d++) {
-            if (!entry.faces[d]) continue;
-            Direction direction = BlockExporter.DIRECTIONS[d];
-            List<BakedQuad> quads = model.getQuads(entry.blockState, direction, random);
+        Map<String, MaterialProvider> materials = new HashMap<>();
+
+        for (Direction direction : Direction.values()) {
+            if (!entry.isFaceVisible(direction)) continue;
+            List<BakedQuad> quads = model.getQuads(blockState, direction, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, entry.transparent, fLayers);
+                addFace(quad, obj, transparent, emissive, fLayers, materials::put);
             }
         }
-        {   // Quads that aren't assigned to a direction.   
-            List<BakedQuad> quads = model.getQuads(entry.blockState, null, random);
+        {
+            // Quads that aren't assigned to a direction.
+            List<BakedQuad> quads = model.getQuads(blockState, null, random);
             for (BakedQuad quad : quads) {
-                addFace(quad, obj, entry.transparent, fLayers);
+                addFace(quad, obj, transparent, emissive, fLayers, materials::put);
             }
         }
-        return new MeshInfo(obj, fLayers.size());
+        
+        return new ModelInfo(obj, fLayers.size(), materials);
     }
 
     /**
      * Add a baked quad to a 3d mesh.
-     * @param quad Quad to add.
-     * @param obj Mesh to add to.
-     * @param transparent Assign transparent material.
-     * @param fLayers A list of lists of 12-float arrays indicating what quads already exist. Used for material stacking.
+     * 
+     * @param quad             Quad to add.
+     * @param obj              Mesh to add to.
+     * @param transparent      Assign transparent material.
+     * @param fLayers          A list of sets of 12-float arrays indicating what
+     *                         quads already exist. Used for material stacking.
+     * @param materialConsumer For all the generated vcap world materials.
      * @return The face layer index this face was added to.
      */
-    public static int addFace(BakedQuad quad, Obj obj, boolean transparent, @Nullable List<Set<float[]>> fLayers) {
+    private static int addFace(BakedQuad quad, Obj obj, boolean transparent, boolean emissive,
+            @Nullable List<Set<float[]>> fLayers, BiConsumer<String, MaterialProvider> materialConsumer) {
 
-        if (transparent) {
-            if (quad.hasColor()) {
-                obj.setActiveMaterialGroupName(TRANSPARENT_TINTED_MAT);
-            } else {
-                obj.setActiveMaterialGroupName(TRANSPARENT_MAT);
-            }
+        Sprite sprite = quad.getSprite();
+
+        boolean useAnimation = sprite.getAnimation() != null;
+        MaterialProvider material;
+        String matName;
+
+        if (useAnimation) {
+            SpriteMaterialProvider mat = new SpriteMaterialProvider(sprite, transparent, quad.hasColor(), emissive);
+            matName = mat.getName();
+            material = mat;
         } else {
-            if (quad.hasColor()) {
-                obj.setActiveMaterialGroupName(TINTED_MAT);
-            } else {
-                obj.setActiveMaterialGroupName(WORLD_MAT);
-            }
+            VcapWorldMaterial mat = new VcapWorldMaterial(transparent, quad.hasColor(), emissive);
+            matName = mat.getName();
+            material = mat;
         }
+
+        materialConsumer.accept(matName, material);
+        obj.setActiveMaterialGroupName(matName);
 
         int[] vertData = quad.getVertexData();
 
@@ -113,6 +117,12 @@ public final class MeshWriter {
 
             float u = buffer.getFloat(16);
             float v = buffer.getFloat(20);
+
+            // Convert to sprite coordinates
+            if (useAnimation) {
+                u = makeLocal(sprite.getMinU(), sprite.getMaxU(), u);
+                v = makeLocal(sprite.getMinV(), sprite.getMaxV(), v);
+            }
 
             obj.addTexCoord(u, 1 - v);
             obj.addVertex(x, y, z);
@@ -147,6 +157,10 @@ public final class MeshWriter {
         obj.addFace(indices, indices, null);
 
         return layerIndex;
+    }
+
+    private static float makeLocal(float globalMin, float globalMax, float globalVal) {
+        return (globalVal - globalMin) / (globalMax - globalMin);
     }
 
     private static boolean contains(Collection<float[]> collection, float[] array) {

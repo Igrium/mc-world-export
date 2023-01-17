@@ -7,9 +7,13 @@ import java.util.Set;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
+import org.scaffoldeditor.worldexport.vcap.BlockExporter;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
+import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
+
+import com.google.common.collect.ImmutableMap;
 
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
@@ -27,7 +31,7 @@ import net.minecraft.world.WorldAccess;
  */
 public class FluidDomain {
     private final Set<BlockPos> positions = new HashSet<>();
-    private Obj mesh;
+    private ModelInfo model;
     private final BlockPos rootPos;
     private final Fluid fluid;
 
@@ -47,8 +51,8 @@ public class FluidDomain {
         return Collections.unmodifiableSet(positions);
     }
 
-    public final Obj getMesh() {
-        return mesh;
+    public final ModelInfo getModel() {
+        return model;
     }
 
     public final BlockPos getRootPos() {
@@ -84,7 +88,7 @@ public class FluidDomain {
             other.rootPos.getX() - rootPos.getX(),
             other.rootPos.getY() - rootPos.getY(),
             other.rootPos.getZ() - rootPos.getZ());
-        return comparator.meshEquals(mesh, other.mesh, offset, .01f, 0);
+        return comparator.meshEquals(model.mesh(), other.model.mesh(), offset, .01f, 0);
     }
     
     /**
@@ -119,14 +123,18 @@ public class FluidDomain {
         }).maxDepth(5000).build();
         floodFill.execute(rootPos);
 
-        this.mesh = captureMesh(world);
+        this.model = captureMesh(world);
     }
 
-    protected Obj captureMesh(WorldAccess world) {
+    protected ModelInfo captureMesh(WorldAccess world) {
         MinecraftClient client = MinecraftClient.getInstance();
 
+        BlockState rootState = world.getBlockState(rootPos);
+
         Obj mesh = Objs.create();
-        mesh.setActiveMaterialGroupName(MeshWriter.TRANSPARENT_TINTED_MAT);
+        VcapWorldMaterial material = new VcapWorldMaterial(true, true,
+                rootState.getLuminance() >= BlockExporter.EMISSIVE_THRESHOLD);
+        mesh.setActiveMaterialGroupName(material.getName());
 
         ObjVertexConsumer consumer = new ObjVertexConsumer(mesh);
 
@@ -141,7 +149,7 @@ public class FluidDomain {
             client.getBlockRenderManager().renderFluid(pos, world, consumer, state, state.getFluidState());
         }
 
-        return mesh;
+        return new ModelInfo(mesh, 1, ImmutableMap.of(material.getName(), material));
     }
 
     private String getFluidName(Fluid fluid) {

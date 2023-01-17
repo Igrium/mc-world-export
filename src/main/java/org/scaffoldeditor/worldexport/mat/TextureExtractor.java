@@ -1,15 +1,13 @@
 package org.scaffoldeditor.worldexport.mat;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.file.Files;
-
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 
 import org.apache.logging.log4j.LogManager;
 import org.lwjgl.opengl.GL11C;
+
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.AbstractTexture;
@@ -98,11 +96,8 @@ public final class TextureExtractor {
      * @throws IOException If an I/O exception occurs.
      */
     public static void writeTextureToFile(NativeImage texture, OutputStream output) throws IOException {
-        // For some reason, NativeImage can only write to a file; not an output stream.
-        File texTemp = File.createTempFile("texture-", ".png");
-        texTemp.deleteOnExit();
-        texture.writeTo(texTemp);
-
-        Files.copy(texTemp.toPath(), output);
+        // For some reason, NativeImage can only write to a file or a byte array; not an output stream.
+        byte[] data = texture.getBytes();
+        output.write(data);
     }
 }

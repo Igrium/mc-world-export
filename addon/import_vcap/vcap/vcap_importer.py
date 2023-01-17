@@ -51,12 +51,13 @@ def load(file: Union[str, IO[bytes]],
         
         # Materials
         for entry in archive.filelist:
-            if entry.filename.startswith('mat/'):
-                mat_id = os.path.splitext(os.path.basename(entry.filename))[0]
+            name = entry.filename
+            if name.startswith('mat/'):
+                mat_id = os.path.splitext(name[(name.find('/') + 1):])[0] # Remove 'mat/'
 
                 f = archive.open(entry)
                 obj = json.load(f)
-                mat = materials.parse(obj, mat_id, vcontext)
+                mat = materials.parse(obj, os.path.basename(mat_id), vcontext)
                 vcontext.materials[mat_id] = mat
                 f.close()
         # Meshes

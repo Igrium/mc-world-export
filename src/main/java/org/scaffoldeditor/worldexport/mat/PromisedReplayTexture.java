@@ -3,8 +3,11 @@ package org.scaffoldeditor.worldexport.mat;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import com.mojang.blaze3d.systems.RenderSystem;
+import org.scaffoldeditor.worldexport.util.ThreadUtils;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.AbstractTexture;
@@ -47,22 +50,30 @@ public class PromisedReplayTexture implements ReplayTexture {
         if (isExtracted()) return;
         this.image = TextureExtractor.getTexture(texture);
     }
+
+    @Override
+    public CompletableFuture<Void> prepare() {
+        return ThreadUtils.onRenderThread(this::extract);
+    }
     
     /**
      * Extract the texture from the GPU on the next frame.
+     * @deprecated Use {@link ReplayTexture#prepare()}
      */
+    @Deprecated
     public CompletableFuture<Void> extractLater() {
-        if (RenderSystem.isOnRenderThread()) {
-            extract();
-            return CompletableFuture.completedFuture(null);
-        } else {
-            return CompletableFuture.runAsync(this::extract, MinecraftClient.getInstance());
-        }
+        return prepare();
     }
 
     @Override
     public void save(OutputStream out) throws IOException {
-        extract();
+        try {
+            extractLater().get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new IOException("Error extracting promised replay texture.", e);
+        }
         TextureExtractor.writeTextureToFile(image, out);
     }
 

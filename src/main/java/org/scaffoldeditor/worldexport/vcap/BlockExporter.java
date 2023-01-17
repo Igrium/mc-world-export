@@ -10,15 +10,13 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
+import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
-import de.javagl.obj.Obj;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.block.BlockModels;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.nbt.NbtByteArray;
@@ -37,18 +35,31 @@ import net.minecraft.world.chunk.ChunkSection;
 public final class BlockExporter {
     private BlockExporter() {
     };
-
-    // Directions must follow this order.
-    public static Direction[] DIRECTIONS = { Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST, Direction.UP,
-            Direction.DOWN };
     
     static final MinecraftClient client = MinecraftClient.getInstance();
+    /**
+     * The minimum light value at which blocks will be considered emissive.
+     */
+    public static final int EMISSIVE_THRESHOLD = 4;
     
     public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
         NbtCompound tag = new NbtCompound();
         tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer));
         NbtIo.writeCompressed(tag, os);
+    }
+
+    /**
+     * Prepare elements of a model entry that aren't dependend on position in the world.
+     * @param state Block state to use.
+     * @return The generated builder.
+     */
+    public static BlockModelEntry.Builder prepareEntry(BlockState state) {
+        BlockRenderManager dispatcher = client.getBlockRenderManager();
+        BlockModelEntry.Builder builder = new Builder(dispatcher.getModel(state), state);
+        builder.transparent(!state.isOpaque());
+        builder.emissive(state.getLuminance() >= EMISSIVE_THRESHOLD);
+        return builder;
     }
 
     public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
@@ -85,20 +96,16 @@ public final class BlockExporter {
     public static String exportBlock(WorldAccess world, BlockPos pos, ExportContext context) {
         BlockState state = world.getBlockState(pos);
         String id;
-        BlockRenderManager dispatcher = client.getBlockRenderManager();
 
+        BlockModelEntry.Builder builder = prepareEntry(state);
 
         BlockPos.Mutable mutable = pos.mutableCopy();
-        boolean[] faces = new boolean[6];
-
-        for (int i = 0; i < DIRECTIONS.length; i++) {
-            Direction direction = DIRECTIONS[i];
+        for (Direction direction : Direction.values()) {
             mutable.set(pos, direction);
-            faces[i] = Block.shouldDrawSide(state, world, pos, direction, mutable);
+            builder.face(direction, Block.shouldDrawSide(state, world, pos, direction, mutable));
         }
 
-        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-        id = context.getID(entry, BlockModels.getModelId(state).toString());
+        id = context.addBlock(builder.build());
 
         return id;
     }
@@ -121,7 +128,6 @@ public final class BlockExporter {
     private static NbtCompound writeSection(ChunkSection section, WorldAccess world,
             int sectionX, int sectionY, int sectionZ, ExportContext context, @Nullable FluidConsumer fluidConsumer) {
 
-        BlockRenderManager dispatcher = client.getBlockRenderManager();
         LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
 
         NbtCompound tag = new NbtCompound();
@@ -152,24 +158,22 @@ public final class BlockExporter {
                         }
 
                         if (thisDomain.get().getRootPos().equals(worldPos)) {
-                            Obj mesh = thisDomain.get().getMesh();
-                            id = context.addExtraModel("fluid.0", mesh);
+                            // Name conflict resolution will create the final name.
+                            id = context.addModel("fluid.0", thisDomain.get().getModel());
                         } else {
                             id = MeshWriter.EMPTY_MESH;
                         }
 
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
-                        boolean[] faces = new boolean[6];
-    
-                        for (int i = 0; i < DIRECTIONS.length; i++) {
-                            Direction direction = DIRECTIONS[i];
+                        BlockModelEntry.Builder builder = prepareEntry(state);
+
+                        for (Direction direction : Direction.values()) {
                             mutable.set(worldPos, direction);
-                            faces[i] = Block.shouldDrawSide(state, world, worldPos, direction, mutable);
+                            builder.face(direction, Block.shouldDrawSide(state, world, worldPos, direction, mutable));
                         }
-    
-                        ModelEntry entry = new ModelEntry(dispatcher.getModel(state), faces, !state.isOpaque(), state);
-                        id = context.getID(entry, BlockModels.getModelId(state).toString());
+
+                        id = context.addBlock(builder.build());
                     }
                     
                     int color = client.getBlockColors().getColor(state, world, worldPos, 0);

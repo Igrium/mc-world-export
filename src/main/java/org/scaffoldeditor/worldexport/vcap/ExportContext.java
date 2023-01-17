@@ -1,86 +1,50 @@
 package org.scaffoldeditor.worldexport.vcap;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.mat.Material;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
-
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import org.scaffoldeditor.worldexport.vcap.model.BlockModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
 import de.javagl.obj.Obj;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.registry.Registry;
 
 /**
  * Contains various values passed around throughout the export process.
  */
-public class ExportContext {
-    public static class ModelEntry {
-        /**
-         * The baked model to use.
-         */
-        public final BakedModel model;
-
-        /**
-         * A 6-element array dictating which faces are visible,
-         * in the order NORTH, SOUTH, EAST, WEST, UP, DOWN
-         */
-        public final boolean[] faces;
-
-        public final boolean transparent;
-
-        @Nullable
-        public final BlockState blockState;
-
-        /**
-         * Create a model entry.
-         * @param model The baked model to use.
-         * @param faces A 6-element array dictating which faces are visible,
-         * in the order NORTH, SOUTH, EAST, WEST, UP, DOWN
-         * @param blockState The blockstate of the model.
-         */
-        public ModelEntry(BakedModel model, boolean[] faces, boolean transparent, @Nullable BlockState blockState) {
-            this.model = model;
-            this.faces = faces;
-            this.transparent = transparent;
-            this.blockState = blockState;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(model, Arrays.hashCode(faces), hashBlock(blockState));
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return hashCode() == obj.hashCode();
-        }
-
-        private static int hashBlock(BlockState state) {
-            Identifier id = Registry.BLOCK.getId(state.getBlock());
-            return Objects.hash(id, state.getEntries());
-        }
-    
-    }
+public class ExportContext implements MaterialConsumer {
 
     /**
-     * The model entries in the cache and their IDs.
+     * The models used in this vcap.
      */
-    public final BiMap<ModelEntry, String> models = HashBiMap.create();
+    public final Map<String, ModelProvider> models = new HashMap<>();
 
     /**
-     * The fluid meshes in the export context.
+     * A cache of model entries so they can be re-used.
      */
-    public final BiMap<String, Obj> extraModels = HashBiMap.create();
+    private final Map<BlockModelEntry, String> modelCache = new HashMap<>();
+
+    /**
+     * The materials used in this vcap.
+     */
+    public final Map<String, MaterialProvider> materials = new HashMap<>();
+
+    /**
+     * The textures to write to the vcap file.
+     */
+    public final Map<String, ReplayTexture> textures = new HashMap<>();
 
     private VcapSettings settings = new VcapSettings();
     private MeshComparator meshComparator = new MeshComparator();
@@ -115,42 +79,46 @@ public class ExportContext {
      * Add an "extra" model to the vcap file.
      * @param desiredName The name to use.
      * @param model The model to add.
-     * @return The name the model was given.
+     * @return The name the model was given after name conflict resolution.
      */
+    @Deprecated
     public synchronized String addExtraModel(String desiredName, Obj model) {
-        if (extraModels.containsValue(model)) {
-            return extraModels.inverse().get(model);
-        }
         String name = makeNameUnique(desiredName);
-        extraModels.put(name, model);
+        ModelInfo info = new ModelInfo(model, 0, Collections.emptyMap());
+        models.put(name, () -> info);
         return name;
     }
 
     /**
-     * Generate the ID of a model entry. Returns the current ID if it already exists.
-     * @param entry Entry to generate the ID for.
-     * @param name Base name of model.
-     * @return ID.
+     * Add a model to the vcap file.
+     * @param name The name to use.
+     * @param model The model to add.
+     * @return The name the model was given after name conflict resolution.
      */
-    public synchronized String getID(ModelEntry entry, String name) {
-        String id = models.get(entry);
-        if (id == null) {
-            if (name == null) name = String.valueOf(entry.model.hashCode());
-            id = makeNameUnique(name+Arrays.toString(entry.faces));
-            models.put(entry, id);
-        }
-        return id;
-    }
-
-    public synchronized String makeNameUnique(String name) {
-        while (models.containsValue(name) || extraModels.containsKey(name)) {
-            name = iterateName(name);
-        }
+    public synchronized String addModel(String name, ModelInfo model) {
+        name = makeNameUnique(name);
+        models.put(name, () -> model);
         return name;
     }
 
-    public String getID(ModelEntry entry) {
-        return getID(entry, null);
+    /**
+     * Add a block model to the vcap.
+     * @param model Block model entry.
+     * @return The name that was generated.
+     */
+    public synchronized String addBlock(BlockModelEntry model) {
+        if (modelCache.containsKey(model)) return modelCache.get(model);
+        String name = makeNameUnique(model.getID());
+        models.put(name, new BlockModelProvider(model));
+        modelCache.put(model, name);
+        return name;
+    }
+
+    public synchronized String makeNameUnique(String name) {
+        while (models.containsKey(name)) {
+            name = iterateName(name);
+        }
+        return name;
     }
 
     /**
@@ -161,9 +129,12 @@ public class ExportContext {
      * @see ExportContext#getIDMapping()
      */
     public void getIDMapping(Map<String, String> map) {
-        for (ModelEntry entry : models.keySet()) {
-            map.put(models.get(entry), Registry.BLOCK.getId(entry.blockState.getBlock()).toString());
-        }
+        models.forEach((id, model) -> {
+            Optional<BlockState> blockstate = model.getBlockstate();
+            if (blockstate.isPresent()) {
+                map.put(id, Registry.BLOCK.getId(blockstate.get().getBlock()).toString());
+            }
+        });
     }
 
     /**
@@ -189,6 +160,36 @@ public class ExportContext {
         } else {
             return name+'1';
         }
+    }
+
+    @Override
+    public void putMaterial(String name, Material mat) {
+        materials.put(name, (textures) -> mat);
+    }
+
+    @Override
+    public boolean hasMaterial(String name) {
+        return materials.containsKey(name);
+    }
+
+    @Override
+    public Material getMaterial(String name) {
+        return materials.getOrDefault(name, (textures) -> null).writeMaterial((texName, tex) -> {});
+    }
+
+    @Override
+    public void putTexture(String name, ReplayTexture texture) {
+        textures.put(name, texture);
+    }
+
+    @Override
+    public boolean hasTexture(String name) {
+        return textures.containsKey(name);
+    }
+
+    @Override
+    public ReplayTexture getTexture(String name) {
+        return textures.get(name);
     }
     
 

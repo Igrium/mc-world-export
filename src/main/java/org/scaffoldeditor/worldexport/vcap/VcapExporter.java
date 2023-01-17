@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport;
+package org.scaffoldeditor.worldexport.vcap;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,45 +6,43 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
+import org.scaffoldeditor.worldexport.ReplayExportMod;
+import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
+import org.scaffoldeditor.worldexport.mat.ReplayTexture;
+import org.scaffoldeditor.worldexport.mat.TextureExtractor;
+import org.scaffoldeditor.worldexport.mat.TextureSerializer;
+import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
+import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
+import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
-import org.scaffoldeditor.worldexport.mat.Material;
-import org.scaffoldeditor.worldexport.mat.TextureExtractor;
-import org.scaffoldeditor.worldexport.vcap.ExportContext;
-import org.scaffoldeditor.worldexport.vcap.ExportContext.ModelEntry;
-import org.scaffoldeditor.worldexport.vcap.Frame;
-import org.scaffoldeditor.worldexport.vcap.IFrame;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter;
-import org.scaffoldeditor.worldexport.vcap.PFrame;
-import org.scaffoldeditor.worldexport.vcap.MeshWriter.MeshInfo;
-import org.scaffoldeditor.worldexport.vcap.VcapMeta;
-import org.scaffoldeditor.worldexport.vcap.VcapSettings;
-
-import de.javagl.obj.Obj;
 import de.javagl.obj.ObjWriter;
+import de.javagl.obj.Objs;
+import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 
@@ -155,83 +153,48 @@ public class VcapExporter {
         NbtIo.write(worldData, new DataOutputStream(out));
         out.closeEntry();
 
+        Map<String, MaterialProvider> materials = new HashMap<>(context.materials);
+
         // MODELS
-        Random random = Random.create();
         int numLayers = 0;
 
-        for (ModelEntry model : context.models.keySet()) {
-            String id = context.models.get(model);
+        for (Map.Entry<String, ModelProvider> entry : context.models.entrySet()) {
+            String id = entry.getKey();
+            ModelProvider modelProvider = entry.getValue();
+
             LOGGER.debug("Writing mesh: "+id);
+            ModelInfo model = modelProvider.writeMesh();
+            writeMesh(model.mesh(), id, out);
 
-            MeshInfo info = MeshWriter.writeBlockMesh(model, random);
-            writeMesh(info.mesh, id, out);
-
-            if (info.numLayers > numLayers) {
-                numLayers = info.numLayers;
+            if (model.numLayers() > numLayers) {
+                numLayers = model.numLayers();
             }
-        }
 
-        for (String id : context.extraModels.keySet()) {
-            LOGGER.debug("Writing fluid mesh: "+id);
-            writeMesh(context.extraModels.get(id), id, out);
+            model.materials().forEach(materials::putIfAbsent);
         }
 
         // Fluid meshes assume empty mesh is written.
-        writeMesh(MeshWriter.empty().mesh, MeshWriter.EMPTY_MESH, out);
+        writeMesh(Objs.create(), MeshWriter.EMPTY_MESH, out);
 
         // MATERIALS
-        Material opaque = new Material();
-        opaque.setColor("world");
-        opaque.setRoughness(1);
-        
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.WORLD_MAT+".json"));
-        opaque.serialize(out);
-        out.closeEntry();
 
-        Material transparent = new Material();
-        transparent.setColor("world");
-        transparent.setRoughness(1);
-        transparent.setTransparent(true);
+        Map<String, ReplayTexture> textures = new HashMap<>();
+        textures.put("world", new PromisedReplayTexture(TextureExtractor.getAtlasTexture()));
 
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_MAT+".json"));
-        transparent.serialize(out);
-        out.closeEntry();
-
-        Material opaque_tinted = new Material();
-        opaque_tinted.setColor("world");
-        opaque_tinted.setRoughness(1);
-        opaque_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
-
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TINTED_MAT+".json"));
-        opaque_tinted.serialize(out);
-        out.closeEntry();
-
-        Material transparent_tinted = new Material();
-        transparent_tinted.setColor("world");
-        transparent_tinted.setRoughness(1);
-        transparent_tinted.addOverride("color2", Material.DEFAULT_OVERRIDES.VERTEX_COLOR);
-        transparent_tinted.setTransparent(true);
-
-        out.putNextEntry(new ZipEntry("mat/"+MeshWriter.TRANSPARENT_TINTED_MAT+".json"));
-        transparent_tinted.serialize(out);
-        out.closeEntry();
-
-        // TEXTURE ATLAS
-        CompletableFuture<NativeImage> textureExtraction = new CompletableFuture<>();
-        MinecraftClient.getInstance().execute(() -> {
-            LOGGER.info("Extracting world texture...");
-            textureExtraction.complete(TextureExtractor.getAtlas());
-        });
-
-        out.putNextEntry(new ZipEntry("tex/world.png"));
-        try {
-            TextureExtractor.writeTextureToFile(textureExtraction.get(), out);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Texture extractor was interrupted.", e);
-        } catch (ExecutionException e) {
-            throw new IOException("Error extracting world atlas texture.", e);
+        for (Map.Entry<String, MaterialProvider> entry : materials.entrySet()) {
+            out.putNextEntry(new ZipEntry("mat/"+entry.getKey()+".json"));
+            entry.getValue().writeMaterial(textures::putIfAbsent).serialize(out);
+            out.closeEntry();
         }
-        out.closeEntry();
+
+        textures.putAll(context.textures);
+
+        // TEXTURES
+        TextureSerializer serializer = new TextureSerializer(
+                filename -> new ZipEntryOutputStream(out, new ZipEntry("tex/" + filename)));
+        serializer.logger = LogManager.getLogger();
+
+        serializer.save(textures);
         
         // META
         LOGGER.info("Writing Vcap metadata.");
@@ -252,9 +215,9 @@ public class VcapExporter {
         out.finish();
     }
 
-    private static void writeMesh(Obj mesh, String id, ZipOutputStream out) throws IOException {
+    private static void writeMesh(ReadableObj mesh, String id, ZipOutputStream out) throws IOException {
         ZipEntry modelEntry = new ZipEntry("mesh/"+id+".obj");
-        out.putNextEntry(modelEntry);
+        out.putNextEntry(modelEntry);   
         ObjWriter.write(mesh, out);
         out.closeEntry();
     }
