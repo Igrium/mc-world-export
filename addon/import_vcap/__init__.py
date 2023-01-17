@@ -15,8 +15,8 @@ bl_info = {
     "name" : "Import Minecraft Replay",
     "author" : "Igrium",
     "description" : "The Blender component of Igrium's Replay Exporter",
-    "blender" : (2, 93, 0),
-    "version" : (0, 5, 0),
+    "blender" : (3, 0, 0),
+    "version" : (0, 6, 0),
     "location" : "",
     "warning" : "This addon is still in development.",
     "category" : "Import-Export"

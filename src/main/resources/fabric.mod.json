@@ -3,7 +3,7 @@
   "id": "worldexport",
   "version": "${version}",
 
-  "name": "Replay Exporter",
+  "name": "Igrium's Replay Exporter",
   "description": "An addon to the Replay Mod that allows it to export into Blender and other 3D software.",
   "authors": [
     "Igrium"
