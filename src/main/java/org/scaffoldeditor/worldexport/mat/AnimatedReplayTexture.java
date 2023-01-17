@@ -9,10 +9,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import org.scaffoldeditor.worldexport.mat.sprite.SpriteAnimMetaProvider;
 import org.scaffoldeditor.worldexport.mixins.SpriteAccessor;
 
 import com.google.common.collect.ImmutableMap;
 
+import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.util.Identifier;
@@ -25,7 +27,9 @@ public class AnimatedReplayTexture implements ReplayTexture {
     private final Sprite sprite;
     private NativeImage spritesheet;
 
-    ReplayTexture spritesheetTexture;
+    private ReplayTexture spritesheetTexture;
+    private AnimationResourceMetadata animData;
+
 
     private CompletableFuture<?> prepareFuture;
 
@@ -37,6 +41,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
         this.sprite = sprite;
         this.spritesheet = ((SpriteAccessor) sprite).getImages()[0];
         spritesheetTexture = new NativeImageReplayTexture(spritesheet);
+        animData = ((SpriteAnimMetaProvider) sprite).getAnimData();
     }
 
     @Override
@@ -74,10 +79,6 @@ public class AnimatedReplayTexture implements ReplayTexture {
         return prepareFuture;
     }
 
-    /**
-     * Until I can find a way to access the data from <code>Animation</code> this is
-     * the best way to count the frames in the sprite sheet.
-     */
     private int countFrames() {
         // TODO: Properly read animation meta
         return spritesheet.getHeight() / spritesheet.getWidth();
@@ -86,6 +87,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
     public AnimatedTextureMeta getMetadata() {
         AnimatedTextureMeta meta = new AnimatedTextureMeta();
         meta.setFrameCount(countFrames());
+        meta.setFramerate(20f / animData.getDefaultFrameTime());
         return meta;
     }
     

@@ -13,6 +13,8 @@
     "VideoRendererMixin",
     "QuadrupedModelAccessor",
     "SpriteAccessor",
+    "SpriteMixin",
+    "SpriteInfoAccessor",
     "TimelineMixin",
     "ReplayModMixin",
     "GameRendererMixin"
