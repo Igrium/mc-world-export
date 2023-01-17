@@ -10,8 +10,9 @@ import org.scaffoldeditor.worldexport.util.MeshComparator;
 import org.scaffoldeditor.worldexport.vcap.BlockExporter;
 import org.scaffoldeditor.worldexport.vcap.ExportContext;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
-import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
+import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
+import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -24,7 +25,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.registry.Registry;
-import net.minecraft.world.WorldAccess;
+import net.minecraft.world.BlockRenderView;
 
 /**
  * Represents a "domain" of fluid within a single frame.
@@ -95,7 +96,7 @@ public class FluidDomain {
      * Capture the fluid for this frame.
      * @param world The world to capture.
      */
-    public void capture(WorldAccess world) {
+    public void capture(ChunkView world) {
         Fluid rootFluid = world.getBlockState(rootPos).getFluidState().getFluid();
         if (rootFluid != fluid) {
             throw new IllegalStateException(
@@ -126,7 +127,7 @@ public class FluidDomain {
         this.model = captureMesh(world);
     }
 
-    protected ModelInfo captureMesh(WorldAccess world) {
+    protected ModelInfo captureMesh(BlockRenderView world) {
         MinecraftClient client = MinecraftClient.getInstance();
 
         BlockState rootState = world.getBlockState(rootPos);

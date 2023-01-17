@@ -19,6 +19,6 @@ public abstract class ClientWorldMixin {
 
     @Inject(method = "updateListeners", at = @At("RETURN"))
     public void updateListeners(BlockPos pos, BlockState oldState, BlockState newState, int flags, CallbackInfo ci) {
-        ClientBlockPlaceCallback.EVENT.invoker().place(pos, newState, (World)(Object) this);
+        ClientBlockPlaceCallback.EVENT.invoker().place(pos, oldState, newState, (World)(Object) this);
     }
 }

@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
 import com.replaymod.render.frame.BitmapFrame;
@@ -56,7 +58,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     protected ClientBlockPlaceCallback blockUpdateListener = new ClientBlockPlaceCallback() {
 
         @Override
-        public void place(BlockPos pos, BlockState state, World world) {
+        public void place(BlockPos pos, @Nullable BlockState oldState, BlockState state, World world) {
             blockUpdateCache.put(pos, state);
         }
         

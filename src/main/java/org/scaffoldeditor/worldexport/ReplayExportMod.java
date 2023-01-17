@@ -13,6 +13,7 @@ import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityRenderer;
 import org.scaffoldeditor.worldexport.replaymod.render.CameraPathRenderer;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import com.replaymod.simplepathing.ReplayModSimplePathing;
 
@@ -57,12 +58,18 @@ public class ReplayExportMod implements ClientModInitializer {
     private final CameraAnimationModule cameraAnimationsModule = new CameraAnimationModule();
     private CameraPathRenderer cameraPathRenderer;
     
+    private WorldSnapshotManager worldSnapshotManager;
+    
     public void onBlockUpdated(ClientBlockPlaceCallback listener) {
         blockUpdateListeners.add(listener);
     }
 
     public boolean removeOnBlockUpdated(ClientBlockPlaceCallback listener) {
         return blockUpdateListeners.remove(listener);
+    }
+
+    public WorldSnapshotManager getWorldSnapshotManager() {
+        return worldSnapshotManager;
     }
 
     @Override
@@ -75,9 +82,11 @@ public class ReplayExportMod implements ClientModInitializer {
         }
 
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
-            blockUpdateListeners.forEach(listener -> listener.place(pos, state, world));
+        ClientBlockPlaceCallback.EVENT.register((pos, oldState, state, world) -> {
+            blockUpdateListeners.forEach(listener -> listener.place(pos, oldState, state, world));
         });
+
+        worldSnapshotManager = new WorldSnapshotManager();
 
         ReplayModels.registerDefaults();
         EntityRendererRegistry.register(ANIMATED_CAMERA, CameraEntityRenderer::new);

@@ -84,7 +84,7 @@ public final class ExportCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
         LiteralCommandNode<FabricClientCommandSource> root = ClientCommandManager.literal("vcap").build();
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
+        ClientBlockPlaceCallback.EVENT.register((pos, old, state, world) -> {
             worldListeners.forEach(listener -> listener.accept(pos, state));
         });
 

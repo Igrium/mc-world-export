@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
+import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -28,9 +29,7 @@ import net.minecraft.nbt.NbtString;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.BlockRenderView;
 
 public final class BlockExporter {
     private BlockExporter() {
@@ -42,7 +41,7 @@ public final class BlockExporter {
      */
     public static final int EMISSIVE_THRESHOLD = 4;
     
-    public static void writeStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+    public static void writeStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
         NbtCompound tag = new NbtCompound();
         tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer));
@@ -62,7 +61,7 @@ public final class BlockExporter {
         return builder;
     }
 
-    public static NbtList exportStill(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+    public static NbtList exportStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             @Nullable FluidConsumer fluidConsumer) {
         NbtList sectionTag = new NbtList();
 
@@ -70,15 +69,11 @@ public final class BlockExporter {
             for (int z = minChunk.z; z < maxChunk.z; z++) {
                 if (!world.isChunkLoaded(x, z))
                     continue;
-                Chunk chunk = world.getChunk(x, z);
-                ChunkSection[] sections = chunk.getSectionArray();
-                for (int i = 0; i < sections.length; i++) {
-                    if (sections[i] == null) continue;
-
-                    int y = chunk.sectionIndexToCoord(i);
+                for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
+                    if (world.sectionExists(x, y, z)) continue;
                     if (y < context.getSettings().getLowerDepth()) continue;
-                    
-                    sectionTag.add(writeSection(sections[i], world, x, y, z, context, fluidConsumer));
+
+                    sectionTag.add(writeSection(world, x, y, z, context, fluidConsumer));
                 }
             }
         }
@@ -93,7 +88,7 @@ public final class BlockExporter {
      * @param context Vcap export context.
      * @return The mesh ID.
      */
-    public static String exportBlock(WorldAccess world, BlockPos pos, ExportContext context) {
+    public static String exportBlock(BlockRenderView world, BlockPos pos, ExportContext context) {
         BlockState state = world.getBlockState(pos);
         String id;
 
@@ -110,7 +105,7 @@ public final class BlockExporter {
         return id;
     }
 
-    private static void genFluid(BlockPos worldPos, WorldAccess world, ExportContext context, FluidConsumer fluidConsumer) {
+    private static void genFluid(BlockPos worldPos, ChunkView world, ExportContext context, FluidConsumer fluidConsumer) {
         // The fluid for this block was already generated.
         if (fluidConsumer.fluidAt(worldPos).isPresent()) return;
         
@@ -125,7 +120,7 @@ public final class BlockExporter {
         fluidConsumer.putFluid(domain);
     }
 
-    private static NbtCompound writeSection(ChunkSection section, WorldAccess world,
+    private static NbtCompound writeSection(ChunkView world,
             int sectionX, int sectionY, int sectionZ, ExportContext context, @Nullable FluidConsumer fluidConsumer) {
 
         LogManager.getLogger().debug("Exporting section [" + sectionX + ", " + sectionY + ", " + sectionZ + "]");
@@ -144,8 +139,8 @@ public final class BlockExporter {
         IntStream.range(0, 16).forEach(y -> {
             IntStream.range(0, 16).forEach(z -> {
                 IntStream.range(0, 16).forEach(x -> {
-                    BlockState state = section.getBlockStateContainer().get(x, y, z);
                     BlockPos worldPos = new BlockPos(sectionX * 16 + x, sectionY * 16 + y, sectionZ * 16 + z);
+                    BlockState state = world.getBlockState(worldPos);
                     String id;
 
                     FluidState fluid = state.getFluidState();

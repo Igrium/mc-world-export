@@ -16,9 +16,10 @@ import java.util.concurrent.CompletionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
@@ -29,6 +30,7 @@ import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
+import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -236,7 +238,7 @@ public class VcapExporter {
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
-        IFrame iFrame = IFrame.capture(world, getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
+        IFrame iFrame = IFrame.capture(new ChunkView.WorldAccessWrapper(world), getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
         frames.add(iFrame);
         return iFrame;
     }
@@ -269,7 +271,7 @@ public class VcapExporter {
      * @return The captured frame.
      */
     public PFrame capturePFrame(double time, Set<BlockPos> blocks, WorldAccess world) {
-        PFrame pFrame = PFrame.capture(world, blocks, time, frames.get(frames.size() - 1), context);
+        PFrame pFrame = PFrame.capture(new ChunkView.WorldAccessWrapper(world), blocks, time, frames.get(frames.size() - 1), context);
         frames.add(pFrame);
         return pFrame;
     }
@@ -280,7 +282,7 @@ public class VcapExporter {
         private boolean isCaptureQueued = false;
 
         @Override
-        public void place(BlockPos t, BlockState u, World world) {
+        public void place(BlockPos t, @Nullable BlockState old, BlockState u, World world) {
             updateCache.add(t);
             if (!isCaptureQueued) {
                 RenderSystem.recordRenderCall(() -> {

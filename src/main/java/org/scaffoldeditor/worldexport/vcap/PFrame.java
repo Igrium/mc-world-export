@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
+import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -22,7 +23,6 @@ import net.minecraft.nbt.NbtString;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.WorldAccess;
 
 public class PFrame implements Frame {
 
@@ -43,7 +43,7 @@ public class PFrame implements Frame {
      * @param context   The export context.
      * @return The captured frame.
      */
-    public static PFrame capture(WorldAccess world,
+    public static PFrame capture(ChunkView world,
             Set<BlockPos> blocks,
             double timestamp,
             Frame previous,
@@ -63,9 +63,9 @@ public class PFrame implements Frame {
 
     public final Frame previous;
     public final double timestamp;
-    public final WorldAccess world;
+    public final ChunkView world;
 
-    public PFrame(Map<BlockPos, String> updated, Map<BlockPos, BlockState> states, WorldAccess world,
+    public PFrame(Map<BlockPos, String> updated, Map<BlockPos, BlockState> states, ChunkView world,
             Frame previous, double timestamp) {
         this.updated = updated;
         this.states = states;
@@ -74,7 +74,7 @@ public class PFrame implements Frame {
         this.world = world;
     }
 
-    protected PFrame(WorldAccess world, Frame previous, double timestamp) {
+    protected PFrame(ChunkView world, Frame previous, double timestamp) {
         this.timestamp = timestamp;
         this.previous = previous;
         this.world = world;
@@ -120,7 +120,7 @@ public class PFrame implements Frame {
         }
     }
 
-    private void genFluid(BlockPos pos, WorldAccess world, ExportContext context) {
+    private void genFluid(BlockPos pos, ChunkView world, ExportContext context) {
         if (!context.getSettings().exportDynamicFluids()) return;
         // We've already exported this fluid.
         if (handledFluids.contains(pos)) return;
