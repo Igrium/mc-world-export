@@ -161,6 +161,13 @@ public class SinglePartModelAdapter<T extends LivingEntity> extends LivingModelA
     private void forEachPartInternal(String name, ModelPart part, ModelPartConsumer consumer, Matrix4dStack offset) {
         offset.pushMatrix();
         offset.rotate(Math.PI, 1, 0, 0);
+
+        // Temporary fix until I can figure out why all the models are too low down.
+        // TODO: proper fix for this
+        if (!name.equals("root")) {
+            offset.translate(0, -ReplayModels.BIPED_Y_OFFSET, 0);
+        }
+
         offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
 
         if (part.yaw != 0)
