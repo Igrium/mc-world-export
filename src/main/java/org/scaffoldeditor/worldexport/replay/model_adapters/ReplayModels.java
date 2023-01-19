@@ -99,6 +99,12 @@ public final class ReplayModels {
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
                 new BipedModelFactory(new Identifier("textures/entity/skeleton/skeleton.png")));
 
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:wither_skeleton"), 
+                new BipedModelFactory(new Identifier("textures/entity/skeleton/wither_skeleton.png")));
+
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:stray"), 
+                new BipedModelFactory(new Identifier("textures/entity/skeleton/stray.png")));
+
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:vex"), 
                 new BipedModelFactory(new Identifier("textures/entity/illager/vex.png")));
         
