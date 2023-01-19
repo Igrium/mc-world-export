@@ -45,13 +45,14 @@ public class WorldSnapshot implements ChunkView {
     }
 
     public void onBlockUpdated(BlockPos pos, @Nullable BlockState oldState, BlockState state) {
+        pos = new BlockPos(pos); // In case this was mutable.
         if (state.equals(oldState)) return;
         ChunkPos chunkPos = new ChunkPos(pos);
         if (!world.isChunkLoaded(chunkPos.x, chunkPos.z)) bannedChunks.add(chunkPos);
 
         ChunkSectionPos secPos = ChunkSectionPos.from(pos);
         if (!world.isSectionLoaded(secPos)) bannedSections.add(secPos);
-        overwrittenStates.put(pos, state);
+        overwrittenStates.put(pos, oldState);
     }
 
     @Override

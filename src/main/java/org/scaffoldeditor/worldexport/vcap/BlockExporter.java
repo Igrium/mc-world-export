@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
@@ -41,6 +42,8 @@ public final class BlockExporter {
      */
     public static final int EMISSIVE_THRESHOLD = 4;
     
+    private static final Logger LOGGER = LogManager.getLogger();
+    
     public static void writeStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
         NbtCompound tag = new NbtCompound();
@@ -64,11 +67,12 @@ public final class BlockExporter {
     public static NbtList exportStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             @Nullable FluidConsumer fluidConsumer) {
         NbtList sectionTag = new NbtList();
-
+        
         for (int x = minChunk.x; x < maxChunk.x; x++) {
             for (int z = minChunk.z; z < maxChunk.z; z++) {
                 if (!world.isChunkLoaded(x, z))
                     continue;
+                LOGGER.debug("Exporting chunk [{}, {}]", x, z);
                 for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
                     if (!world.isSectionLoaded(x, y, z)) continue;
                     if (y < context.getSettings().getLowerDepth()) continue;
