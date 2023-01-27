@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter.BipedModelFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.custom.FireballModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.custom.ProjectileModelAdapter;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -178,6 +179,9 @@ public final class ReplayModels {
          */
         ReplayModelAdapter.REGISTRY.put(new Identifier("fireball"),
                         entity -> new FireballModelAdapter((AbstractFireballEntity) entity));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("arrow"), ProjectileModelAdapter::new);
+        ReplayModelAdapter.REGISTRY.put(new Identifier("spectral_arrow"), ProjectileModelAdapter::new);
     }
 
     /**
