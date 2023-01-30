@@ -12,13 +12,19 @@ import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.vcap.model.BlockModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 import de.javagl.obj.Obj;
+import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.util.registry.Registry;
 
 /**
@@ -35,6 +41,10 @@ public class ExportContext implements MaterialConsumer {
      * A cache of model entries so they can be re-used.
      */
     private final Map<BlockModelEntry, String> modelCache = new HashMap<>();
+
+    private static record FluidCacheEntry(ReadableObj obj, Fluid fluid) {};
+
+    private final BiMap<FluidCacheEntry, String> fluidCache = HashBiMap.create();
 
     /**
      * The materials used in this vcap.
@@ -112,6 +122,32 @@ public class ExportContext implements MaterialConsumer {
         models.put(name, new BlockModelProvider(model));
         modelCache.put(model, name);
         return name;
+    }
+
+    private MeshComparator comparator = new MeshComparator();
+
+    /**
+     * Add the mesh from a fluid domain to the vcap. Unlike simply adding the mesh
+     * manually, this method also maintains a cache so meshes can be re-used when
+     * appropriate.
+     * 
+     * @param fluid The fluid domain.
+     * @return The name that was generated.
+     */
+    public synchronized String addFluid(FluidDomain fluid) {
+        ModelInfo model = fluid.getModel();
+        Optional<FluidCacheEntry> existing = fluidCache.keySet().stream().filter(entry -> {
+            return entry.fluid().equals(fluid.getFluid())
+            && comparator.meshEquals(entry.obj(), model.mesh(), .001f, 0);
+        }).findAny();
+
+        if (existing.isPresent()) {
+            return fluidCache.get(existing.get());
+        }
+
+        String modelID = addModel("fluid.0", model); // Name conflict resolution will handle this.
+        fluidCache.put(new FluidCacheEntry(model.mesh(), fluid.getFluid()), modelID);
+        return modelID;
     }
 
     public synchronized String makeNameUnique(String name) {

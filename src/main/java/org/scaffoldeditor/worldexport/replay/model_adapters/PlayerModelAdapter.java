@@ -42,6 +42,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
         PlayerEntityModel<AbstractClientPlayerEntity> pModel = (PlayerEntityModel<AbstractClientPlayerEntity>) model;
         pModel.rightArmPose = ArmPose.EMPTY;
         pModel.leftArmPose = ArmPose.EMPTY;
+        pModel.sneaking = false;
         
         return super.captureBaseModel(model);
     }
@@ -60,6 +61,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
     private void setModelPose() {
         PlayerEntityModel<AbstractClientPlayerEntity> model = (PlayerEntityModel<AbstractClientPlayerEntity>) getEntityModel();
         AbstractClientPlayerEntity player = getEntity();
+        model.sneaking = player.isInSneakingPose();
         if (player.isSpectator()) {
             model.setVisible(false);
             model.head.visible = true;

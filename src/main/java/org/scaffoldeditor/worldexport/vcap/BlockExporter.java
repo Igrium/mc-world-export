@@ -157,8 +157,7 @@ public final class BlockExporter {
                         }
 
                         if (thisDomain.get().getRootPos().equals(worldPos)) {
-                            // Name conflict resolution will create the final name.
-                            id = context.addModel("fluid.0", thisDomain.get().getModel());
+                            id = context.addFluid(thisDomain.get());
                         } else {
                             id = MeshWriter.EMPTY_MESH;
                         }

@@ -12,7 +12,7 @@ Replay files are essentially renamed zip files. Changing the file extension from
 
 Like Vcap, Replay files contain a `meta.json` file in the root of the archive containing metadata about the file:
 
-- `version` - *string*: The Replay version. This specification is for version `0.2.1`.
+- `version` - *string*: The Replay version. This specification is for version `0.3.0`.
 - `encoder` - *string*: The program used to write this file. Used for debugging.
 - `offset` - *int array*: An offset to apply to the file during import. Useful for replays that take place thousands of blocks away from spawn.
 

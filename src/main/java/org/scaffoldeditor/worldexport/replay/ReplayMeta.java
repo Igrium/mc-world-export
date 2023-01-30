@@ -5,6 +5,7 @@ import java.io.Reader;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.scaffoldeditor.worldexport.Constants;
+import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.util.VectorGson;
 
 import com.google.gson.Gson;
@@ -26,7 +27,7 @@ public class ReplayMeta {
     }
 
     public String version = Constants.REPLAY_FORMAT_VERSION;
-    public String encoder = "Minecraft Replay Exporter";
+    public String encoder = "Igriums Replay Exporter " + ReplayExportMod.getInstance().getModVersion();
     public Vector3ic offset = new Vector3i();
 
     public static String toJson(ReplayMeta meta) {

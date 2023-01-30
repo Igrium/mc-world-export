@@ -24,6 +24,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.Version;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.model.EntityModelLayer;
 import net.minecraft.entity.Entity;
@@ -57,9 +58,15 @@ public class ReplayExportMod implements ClientModInitializer {
     private Set<ClientBlockPlaceCallback> blockUpdateListeners = new HashSet<>();
     private final CameraAnimationModule cameraAnimationsModule = new CameraAnimationModule();
     private CameraPathRenderer cameraPathRenderer;
+
+    private final Version modVersion = FabricLoader.getInstance().getModContainer("worldexport").get().getMetadata().getVersion();
     
     private WorldSnapshotManager worldSnapshotManager;
     
+    public Version getModVersion() {
+        return modVersion;
+    }
+
     public void onBlockUpdated(ClientBlockPlaceCallback listener) {
         blockUpdateListeners.add(listener);
     }

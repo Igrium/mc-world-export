@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter.BipedModelFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.custom.FireballModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.custom.ProjectileModelAdapter;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -99,6 +100,12 @@ public final class ReplayModels {
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:skeleton"),
                 new BipedModelFactory(new Identifier("textures/entity/skeleton/skeleton.png")));
 
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:wither_skeleton"), 
+                new BipedModelFactory(new Identifier("textures/entity/skeleton/wither_skeleton.png")));
+
+        ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:stray"), 
+                new BipedModelFactory(new Identifier("textures/entity/skeleton/stray.png")));
+
         ReplayModelAdapter.REGISTRY.put(new Identifier("minecraft:vex"), 
                 new BipedModelFactory(new Identifier("textures/entity/illager/vex.png")));
         
@@ -172,6 +179,9 @@ public final class ReplayModels {
          */
         ReplayModelAdapter.REGISTRY.put(new Identifier("fireball"),
                         entity -> new FireballModelAdapter((AbstractFireballEntity) entity));
+        
+        ReplayModelAdapter.REGISTRY.put(new Identifier("arrow"), ProjectileModelAdapter::new);
+        ReplayModelAdapter.REGISTRY.put(new Identifier("spectral_arrow"), ProjectileModelAdapter::new);
     }
 
     /**
