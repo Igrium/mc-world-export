@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiReplayExporter;
 
@@ -297,14 +298,17 @@ public class ReplayExporter implements RenderInfo {
             }
 
             MCVer.pushMatrix();
+            RenderSystem.clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, false);
             guiWindow.beginWrite();
 
             RenderSystem.clear(256, MinecraftClient.IS_SYSTEM_MAC);
-
-            RenderSystem.setProjectionMatrix(Matrix4f.projectionMatrix(0,
-                    (float) (window.getFramebufferWidth() / window.getScaleFactor()), 0,
-                    (float) (window.getFramebufferHeight() / window.getScaleFactor()), 1000, 3000));
-            
+            RenderSystem.setProjectionMatrix(Matrix4f.projectionMatrix(
+                    0,
+                    (float) (window.getFramebufferWidth() / window.getScaleFactor()),
+                    0,
+                    (float) (window.getFramebufferHeight() / window.getScaleFactor()),
+                    1000,
+                    3000));
             MatrixStack matrixStack = RenderSystem.getModelViewStack();
             matrixStack.loadIdentity();
             matrixStack.translate(0, 0, -2000);
@@ -326,7 +330,7 @@ public class ReplayExporter implements RenderInfo {
                 }
             } else {
                 gui.toMinecraft().tick();
-                gui.toMinecraft().render(matrixStack, mouseX, mouseY, 0);
+                gui.toMinecraft().render(new MatrixStack(), mouseX, mouseY, 0);
             }
 
             guiWindow.endWrite();
@@ -335,9 +339,12 @@ public class ReplayExporter implements RenderInfo {
             guiWindow.flip();
             MCVer.popMatrix();
 
-            if (client.mouse.isCursorLocked()) client.mouse.unlockCursor();
+            if (client.mouse.isCursorLocked()) {
+                client.mouse.unlockCursor();
+            }
 
-            return failureCause == null && !cancelled;
+            return failureCause != null && !cancelled;
+
         } while (true);
     }
 
