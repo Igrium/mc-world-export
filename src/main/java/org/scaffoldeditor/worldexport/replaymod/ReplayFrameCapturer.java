@@ -30,6 +30,7 @@ import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replaymod.export.ReplayExportSettings;
 import org.scaffoldeditor.worldexport.vcap.IFrame;
 
 import net.minecraft.block.BlockState;
@@ -41,6 +42,8 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
 public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
+
+    protected int fps = 20;
 
     protected int framesDone;
     protected RenderInfo renderInfo;
@@ -58,8 +61,13 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     private ExecutorService worldCaptureService;
 
-    public ReplayFrameCapturer(RenderInfo renderInfo, ReplayExportSettings settings) {
+    public ReplayFrameCapturer(RenderInfo renderInfo, int fps, ReplayExportSettings settings) {
         this.renderInfo = renderInfo;
+        this.fps = fps;
+        this.settings = settings;
+    }
+
+    public ReplayFrameCapturer(ReplayExportSettings settings) {
         this.settings = settings;
     }
 
@@ -98,7 +106,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             exporter.meta.offset = new Vector3i(-centerBlock.getX(), -centerBlock.getY(), -centerBlock.getZ());
         }
         
-        exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
+        exporter.setFps(fps);
         exporter.getWorldExporter()
                 .getSettings()
                 .setFluidMode(settings.getFluidMode())
@@ -121,7 +129,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             setup();
         }
 
-        double time = framesDone / (double) renderInfo.getRenderSettings().getFramesPerSecond();
+        double time = framesDone / (double) fps;
         if (blockUpdateCache.size() > 0) {
             exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet(), client.world);
             blockUpdateCache.clear();
@@ -151,7 +159,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
                 return;
             }
             
-            rEnt.setStartTime(framesDone / (float) renderInfo.getRenderSettings().getFramesPerSecond());
+            rEnt.setStartTime(framesDone / (float) fps);
             exporter.entities.add(rEnt);
             entityCache.put(ent, rEnt);
         }
@@ -166,7 +174,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     public void close() throws IOException {
         cleanUp();
 
-        File output = renderInfo.getRenderSettings().getOutputFile();
+        File output = settings.getOutputFile();
         Path folder = output.getParentFile().toPath();
         File target = folder.resolve(FilenameUtils.getBaseName(output.getName())+".replay").normalize().toFile();
 

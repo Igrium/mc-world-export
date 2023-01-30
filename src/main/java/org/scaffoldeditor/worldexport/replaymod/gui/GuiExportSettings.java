@@ -4,7 +4,10 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import com.replaymod.core.utils.Utils;
+import org.scaffoldeditor.worldexport.replaymod.export.ReplayExportSettings;
+import org.scaffoldeditor.worldexport.replaymod.export.ReplayExporter;
+import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
+
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.AbstractGuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
@@ -23,21 +26,12 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.popup.GuiFileChooserPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
-import com.replaymod.render.RenderSettings;
 import com.replaymod.render.ReplayModRender;
-import com.replaymod.render.RenderSettings.AntiAliasing;
-import com.replaymod.render.RenderSettings.EncodingPreset;
-import com.replaymod.render.RenderSettings.RenderMethod;
-import com.replaymod.render.rendering.VideoRenderer;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 
-import org.apache.logging.log4j.LogManager;
-import org.scaffoldeditor.worldexport.replaymod.CustomPipelines;
-import org.scaffoldeditor.worldexport.replaymod.ReplayExportSettings;
-import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
-
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
 
 public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
@@ -51,7 +45,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private ReplayHandler replayHandler;
     private Timeline timeline;
-    private AbstractGuiScreen<?> screen;
+    // private AbstractGuiScreen<?> screen;
 
     private MinecraftClient client = MinecraftClient.getInstance();
 
@@ -63,23 +57,18 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     public void export() {
         close();
-        RenderSettings settings = new RenderSettings(RenderMethod.BLEND, EncodingPreset.BLEND, 1920, 1080, 20, 100,
-                outputFile, false, false, false, false, false, null, 360, 180, false, false, false, AntiAliasing.NONE,
-                "", "", false);
 
-        CustomPipelines.replaySettings = new ReplayExportSettings()
+        ReplayExportSettings settings = new ReplayExportSettings()
                 .setViewDistance(getViewDistance())
                 .setLowerDepth(getLowerDepth())
-                .setFluidMode(getFluidMode());
+                .setFluidMode(getFluidMode())
+                .setOutputFile(outputFile);
         
         try {
-            VideoRenderer videoRenderer = new VideoRenderer(settings, replayHandler, timeline);
-            videoRenderer.renderVideo();
+            ReplayExporter exporter = new ReplayExporter(settings, replayHandler, timeline);
+            exporter.exportReplay();
         } catch (Throwable e) {
-            Utils.error(LogManager.getLogger("Replay Export"), getContainer(), CrashReport.create(e, "Exporting Replay"), () -> {});
-            screen.display();
-            // error(LogManager.getLogger(), this, CrashReport.create(e, "Exporting replay"), () -> {});
-            // this.getScreen().display();
+            throw new CrashException(CrashReport.create(e, "Exporting replay"));
         }
     }
 
@@ -168,7 +157,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         super(container);
         this.replayHandler = replayHandler;
         this.timeline = timeline; 
-        this.screen = container;
+        // this.screen = container;
 
         contentPanel.setLayout(new CustomLayout<GuiPanel>() {
 
