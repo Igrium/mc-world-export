@@ -6,6 +6,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
+
+import org.scaffoldeditor.worldexport.vcap.BlockExporter.CaptureCallback;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
@@ -41,9 +44,9 @@ public class IFrame implements Frame, FluidConsumer {
      *                 of the animation.
      * @return Captured frame.
      */
-    public static IFrame capture(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time) {
+    public static IFrame capture(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, @Nullable CaptureCallback callback) {
         IFrame iFrame = new IFrame();
-        iFrame.captureData(world, minChunk, maxChunk, context, time);
+        iFrame.captureData(world, minChunk, maxChunk, context, time, callback);
         return iFrame;
     }
 
@@ -59,18 +62,18 @@ public class IFrame implements Frame, FluidConsumer {
      * @param executor The executor to use for capture.
      * @return A future that completes with the captured frame.
      */
-    public static CompletableFuture<IFrame> captureAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, Executor executor) {
+    public static CompletableFuture<IFrame> captureAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, Executor executor, @Nullable CaptureCallback callback) {
         WorldSnapshot snapshot = WorldSnapshotManager.getInstance().snapshot(world);
         return CompletableFuture.supplyAsync(() -> {
             IFrame iFrame = new IFrame();
-            iFrame.captureData(snapshot, minChunk, maxChunk, context, time);
+            iFrame.captureData(snapshot, minChunk, maxChunk, context, time, callback);
             return iFrame;
         }, executor);
     }
 
-    protected void captureData(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time) {
+    protected void captureData(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, @Nullable CaptureCallback callback) {
         NbtCompound frame = new NbtCompound();
-        frame.put("sections", BlockExporter.exportStill(world, minChunk, maxChunk, context, this));
+        frame.put("sections", BlockExporter.exportStill(world, minChunk, maxChunk, context, this, callback));
         frame.putByte("type", INTRACODED_TYPE);
         frame.putDouble("time", time);
         this.data = frame;

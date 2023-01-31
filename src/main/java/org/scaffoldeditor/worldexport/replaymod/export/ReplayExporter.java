@@ -11,6 +11,7 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiReplayExporter;
+import org.scaffoldeditor.worldexport.replaymod.util.ExportInfo;
 
 import com.google.common.collect.Iterables;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -72,17 +73,19 @@ public class ReplayExporter implements RenderInfo {
     private int totalFrames;
 
     private final VirtualWindow guiWindow = new VirtualWindow(client);
+    private final ExportInfo.Mutable exportInfo = new ExportInfo.Mutable();
     private final GuiReplayExporter gui;
     private boolean paused;
     private boolean cancelled;
     private volatile Throwable failureCause;
+    
 
     public ReplayExporter(ReplayExportSettings settings, ReplayHandler replayHandler, Timeline timeline) {
         this.settings = settings;
         this.replayHandler = replayHandler;
         this.timeline = timeline;
-        this.gui = new GuiReplayExporter();
-        this.pipeline = new CapturePipeline(new ReplayFrameCapturer(this, FPS, settings));
+        this.gui = new GuiReplayExporter(exportInfo);
+        this.pipeline = new CapturePipeline(new ReplayFrameCapturer(this, FPS, settings), this);
     }
 
     /**
@@ -92,9 +95,6 @@ public class ReplayExporter implements RenderInfo {
      */
     public boolean exportReplay() throws Throwable {
         setup();
-        
-        // Because this might take some time to prepare we'll render the GUI at least once to not confuse the user
-        drawGui();
 
         RenderTickCounter timer = ((MinecraftAccessor) client).getTimer();
 
@@ -120,7 +120,7 @@ public class ReplayExporter implements RenderInfo {
             }
         }
 
-        pipeline.run();
+        pipeline.run(exportInfo);
 
         if (((MinecraftAccessor) client).getCrashReporter() != null) {
             throw new CrashException(((MinecraftAccessor) client).getCrashReporter().get());
@@ -142,7 +142,7 @@ public class ReplayExporter implements RenderInfo {
         // because the jGui lib uses Minecraft's displayWidth and displayHeight values, update these temporarily
         guiWindow.bind();
 
-        while (drawGui() && paused) {
+        while (drawGuiInternal() && paused) {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
@@ -226,7 +226,7 @@ public class ReplayExporter implements RenderInfo {
     private void executeTaskQueue() {
         while (true) {
             while (client.getOverlay() != null) {
-                drawGui();
+                drawGuiInternal();
                 ((MinecraftMethodAccessor) client).replayModExecuteTaskQueue();
             }
 
@@ -291,6 +291,16 @@ public class ReplayExporter implements RenderInfo {
     public int getReplayTime() { return framesDone * 1000 / FPS; }
 
     public boolean drawGui() {
+        try {
+            // because the jGui lib uses Minecraft's displayWidth and displayHeight values, update these temporarily
+            guiWindow.bind();
+            return drawGuiInternal();
+        } finally {
+            guiWindow.unbind();
+        }
+    }
+
+    protected boolean drawGuiInternal() {
         Window window = client.getWindow();
         do {
             if (GLFW.glfwWindowShouldClose(window.getHandle()) || ((MinecraftAccessor) client).getCrashReporter() != null) {
@@ -343,7 +353,7 @@ public class ReplayExporter implements RenderInfo {
                 client.mouse.unlockCursor();
             }
 
-            return failureCause != null && !cancelled;
+            return failureCause == null && !cancelled;
 
         } while (true);
     }

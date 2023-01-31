@@ -30,6 +30,7 @@ import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.TextureSerializer;
 import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
+import org.scaffoldeditor.worldexport.vcap.BlockExporter.CaptureCallback;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
@@ -235,15 +236,52 @@ public class VcapExporter {
      * take multiple seconds.
      * </p>
      * 
+     * @param time     Time stamp of the frame, in seconds since the beginning
+     *                 of the animation.
+     * @param callback A callback to use in the block exporter.
+     * @return The frame.
+     */
+    public IFrame captureIFrame(double time, @Nullable CaptureCallback callback) {
+        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getMinChunk(),
+                getSettings().getMaxChunk(), context, time, callback);
+        frames.add(iFrame);
+        return iFrame;
+    }
+
+    /**
+     * <p>
+     * Capture an intracoded frame and add it to the vcap.
+     * </p>
+     * <p>
+     * Warning: depending on the size of the capture, this may
+     * take multiple seconds.
+     * </p>
+     * 
      * @param time Time stamp of the frame, in seconds since the beginning
      *             of the animation.
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
-        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getMinChunk(),
-                getSettings().getMaxChunk(), context, time);
-        frames.add(iFrame);
-        return iFrame;
+        return captureIFrame(time, null);
+    }
+
+    /**
+     * Asynchronously capture an intracoded frame and add it to the vcap.
+     * 
+     * @param time     Time stamp of the frame, in seconds since the beginning of
+     *                 the animation.
+     * @param executor The executor to use for the capture.
+     * @param callback A callback to use in the block exporter.
+     * @return A future that completes once the frame has been captured and added to
+     *         the vcap.
+     */
+    public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor, @Nullable CaptureCallback callback) {
+        int index = frames.size();
+        return IFrame.captureAsync(new ChunkView.Wrapper(world), getMinChunk(), getMaxChunk(), context, time, executor, callback).thenApply(frame -> {
+            addFrame(index, frame);
+            LogManager.getLogger().info("Finished capturing world at {} seconds.", time);
+            return frame;
+        });
     }
 
     /**
@@ -256,16 +294,11 @@ public class VcapExporter {
      *         the vcap.
      */
     public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor) {
-        int index = frames.size();
-        return IFrame.captureAsync(new ChunkView.Wrapper(world), getMinChunk(), getMaxChunk(), context, time, executor).thenApply(frame -> {
-            addFrame(index, frame);
-            LogManager.getLogger().info("Finished capturing world at {} seconds.", time);
-            return frame;
-        });
+        return captureIFrameAsync(time, executor, null);
     }
 
     /**
-     * Insert a frame into this vcap, adjusting subsiquent P frames as necessary.
+     * Insert a frame into this vcap, adjusting subsequent P frames as necessary.
      * @param index The index to insert at.
      * @param frame The frame to insert.
      */

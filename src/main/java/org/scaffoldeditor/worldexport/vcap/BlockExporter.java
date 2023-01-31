@@ -35,6 +35,22 @@ import net.minecraft.world.BlockRenderView;
 public final class BlockExporter {
     private BlockExporter() {
     };
+
+    /**
+     * Gets notified after each section is captured. There is no guarentee
+     * thread this callback is called on, and it should return as fast as possible.
+     */
+    public static interface CaptureCallback {
+
+        /**
+         * Called after a chunk is captured.
+         * @param chunkX The X position of the chunk.
+         * @param chunkY The Y position of the chunk.
+         * @param index The number of chunks that were captured before this chunk.
+         * @param numSections The total number of chunks.
+         */
+        void onChunkCaptured(int chunkX, int chunkZ, int index, int numSections);
+    }
     
     static final MinecraftClient client = MinecraftClient.getInstance();
     /**
@@ -45,9 +61,9 @@ public final class BlockExporter {
     private static final Logger LOGGER = LogManager.getLogger();
     
     public static void writeStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
-            OutputStream os, @Nullable FluidConsumer fluidConsumer) throws IOException {
+            OutputStream os, @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) throws IOException {
         NbtCompound tag = new NbtCompound();
-        tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer));
+        tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer, callback));
         NbtIo.writeCompressed(tag, os);
     }
 
@@ -65,9 +81,11 @@ public final class BlockExporter {
     }
 
     public static NbtList exportStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
-            @Nullable FluidConsumer fluidConsumer) {
+            @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
         NbtList sectionTag = new NbtList();
         
+        int totalChunks = (maxChunk.x - minChunk.x) * (maxChunk.z - minChunk.z);
+        int index = 0;
         for (int x = minChunk.x; x < maxChunk.x; x++) {
             for (int z = minChunk.z; z < maxChunk.z; z++) {
                 if (!world.isChunkLoaded(x, z))
@@ -79,6 +97,11 @@ public final class BlockExporter {
 
                     sectionTag.add(writeSection(world, x, y, z, context, fluidConsumer));
                 }
+                if (callback != null) {
+                    callback.onChunkCaptured(x, z, index, totalChunks);
+                }
+
+                index++;
             }
         }
 

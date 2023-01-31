@@ -10,8 +10,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,7 +51,23 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
      * @throws IOException If an IO exception occurs while writing the file.
      */
     public void save(OutputStream os) throws IOException {
-        LOGGER.info("Initializing replay serialization...");
+        save(os, null);
+    }
+
+    /**
+     * <p>
+     * Save this replay to a file.
+     * </p>
+     * <b>Warning:</b> Due to Vcap's need to capture the world texture, this method
+     * blocks untill the next frame is rendered if not called on the render thread.
+     * 
+     * @param os Output stream to write to.
+     * @throws IOException If an IO exception occurs while writing the file.
+     */
+    public void save(OutputStream os, @Nullable Consumer<String> phaseConsumer) throws IOException {
+        if (phaseConsumer == null) phaseConsumer = LOGGER::info;
+
+        phaseConsumer.accept("Initializing replay serialization...");
         ZipOutputStream out = new ZipOutputStream(os);
 
 
@@ -63,12 +82,12 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
         out.closeEntry();
 
 
-        LOGGER.info("Writing world...");
+        phaseConsumer.accept("Writing world...");
         out.putNextEntry(new ZipEntry("world.vcap"));
         saveWorld(out);
         out.closeEntry();        
 
-        LOGGER.info("Serializing entities...");
+        phaseConsumer.accept("Serializing entities...");
         for (T ent : getEntities()) {
             preserializeEntity(ent);
             out.putNextEntry(new ZipEntry("entities/"+ent.getName()+".xml"));
@@ -76,7 +95,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
             out.closeEntry();
         }
 
-        LOGGER.info("Saving Materials...");
+        phaseConsumer.accept("Saving Materials...");
         for (String id : getMaterials().keySet()) {
             Material mat = getMaterials().get(id);
             checkForTexture(mat.getColor(), id);
@@ -93,7 +112,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
                 filename -> new ZipEntryOutputStream(out, new ZipEntry("tex/" + filename)));
         serializer.save(getTextures());
 
-        LOGGER.info("Finished writing replay file.");
+        phaseConsumer.accept("Finished writing replay file.");
         out.finish();
     }
 

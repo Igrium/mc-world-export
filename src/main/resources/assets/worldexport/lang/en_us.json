@@ -10,6 +10,11 @@
     "worldexport.gui.editcamera.color": "Display Color",
 
     "worldexport.gui.exporting.title": "Exporting Replay",
+    "worldexport.gui.exporting.frame_progress": "Frames captured: %d / %d",
+    "worldexport.gui.exporting.world_progress": "Chunks exported: %d / %d",
+
+    "worldexport.gui.status.init": "Initializing",
+    "worldexport.gui.status.capture": "Capturing game",
 
     "worldexport.chat.camerafailed": "Failed to import camera animation. See console for details.",
     "worldexport.chat.camerasavefailed": "Failed to save camera animation. See console for details."
