@@ -11,7 +11,6 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.passive.ChickenEntity;
 import net.minecraft.entity.passive.HorseEntity;
-import net.minecraft.entity.projectile.AbstractFireballEntity;
 import net.minecraft.util.Identifier;
 
 /**
@@ -177,8 +176,8 @@ public final class ReplayModels {
         /**
          * CUSTOM
          */
-        ReplayModelAdapter.REGISTRY.put(new Identifier("fireball"),
-                        entity -> new FireballModelAdapter((AbstractFireballEntity) entity));
+        ReplayModelAdapter.REGISTRY.put(new Identifier("fireball"), FireballModelAdapter::new);
+        ReplayModelAdapter.REGISTRY.put(new Identifier("small_fireball"), FireballModelAdapter::new);
         
         ReplayModelAdapter.REGISTRY.put(new Identifier("arrow"), ProjectileModelAdapter::new);
         ReplayModelAdapter.REGISTRY.put(new Identifier("spectral_arrow"), ProjectileModelAdapter::new);
