@@ -35,7 +35,7 @@ public class GameRendererMixin {
     void applyRoll(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
         Entity entity = this.client.getCameraEntity() == null ? this.client.player : this.client.getCameraEntity();
         if (entity instanceof RollProvider rollProvider) {
-            matrices.multiply(RotationAxis.NEGATIVE_Z.rotation(rollProvider.getRoll()));
+            matrices.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(rollProvider.getRoll()));
         }
     }
 }
