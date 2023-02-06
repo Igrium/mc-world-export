@@ -26,15 +26,21 @@ public class TitleScreenMixin extends Screen {
     @Inject(method = "init()V", at = @At("RETURN"))
     protected void init(CallbackInfo ci) {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-            addDrawableChild(new ButtonWidget(width - 98, 0, 98, 20, Text.of("Debug Replays"), (button) -> {
+
+            ButtonWidget button = new ButtonWidget.Builder(Text.literal("Debug Replays"), (b) -> {
                 try {
                     ReplayDebugger instance = new ReplayDebugger();
                     instance.launch();
                 } catch (HeadlessException e) {
-                    LogManager.getLogger(ReplayDebugger.class).error("Unable to launch debugger in headless environment.");
+                    LogManager.getLogger(ReplayDebugger.class)
+                            .error("Unable to launch debugger in headless environment.");
                 }
-                
-            }));
+
+            }).position(width - 98, 0)
+              .size(98, 20).build();
+            
+            addDrawableChild(button);
+
         }
     }
 }

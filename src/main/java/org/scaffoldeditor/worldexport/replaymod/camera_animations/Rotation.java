@@ -1,7 +1,9 @@
 package org.scaffoldeditor.worldexport.replaymod.camera_animations;
 
-import net.minecraft.util.math.Quaternion;
-import net.minecraft.util.math.Vec3f;
+import org.joml.Quaternionf;
+import org.joml.Quaternionfc;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 /**
  * A global abstraction for rotations of various types. Euler rotations use a Y -> X -> Z axis order.
@@ -10,114 +12,234 @@ public interface Rotation {
     /**
      * The pitch in radians.
      */
-    double pitch();
+    float pitch();
 
     /**
      * The yaw in radians.
      */
-    double yaw();
+    float yaw();
 
     /**
      * The roll in radians.
      */
-    double roll();
+    float roll();
+
+    // /**
+    //  * This rotation as a quaternion.
+    //  */
+    // Quaternionfc quaternion();
 
     /**
-     * This rotation as a quaternion.
+     * Get this rotation as a quaternion and store it in the provided object.
+     * @param dest Destination object.
+     * @return <code>dest</code>
      */
-    Quaternion quaternion();
+    Quaternionf getQuaternion(Quaternionf dest);
 
-    public static class Euler implements Rotation {
+    /**
+     * Get this rotation as a quaternion.
+     * @return The quaternion.
+     */
+    default Quaternionfc getQuaternion() {
+        return getQuaternion(new Quaternionf());
+    }
 
-        private final double pitch;
-        private final double yaw;
-        private final double roll;
+    /**
+     * Get this rotation as euler angles and store it in the provided object.
+     * @param dest Destination object.
+     * @return <code>dest</code>
+     */
+    Vector3f getEuler(Vector3f dest);
 
-        private Quaternion meAsQuat;
+    /**
+     * Get this rotation as euler angles.
+     * @return A vector where the XYZ values represent the pitch, yaw, and roll.
+     */
+    default Vector3fc getEuler() {
+        return getEuler(new Vector3f());
+    }
 
-        public Euler(double pitch, double yaw, double roll) {
-            this.pitch = pitch;
-            this.yaw = yaw;
-            this.roll = roll;
+    /**
+     * When given a choice, determine which representation will most accurately
+     * represent this rotation.
+     * 
+     * @return <code>true</code> if euler; <code>false</code> if quaternion.
+     */
+    public boolean prefersEuler();
 
-            meAsQuat = Quaternion.fromEulerYxz((float) pitch(), (float) yaw(), (float) roll());
+    /**
+     * Create a rotation from YXZ euler angles.
+     * @param euler A vector with the euler angles, in radians.
+     * @return The rotation.
+     */
+    public static Rotation of(Vector3fc euler) {
+        return new EulerRotation(euler);
+    }
+
+    /**
+     * Create a rotation from YXZ euler angles.
+     * @param pitch The pitch in radians.
+     * @param yaw The yaw in radians.
+     * @param roll The roll in radians.
+     * @return The rotation.
+     */
+    public static Rotation of(float pitch, float yaw, float roll) {
+        return new EulerRotation(pitch, yaw, roll);
+    }
+
+    /**
+     * Create a rotation from a quaternion.
+     * @param quaternion The quaternion to use.
+     * @return The rotation.
+     */
+    public static Rotation of(Quaternionfc quaternion) {
+        return new QuaternionRotation(quaternion);
+    }
+
+    /**
+     * Create a rotation from a quaternion.
+     * @param w W value.
+     * @param x X value.
+     * @param y Y value.
+     * @param z Z value.
+     * @return The rotation.
+     */
+    public static Rotation of(float w, float x, float y, float z) {
+        return new QuaternionRotation(w, x, y, z);
+    }
+    
+
+    static class EulerRotation implements Rotation {
+
+        private final Vector3f euler;
+
+        public EulerRotation(Vector3fc euler) {
+            this.euler = new Vector3f(euler);
+        }
+
+        public EulerRotation(float pitch, float yaw, float roll) {
+            this.euler = new Vector3f(pitch, yaw, roll);
         }
 
         @Override
-        public double pitch() {
-            return pitch;
+        public float pitch() {
+            return euler.x;
         }
 
         @Override
-        public double yaw() {
-            return yaw;
+        public float yaw() {
+            return euler.y;
         }
 
         @Override
-        public double roll() {
-            return roll;
+        public float roll() {
+            return euler.z;
         }
 
         @Override
-        public Quaternion quaternion() {
-            return meAsQuat;
+        public Quaternionf getQuaternion(Quaternionf dest) {
+            return dest.set(0, 0, 0, 0).rotateYXZ(euler.y, euler.x, euler.z);
+        }
+
+        @Override
+        public Vector3f getEuler(Vector3f dest) {
+            return dest.set(this.euler);
+        }
+        
+        @Override
+        public Vector3fc getEuler() {
+            return euler;
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (!(obj instanceof Euler)) return false;
-            Euler rot = (Euler) obj;
-
-            return (
-                pitch == rot.pitch()
-                && yaw == rot.yaw()
-                && roll == rot.roll()
-            );
+            if (obj instanceof Rotation val) {
+                return this.euler.equals(val.getEuler());
+            }
+            return false;
         }
 
         @Override
         public int hashCode() {
-            int hash = 17;
-            hash *= 31 + Float.floatToIntBits((float) pitch);
-            hash *= 31 + Float.floatToIntBits((float) yaw);
-            hash *= 31 + Float.floatToIntBits((float) roll);
-            return hash;
+            return this.euler.hashCode();
         }
-        
+
+        @Override
+        public boolean prefersEuler() {
+            return true;
+        }
     }
 
-    public static class QuaternionRot implements Rotation {
-        private final Quaternion value;
+    static class QuaternionRotation implements Rotation {
+
+        private final Quaternionf quaternion;
+        private Vector3f euler;
+
+        public QuaternionRotation(Quaternionfc quaternion) {
+            this.quaternion = new Quaternionf(quaternion);
+            calcEuler();
+        }
+
+        public QuaternionRotation(float w, float x, float y, float z) {
+            this.quaternion = new Quaternionf(x, y, z, w);
+            calcEuler();
+        }
+
+        private void calcEuler() {
+            euler = quaternion.getEulerAnglesYXZ(new Vector3f());
+        }
+
+        @Override
+        public float pitch() {
+            return euler.x;
+        }
+
+        @Override
+        public float yaw() {
+            return euler.y;
+        }
+
+        @Override
+        public float roll() {
+            return euler.z;
+        }
+
+        @Override
+        public Quaternionf getQuaternion(Quaternionf dest) {
+            return dest.set(quaternion);
+        }
+
+        @Override
+        public Quaternionfc getQuaternion() {
+            return quaternion;
+        }
+
+        @Override
+        public Vector3f getEuler(Vector3f dest) {
+            return dest.set(euler);
+        }
+
+        @Override
+        public Vector3fc getEuler() {
+            return euler;
+        }
         
-        private Vec3f euler;
-
-        public QuaternionRot(Quaternion value) {
-            this.value = value;
-            euler = value.toEulerYxz();
-        }
-
-        public QuaternionRot(double w, double x, double y, double z) {
-            this(new Quaternion((float) x, (float) y, (float) z, (float) w));
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Rotation val) {
+                return this.quaternion.equals(val.getQuaternion());
+            }
+            return false;
         }
 
         @Override
-        public double pitch() {
-            return euler.getX();
+        public int hashCode() {
+            return quaternion.hashCode();
         }
 
         @Override
-        public double yaw() {
-            return euler.getY();
-        }
-
-        @Override
-        public double roll() {
-            return euler.getZ();
-        }
-
-        @Override
-        public Quaternion quaternion() {
-            return value;
+        public boolean prefersEuler() {
+            return false;
         }
     }
 }

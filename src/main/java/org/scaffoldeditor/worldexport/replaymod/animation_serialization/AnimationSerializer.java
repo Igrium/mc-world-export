@@ -36,7 +36,6 @@ import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCamera
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationImpl;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule.CameraPathFrame;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
 import org.scaffoldeditor.worldexport.util.RenderUtils;
 import org.scaffoldeditor.worldexport.util.XMLUtils;
 import org.w3c.dom.Document;
@@ -282,7 +281,7 @@ public class AnimationSerializer {
     }
 
     public static RotationProvidingChannel<?> getPreferredRotChannel(Rotation value) {
-        return (value instanceof QuaternionRot) ? AnimationChannels.ROTATION_QUAT : AnimationChannels.ROTATION_EULER;
+        return value.prefersEuler() ? AnimationChannels.ROTATION_EULER : AnimationChannels.ROTATION_QUAT;
     }
 
     private void parseColor(AbstractCameraAnimation animation, Element element) throws XMLParseException {

@@ -19,11 +19,11 @@ public class HorseModelAdapter extends AnimalModelAdapter<HorseEntity> {
                 enumMap.put(HorseColor.BROWN, new Identifier("textures/entity/horse/horse_brown.png"));
                 enumMap.put(HorseColor.BLACK, new Identifier("textures/entity/horse/horse_black.png"));
                 enumMap.put(HorseColor.GRAY, new Identifier("textures/entity/horse/horse_gray.png"));
-                enumMap.put(HorseColor.DARKBROWN, new Identifier("textures/entity/horse/horse_darkbrown.png"));
+                enumMap.put(HorseColor.DARK_BROWN, new Identifier("textures/entity/horse/horse_darkbrown.png"));
             });
 
     public HorseModelAdapter(HorseEntity entity) throws IllegalArgumentException {
-        super(entity, TEXTURES.get(entity.getColor()));
+        super(entity, TEXTURES.get(entity.getVariant()));
         
     }
     

@@ -31,10 +31,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType; 
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.registry.Registry;
 
 public class ReplayExportMod implements ClientModInitializer {
 
@@ -42,7 +43,7 @@ public class ReplayExportMod implements ClientModInitializer {
     private static ReplayExportMod instance;
 
     public static final EntityType<AnimatedCameraEntity> ANIMATED_CAMERA = Registry.register(
-            Registry.ENTITY_TYPE, AnimatedCameraEntity.ID,
+            Registries.ENTITY_TYPE, AnimatedCameraEntity.ID,
             FabricEntityTypeBuilder.create(SpawnGroup.MISC, AnimatedCameraEntity::new)
                     .dimensions(EntityDimensions.fixed(.75f, .75f))
                     .disableSummon().build());

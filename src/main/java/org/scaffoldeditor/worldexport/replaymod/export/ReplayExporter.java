@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
@@ -44,7 +45,6 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.crash.CrashException;
-import net.minecraft.util.math.Matrix4f;
 
 /**
  * An adaption of {@link VideoRenderer} designed for exporting replays.
@@ -182,7 +182,7 @@ public class ReplayExporter implements RenderInfo {
         for (SoundCategory category : SoundCategory.values()) {
             if (category != SoundCategory.MASTER) {
                 originalSoundLevels.put(category, client.options.getSoundVolume(category));
-                client.options.setSoundVolume(category, 0);
+                client.options.getSoundVolumeOption(category).setValue(0d);
             }
         }
 
@@ -215,15 +215,17 @@ public class ReplayExporter implements RenderInfo {
 
         guiWindow.close();
 
+
         if (mouseWasGrabbed) {
             client.mouse.lockCursor();
         }
 
-        originalSoundLevels.forEach((cat, val) -> client.options.setSoundVolume(cat, val));
+        // originalSoundLevels.forEach((cat, val) -> client.options.setSoundVolume(cat, val));
+        originalSoundLevels.forEach((cat, val) -> client.options.getSoundVolumeOption(cat).setValue((double) val));
         client.setScreen(null);
         forceChunkLoadingHook.uninstall();
 
-        client.getSoundManager().play(PositionedSoundInstance.master(new SoundEvent(SOUND_RENDER_SUCCESS), 1));
+        client.getSoundManager().play(PositionedSoundInstance.master(SoundEvent.of(SOUND_RENDER_SUCCESS), 1));
         
         MCVer.resizeMainWindow(client, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
     }
@@ -317,13 +319,15 @@ public class ReplayExporter implements RenderInfo {
             guiWindow.beginWrite();
 
             RenderSystem.clear(256, MinecraftClient.IS_SYSTEM_MAC);
-            RenderSystem.setProjectionMatrix(Matrix4f.projectionMatrix(
+            Matrix4f projection = new Matrix4f().setOrtho(
                     0,
                     (float) (window.getFramebufferWidth() / window.getScaleFactor()),
-                    0,
                     (float) (window.getFramebufferHeight() / window.getScaleFactor()),
-                    1000,
-                    3000));
+                    0,
+                    1000, 3000);
+
+            RenderSystem.setProjectionMatrix(projection);
+            
             MatrixStack matrixStack = RenderSystem.getModelViewStack();
             matrixStack.loadIdentity();
             matrixStack.translate(0, 0, -2000);

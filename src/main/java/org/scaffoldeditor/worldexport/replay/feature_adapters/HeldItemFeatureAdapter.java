@@ -21,8 +21,8 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Arm;
-import net.minecraft.util.registry.Registry;
 
 public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart> {
 
@@ -132,7 +132,7 @@ public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelP
 
         ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
 
-        ReplayModelPart part = new ReplayModelPart("item."+Registry.ITEM.getId(item.getItem())+"."+arm);
+        ReplayModelPart part = new ReplayModelPart("item."+Registries.ITEM.getId(item.getItem())+"."+arm);
 
         Mode renderMode = arm == Arm.LEFT ? Mode.THIRD_PERSON_LEFT_HAND : Mode.THIRD_PERSON_RIGHT_HAND;
         BakedModel itemModel = itemRenderer.getModel(item, entity.getWorld(), entity, 0);

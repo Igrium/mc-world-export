@@ -8,9 +8,9 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.WorldAccess;
+import net.minecraft.world.biome.ColorResolver;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.light.LightingProvider;
-import net.minecraft.world.level.ColorResolver;
 
 /**
  * A block view that can report if a chunk is loaded.

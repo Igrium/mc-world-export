@@ -99,7 +99,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         if (worldCaptureService == null || worldCaptureService.isShutdown()) {
             worldCaptureService = Executors.newSingleThreadExecutor(r -> {
                 Thread thread = new Thread(r, "Vcap World Capture");
-                thread.setPriority(Thread.MAX_PRIORITY);
+                // thread.setPriority(Thread.MAX_PRIORITY);
                 return thread;
             });
         }

@@ -25,7 +25,7 @@ import de.javagl.obj.Obj;
 import de.javagl.obj.ReadableObj;
 import net.minecraft.block.BlockState;
 import net.minecraft.fluid.Fluid;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registries;
 
 /**
  * Contains various values passed around throughout the export process.
@@ -168,7 +168,7 @@ public class ExportContext implements MaterialConsumer {
         models.forEach((id, model) -> {
             Optional<BlockState> blockstate = model.getBlockstate();
             if (blockstate.isPresent()) {
-                map.put(id, Registry.BLOCK.getId(blockstate.get().getBlock()).toString());
+                map.put(id, Registries.BLOCK.getId(blockstate.get().getBlock()).toString());
             }
         });
     }

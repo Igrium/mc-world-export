@@ -39,9 +39,9 @@ public class AnimatedReplayTexture implements ReplayTexture {
      */
     public AnimatedReplayTexture(Sprite sprite) {
         this.sprite = sprite;
-        this.spritesheet = ((SpriteAccessor) sprite).getImages()[0];
+        this.spritesheet = ((SpriteAccessor) sprite.getContents()).getImages()[0];
         spritesheetTexture = new NativeImageReplayTexture(spritesheet);
-        animData = ((SpriteAnimMetaProvider) sprite).getAnimData();
+        animData = ((SpriteAnimMetaProvider) sprite.getContents()).getAnimData();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
 
     @Override
     public Map<String, Supplier<ReplayTexture>> getTextureDependencies() {
-        return ImmutableMap.of(getTexName(sprite.getId()) + "_spritesheet", () -> spritesheetTexture);
+        return ImmutableMap.of(getTexName(sprite.getContents().getId()) + "_spritesheet", () -> spritesheetTexture);
     }
 
     private void assertPrepared() throws IOException {

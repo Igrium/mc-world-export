@@ -21,10 +21,10 @@ import de.javagl.obj.Objs;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.fluid.Fluid;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.BlockRenderView;
 
 /**
@@ -154,6 +154,6 @@ public class FluidDomain {
     }
 
     private String getFluidName(Fluid fluid) {
-        return Registry.FLUID.getId(fluid).toString();
+        return Registries.FLUID.getId(fluid).toString();
     }
 }

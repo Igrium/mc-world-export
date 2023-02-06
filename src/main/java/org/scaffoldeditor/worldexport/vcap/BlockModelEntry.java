@@ -5,9 +5,9 @@ import java.util.BitSet;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.registry.Registry;
 
 /**
  * The complete model data of a blockstate.
@@ -31,7 +31,7 @@ public record BlockModelEntry(BakedModel model, BlockState blockState, byte face
      * @return The model ID.
      */
     public String getID() {
-        Identifier id = Registry.BLOCK.getId(blockState.getBlock());
+        Identifier id = Registries.BLOCK.getId(blockState.getBlock());
         int stateId = Block.getRawIdFromState(blockState);
         return id.toUnderscoreSeparatedString() + "#" + Integer.toHexString(stateId) + "." + Integer.toHexString(faces);
     }

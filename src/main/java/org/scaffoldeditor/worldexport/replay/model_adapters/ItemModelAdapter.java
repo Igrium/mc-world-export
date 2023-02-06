@@ -58,7 +58,7 @@ public class ItemModelAdapter implements ReplayModelAdapter<MultipartReplayModel
         Quaterniond rot = new Quaterniond();
 
         double bobbing = Math.sin((entity.getItemAge() + tickDelta) / 10f + entity.uniqueOffset) * .1f + .1f;
-        float modelYOffset = itemModel.getTransformation().getTransformation(Mode.GROUND).scale.getY();
+        float modelYOffset = itemModel.getTransformation().getTransformation(Mode.GROUND).scale.y();
         pos.add(0, bobbing + .25 * modelYOffset, 0);
 
         rot.rotateY(entity.getRotation(tickDelta));

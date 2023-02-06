@@ -35,7 +35,7 @@ public record SpriteMaterialProvider(Sprite sprite, boolean transparent, boolean
     }
     
     public String getName() {
-        return getTexName(sprite().getId());
+        return getTexName(sprite().getContents().getId());
     }
 
     /**

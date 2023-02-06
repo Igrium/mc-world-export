@@ -1,10 +1,8 @@
 package org.scaffoldeditor.worldexport.replaymod.animation_serialization;
 
+import org.joml.Quaternionfc;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.Euler;
-import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation.QuaternionRot;
 
-import net.minecraft.util.math.Quaternion;
 import net.minecraft.util.math.Vec3d;
 
 public interface AnimationChannel<T> {
@@ -85,7 +83,7 @@ public interface AnimationChannel<T> {
         
     }
 
-    public static class EulerChannel implements RotationProvidingChannel<Rotation.Euler> {
+    public static class EulerChannel implements RotationProvidingChannel<Rotation> {
 
         @Override
         public int numValues() {
@@ -93,13 +91,13 @@ public interface AnimationChannel<T> {
         }
 
         @Override
-        public Euler read(double... values) throws IndexOutOfBoundsException {
-            return new Euler(values[0], values[1], values[2]);
+        public Rotation read(double... values) throws IndexOutOfBoundsException {
+            return Rotation.of((float) values[0], (float) values[1], (float) values[2]);
         }
 
         @Override
-        public Class<? extends Euler> getChannelType() {
-            return Euler.class;
+        public Class<? extends Rotation> getChannelType() {
+            return Rotation.class;
         }
 
         @Override
@@ -109,7 +107,7 @@ public interface AnimationChannel<T> {
         
     }
 
-    public static class QuaternionChannel implements RotationProvidingChannel<Rotation.QuaternionRot> {
+    public static class QuaternionChannel implements RotationProvidingChannel<Rotation> {
 
         @Override
         public int numValues() {
@@ -117,19 +115,19 @@ public interface AnimationChannel<T> {
         }
 
         @Override
-        public QuaternionRot read(double... values) throws IndexOutOfBoundsException {
-            return new QuaternionRot(values[0], values[1], values[2], values[3]);
+        public Rotation read(double... values) throws IndexOutOfBoundsException {
+            return Rotation.of((float) values[0], (float) values[1], (float) values[2], (float) values[3]);
         }
 
         @Override
-        public Class<? extends QuaternionRot> getChannelType() {
-            return QuaternionRot.class;
+        public Class<? extends Rotation> getChannelType() {
+            return Rotation.class;
         }
 
         @Override
         public double[] write(Rotation value) {
-            Quaternion quat = value.quaternion();
-            return new double[] { quat.getW(), quat.getX(), quat.getY(), quat.getZ() };
+            Quaternionfc quat = value.getQuaternion();
+            return new double[] { quat.w(), quat.x(), quat.y(), quat.z() };
         }
     }
 }

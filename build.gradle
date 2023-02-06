@@ -33,7 +33,7 @@ dependencies {
 	modImplementation "com.replaymod:replaymod-${project.replaymod_version}"
 	
 	implementation(include('de.javagl:obj:0.3.0'))
-	implementation(include('org.joml:joml:1.10.2'))
+	implementation('org.joml:joml:1.10.2')
 
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
 }

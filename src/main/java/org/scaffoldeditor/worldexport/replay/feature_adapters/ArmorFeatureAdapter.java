@@ -24,8 +24,8 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.registry.Registry;
 
 public class ArmorFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart> {
     final BipedModelAdapter<?> baseModel;
@@ -85,7 +85,7 @@ public class ArmorFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart
         String texture = MaterialUtils.getTexName(texID);
 
         ArmorModelEntry entry = new ArmorModelEntry();
-        String name = Registry.ITEM.getId(item).toString();
+        String name = Registries.ITEM.getId(item).toString();
 
         if (slot == EquipmentSlot.HEAD) {
             entry.head = new ReplayModelPart(name+".head");

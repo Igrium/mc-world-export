@@ -29,9 +29,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3f;
 
 /**
  * Base replay model generator for living entities (with living entity renderers).
@@ -256,9 +254,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
             return 0.0F;
         }
     }
-
-    protected void scale(T entity, Matrix4f matrix, float amount) {
-	}
+    
 
     /**
      * Prepare root transformations. Takes three optional vector (and quat) values.
@@ -325,43 +321,5 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         }
 
         return new Transform(translation, rotation, scale);
-    }
-
-    @Deprecated
-    protected void prepareTransforms(T entity, Matrix4f matrix, float animationProgress, float bodyYaw, float tickDelta) {
-        if (isShaking()) {
-            bodyYaw += Math.cos(entity.age * 3.25d) * Math.PI * 0.4;
-        }
-        
-        EntityPose pose = entity.getPose();
-        if (pose != EntityPose.SLEEPING) {
-            matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(180 - bodyYaw));
-        }
-
-        if (entity.deathTime > 0) {
-            float angle = (entity.deathTime + tickDelta - 1) / 20f * 1.6f;
-            angle = MathHelper.sqrt(angle);
-            if (angle > 1) {
-                angle = 1;
-            }
-
-            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(angle * getLyingAngle()));
-        } else if (entity.isUsingRiptide()) {
-            matrix.multiply(Vec3f.POSITIVE_X.getDegreesQuaternion(-90 - entity.getPitch()));
-            matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion((entity.age + tickDelta) * -75));
-        } else if (pose == EntityPose.SLEEPING) {
-            Direction direction = entity.getSleepingDirection();
-            float rot = direction != null ? getYaw(direction) : bodyYaw;
-            matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(rot));
-            matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(getLyingAngle()));
-            matrix.multiply(Vec3f.POSITIVE_Y.getDegreesQuaternion(270));
-        } else if (entity.hasCustomName() || entity instanceof PlayerEntity) {
-            String name = Formatting.strip(entity.getName().getString());
-            if ((name.equals("Dinnerbone") || name.equals("Grumm")) && (!(entity instanceof PlayerEntity)
-                    || ((PlayerEntity) entity).isPartVisible(PlayerModelPart.CAPE))) {
-                matrix.multiplyByTranslation(0, entity.getHeight() + .1f, 0);
-                matrix.multiply(Vec3f.POSITIVE_Z.getDegreesQuaternion(180));
-            }
-        }
     }
 }
