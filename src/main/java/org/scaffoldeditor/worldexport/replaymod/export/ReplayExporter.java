@@ -105,20 +105,25 @@ public class ReplayExporter implements RenderInfo {
         // and the one in the recording correct as there's no reliable way to tell when the server ticks
         // or when we should be done with the interpolation of the entity
         Optional<Integer> optionalVideoStartTime = timeline.getValue(TimestampProperty.PROPERTY, 0);
-        if (optionalVideoStartTime.isPresent()) {
-            int videoStart = optionalVideoStartTime.get();
+        int videoStart;
+        if (optionalVideoStartTime.isPresent() && (videoStart = optionalVideoStartTime.get()) > 0) {
+            int delta = Math.min(videoStart, 1000);
+            int replayTime = videoStart - delta;
+            timer.tickDelta = 0;
 
-            if (videoStart > 1000) {
-                int replayTime = videoStart - 1000;
-                timer.tickDelta = 0;
-
-                while (replayTime < videoStart) {
-                    replayTime += 50;
-                    replayHandler.getReplaySender().sendPacketsTill(replayTime);
-                    client.tick();
-                }
+            while (replayTime < videoStart) {
+                replayTime += 50;
+                replayHandler.getReplaySender().sendPacketsTill(replayTime);
+                client.tick();
             }
+        } else {
+            // Rewind to the beginning *before* replay exporter init.
+            replayHandler.getReplaySender().sendPacketsTill(0);
+            client.tick();
         }
+
+        // Apply the timeline so that the export bounds are centered correctly.
+        timeline.applyToGame(0, replayHandler);
 
         pipeline.run(exportInfo);
 

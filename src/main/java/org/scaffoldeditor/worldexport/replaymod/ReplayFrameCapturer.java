@@ -97,7 +97,11 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
      */
     public CompletableFuture<IFrame> setup(@Nullable CaptureCallback callback) {
         if (worldCaptureService == null || worldCaptureService.isShutdown()) {
-            worldCaptureService = Executors.newSingleThreadExecutor(r -> new Thread(r, "Vcap World Capture"));
+            worldCaptureService = Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "Vcap World Capture");
+                thread.setPriority(Thread.MAX_PRIORITY);
+                return thread;
+            });
         }
 
         if (exporter == null) {
