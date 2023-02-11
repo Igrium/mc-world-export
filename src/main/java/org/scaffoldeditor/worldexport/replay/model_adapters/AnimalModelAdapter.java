@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.apache.logging.log4j.LogManager;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dStack;
 import org.joml.Matrix4dc;
@@ -132,7 +131,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         forEachPart((name, part, transform) -> {
             ReplayModelPart bone = boneMapping.get(part);
             if (bone == null) {
-                LogManager.getLogger("Replay Models").error("Model part '"+name+"' not found in bone mapping!");
+                // LogManager.getLogger("Replay Models").error("Model part '"+name+"' not found in bone mapping!");
                 return;
             }
 
