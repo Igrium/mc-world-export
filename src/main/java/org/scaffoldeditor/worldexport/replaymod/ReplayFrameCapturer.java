@@ -39,6 +39,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -98,7 +99,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     public CompletableFuture<IFrame> setup(@Nullable CaptureCallback callback) {
         if (worldCaptureService == null || worldCaptureService.isShutdown()) {
             worldCaptureService = Executors.newSingleThreadExecutor(r -> {
-                Thread thread = new Thread(r, "Vcap World Capture");
+                Thread thread = new Thread(r, "Replay Exporter");
                 // thread.setPriority(Thread.MAX_PRIORITY);
                 return thread;
             });
@@ -122,7 +123,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
                 .setFluidMode(settings.getFluidMode())
                 .setLowerDepth(settings.getLowerDepth());
 
-        initialWorldCapture = exporter.getWorldExporter().captureIFrameAsync(0, worldCaptureService, callback);
+        initialWorldCapture = exporter.getWorldExporter().captureIFrameAsync(0, Util.getMainWorkerExecutor(), callback);
         ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);
         return initialWorldCapture;
     }

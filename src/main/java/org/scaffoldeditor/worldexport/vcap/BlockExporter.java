@@ -3,9 +3,13 @@ package org.scaffoldeditor.worldexport.vcap;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
@@ -15,6 +19,8 @@ import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshot;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -80,6 +86,14 @@ public final class BlockExporter {
         return builder;
     }
 
+    /**
+     * Export a capture of the entire block world.
+     * 
+     * @return A list with all the exported sections.
+     * @deprecated Use <code>exportStillAsync</code> with <code>Runnable::run</code>
+     *             as the executor instead.
+     */
+    @Deprecated
     public static NbtList exportStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
             @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
         NbtList sectionTag = new NbtList();
@@ -106,6 +120,110 @@ public final class BlockExporter {
         }
 
         return sectionTag;
+    }
+    
+    /**
+     * Capture the entire block world.
+     * 
+     * @param world         World to capture.
+     * @param minChunk      The minimum corner of the export bounds.
+     * @param maxChunk      The maximum corner of the export bounds.
+     * @param context       The export context.
+     * @param fluidConsumer The fluid consumer to use. Must be thread-safe!
+     * @param callback      A capture callback to use. Must be thread-safe!.
+     * @param executor      The executor to export the chunks on.
+     * @return A list with all the exported sections.
+     */
+    public static CompletableFuture<NbtList> exportStillAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk,
+            ExportContext context,
+            @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback, Executor executor) {
+        if (!(world instanceof WorldSnapshot)) {
+            world = WorldSnapshotManager.getInstance().snapshot(world);
+        }
+        
+        return new StillExporterAsync(world, minChunk, maxChunk, context, fluidConsumer, callback)
+                .exportStill(executor);
+    }
+    
+    /**
+     * Some values change during async world export. This class handles those values across threads.
+     */
+    private static class StillExporterAsync {
+        final ChunkView world;
+        final ChunkPos minChunk;
+        final ChunkPos maxChunk;
+        final ExportContext context;
+        @Nullable
+        final FluidConsumer fluidConsumer;
+        // @Nullable 
+        final CaptureCallback callback;
+
+        private int totalChunks;
+        private final AtomicInteger chunksExported = new AtomicInteger();
+
+        public StillExporterAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
+            this.world = world;
+            this.minChunk = minChunk;
+            this.maxChunk = maxChunk;
+            this.context = context;
+            this.fluidConsumer = fluidConsumer;
+            this.callback = callback;
+        }
+
+        /**
+         * Export a block world asynchronously. This method itself is synchronized
+         * because we don't want two instances of the export conflicting with each
+         * other.
+         * 
+         * @param executor Executor to use.
+         * @return
+         */
+        public synchronized CompletableFuture<NbtList> exportStill(Executor executor) {
+            totalChunks = (maxChunk.x - minChunk.x) * (maxChunk.z - minChunk.z);
+            chunksExported.set(0);
+
+            List<CompletableFuture<? extends Collection<NbtCompound>>> futures = new ArrayList<>();
+            for (int x = minChunk.x; x < maxChunk.x; x++) {
+                for (int z = minChunk.z; z < maxChunk.z; z++) {
+                    if (!world.isChunkLoaded(x, z)) continue;
+                    futures.add(exportChunkAsync(x, z, executor));
+                }
+            }
+
+            return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(v -> {
+                NbtList list = new NbtList();
+                futures.forEach(future -> {
+                    future.join().forEach(list::add);
+                });
+
+                return list;
+            });
+        }
+
+        private CompletableFuture<List<NbtCompound>> exportChunkAsync(int x, int z, Executor executor) {
+            return CompletableFuture.supplyAsync(() -> exportChunk(x, z), executor);
+        }
+
+        private List<NbtCompound> exportChunk(int x, int z) {
+            LOGGER.debug("Exporting chunk [{}, {}]", x, z);
+            if (!world.isChunkLoaded(x, z)) return Collections.emptyList();
+            List<NbtCompound> chunks = new ArrayList<>();
+
+            for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
+                if (!world.isSectionLoaded(x, y, z)) continue;
+                if (context.getSettings().getLowerDepth() > y) continue;
+
+                chunks.add(writeSection(world, x, y, z, context, fluidConsumer));
+            }
+
+            int count = chunksExported.incrementAndGet();
+
+            if (callback != null) {
+                callback.onChunkCaptured(x, z, count, totalChunks);
+            }
+
+            return chunks;
+        }
     }
     
     /**
@@ -163,9 +281,9 @@ public final class BlockExporter {
         List<Byte> colorPalette = new ArrayList<>();
         byte[] colors = new byte[16 * 16 * 16];
 
-        IntStream.range(0, 16).forEach(y -> {
-            IntStream.range(0, 16).forEach(z -> {
-                IntStream.range(0, 16).forEach(x -> {
+        for (int y = 0; y < 16; y++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
                     BlockPos worldPos = new BlockPos(sectionX * 16 + x, sectionY * 16 + y, sectionZ * 16 + z);
                     BlockState state = world.getBlockState(worldPos);
                     String id;
@@ -230,9 +348,9 @@ public final class BlockExporter {
 
                     blocks[(y * 16 + z) * 16 + x] = index;
                     colors[(y * 16 + z) * 16 + x] = (byte) colorIndex;
-                });
-            });
-        });
+                };
+            };
+        };
         NbtList paletteTag = new NbtList();
         for (String entry : palette) paletteTag.add(NbtString.of(entry));
         tag.put("palette", paletteTag);
