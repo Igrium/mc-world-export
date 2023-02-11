@@ -61,7 +61,7 @@ public class ParsedReplayFile extends BaseReplayFile<ParsedReplayEntity> {
     }
 
     @Override
-    public void saveWorld(OutputStream out) throws IOException {
+    public void saveWorld(OutputStream out, Consumer<String> phaseConsumer) throws IOException {
         out.write(vcapData);
     }
 

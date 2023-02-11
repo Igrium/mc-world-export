@@ -24,6 +24,7 @@ import org.scaffoldeditor.worldexport.mat.TextureSerializer;
 import org.scaffoldeditor.worldexport.Constants;
 import org.scaffoldeditor.worldexport.mat.Field;
 import org.scaffoldeditor.worldexport.mat.Field.FieldType;
+import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
 
 public abstract class BaseReplayFile<T extends BaseReplayEntity> {
@@ -36,7 +37,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
     // public abstract 
     public abstract ReplayMeta getMeta();
 
-    protected abstract void saveWorld(OutputStream out) throws IOException;
+    protected abstract void saveWorld(OutputStream out, Consumer<String> phaseConsumer) throws IOException;
 
     private Logger LOGGER = LogManager.getLogger();
 
@@ -67,7 +68,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
     public void save(OutputStream os, @Nullable Consumer<String> phaseConsumer) throws IOException {
         if (phaseConsumer == null) phaseConsumer = LOGGER::info;
 
-        phaseConsumer.accept("Initializing replay serialization...");
+        phaseConsumer.accept(ExportPhase.SERIALIZATION);
         ZipOutputStream out = new ZipOutputStream(os);
 
 
@@ -82,12 +83,12 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
         out.closeEntry();
 
 
-        phaseConsumer.accept("Writing world...");
+        phaseConsumer.accept(ExportPhase.WORLD);
         out.putNextEntry(new ZipEntry("world.vcap"));
-        saveWorld(out);
+        saveWorld(out, phaseConsumer);
         out.closeEntry();        
 
-        phaseConsumer.accept("Serializing entities...");
+        phaseConsumer.accept(ExportPhase.ENTITIES);
         for (T ent : getEntities()) {
             preserializeEntity(ent);
             out.putNextEntry(new ZipEntry("entities/"+ent.getName()+".xml"));
@@ -95,7 +96,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
             out.closeEntry();
         }
 
-        phaseConsumer.accept("Saving Materials...");
+        phaseConsumer.accept(ExportPhase.MATERIALS);
         for (String id : getMaterials().keySet()) {
             Material mat = getMaterials().get(id);
             checkForTexture(mat.getColor(), id);
@@ -112,7 +113,7 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
                 filename -> new ZipEntryOutputStream(out, new ZipEntry("tex/" + filename)));
         serializer.save(getTextures());
 
-        phaseConsumer.accept("Finished writing replay file.");
+        phaseConsumer.accept(ExportPhase.FINISHED);
         out.finish();
     }
 

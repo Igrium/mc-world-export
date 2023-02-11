@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -29,6 +30,7 @@ import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.TextureSerializer;
+import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
 import org.scaffoldeditor.worldexport.vcap.BlockExporter.CaptureCallback;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
@@ -121,10 +123,10 @@ public class VcapExporter {
      * @param os Output stream to write to.
      * @return A future that completes when the file has been saved.
      */
-    public CompletableFuture<Void> saveAsync(OutputStream os) {
+    public CompletableFuture<Void> saveAsync(OutputStream os, Consumer<String> phaseConsumer) {
         return CompletableFuture.runAsync(() -> {
             try {
-                save(os);
+                save(os, phaseConsumer);
             } catch (IOException e) {
                 throw new CompletionException(e);
             }
@@ -144,11 +146,11 @@ public class VcapExporter {
      * @throws IOException If an IO exception occurs while writing the file
      *                     or extracting the texture.
      */
-    public void save(OutputStream os) throws IOException {
+    public void save(OutputStream os, Consumer<String> phaseConsumer) throws IOException {
         ZipOutputStream out = new ZipOutputStream(os);
 
         // WORLD
-        LOGGER.info("Compiling frames...");
+        phaseConsumer.accept(ExportPhase.COMPILING_FRAMES);
         NbtList frames = new NbtList();
         this.frames.forEach(frame -> frames.add(frame.getFrameData()));
         NbtCompound worldData = new NbtCompound();
@@ -163,6 +165,7 @@ public class VcapExporter {
         // MODELS
         int numLayers = 0;
 
+        phaseConsumer.accept(ExportPhase.MESHES);
         for (Map.Entry<String, ModelProvider> entry : context.models.entrySet()) {
             String id = entry.getKey();
             ModelProvider modelProvider = entry.getValue();
@@ -202,7 +205,7 @@ public class VcapExporter {
         serializer.save(textures);
         
         // META
-        LOGGER.info("Writing Vcap metadata.");
+        LOGGER.info(ExportPhase.VCAP_META);
         VcapMeta meta = new VcapMeta(numLayers);
         context.getIDMapping(meta.blockTypes);
         Gson gson = new GsonBuilder()

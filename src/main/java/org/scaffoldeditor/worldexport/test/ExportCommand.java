@@ -167,7 +167,7 @@ public final class ExportCommand {
 
                             try {
                                 FileOutputStream os = new FileOutputStream(targetFile);
-                                currentExport.exporter.save(os);
+                                currentExport.exporter.save(os, LogManager.getLogger()::info);
                                 
                             } catch (IOException e) {
                                 throw new CommandException(
@@ -252,7 +252,7 @@ public final class ExportCommand {
 
         try {
             FileOutputStream os = new FileOutputStream(targetFile);
-            exporter.saveAsync(os).whenComplete((val, e) -> {
+            exporter.saveAsync(os, LogManager.getLogger()::info).whenComplete((val, e) -> {
                 if (e != null) {
                     context.getSource().sendError(Text.of("Failed to save vcap. " + e.getMessage()));
                     LogManager.getLogger().error("Failed to save vcap.", e);

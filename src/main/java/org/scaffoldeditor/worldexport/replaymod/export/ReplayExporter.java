@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL11;
 import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
 import org.scaffoldeditor.worldexport.replaymod.gui.GuiReplayExporter;
 import org.scaffoldeditor.worldexport.replaymod.util.ExportInfo;
+import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 
 import com.google.common.collect.Iterables;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -125,6 +126,7 @@ public class ReplayExporter implements RenderInfo {
         // Apply the timeline so that the export bounds are centered correctly.
         timeline.applyToGame(0, replayHandler);
 
+        exportInfo.setPhase(ExportPhase.CAPTURE);
         pipeline.run(exportInfo);
 
         if (((MinecraftAccessor) client).getCrashReporter() != null) {
