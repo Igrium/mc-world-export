@@ -95,9 +95,28 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
         };
     }).setSize(122, 20).setSteps(32);
+    
+    public final GuiLabel memoryWarning1 = new GuiLabel().setI18nText("worldexport.gui.memory_warning1")
+            .setColor(Color.ORANGE).setEnabled(false);
+
+    public final GuiLabel memoryWarning2 = new GuiLabel().setI18nText("worldexport.gui.memory_warning2")
+            .setColor(Color.ORANGE).setEnabled(false);
+
+    public final GuiLabel memoryWarning3 = new GuiLabel().setI18nText("worldexport.gui.memory_warning3")
+            .setColor(Color.ORANGE).setEnabled(false);
+
+    public final GuiLabel memoryWarning4 = new GuiLabel().setI18nText("worldexport.gui.memory_warning4")
+            .setColor(Color.ORANGE).setEnabled(false);
 
     public final GuiDropdownMenu<FluidMode> fluidModeDropdown = new GuiDropdownMenu<FluidMode>()
-            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.NONE, FluidMode.STATIC).setSelected(FluidMode.STATIC);
+            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.NONE, FluidMode.STATIC).setSelected(FluidMode.NONE)
+            .onSelection(ordinal -> {
+                boolean showWarning = ordinal != FluidMode.NONE.ordinal();
+                memoryWarning1.setEnabled(showWarning);
+                memoryWarning2.setEnabled(showWarning);
+                memoryWarning3.setEnabled(showWarning);
+                memoryWarning4.setEnabled(showWarning);
+            });
 
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setLabel("Export")
@@ -120,7 +139,11 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         settingsList.getListPanel().setLayout(new VerticalLayout().setSpacing(10))
                 .addElements(new VerticalLayout.Data(0.5),
                         new GuiLabel().setText("Replay Export Settings"),
-                        mainPanel);
+                        mainPanel,
+                        memoryWarning1,
+                        memoryWarning2,
+                        memoryWarning3,
+                        memoryWarning4);
     }
 
     public File getOutputFile() {

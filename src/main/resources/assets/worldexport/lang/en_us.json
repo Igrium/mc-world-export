@@ -25,6 +25,11 @@
     "worldexport.gui.status.materials": "Saving materials",
     "worldexport.gui.status.finished": "Finished writing replay file!",
 
+    "worldexport.gui.memory_warning1": "WARNING: There is currently an issue with the fluid exporter",
+    "worldexport.gui.memory_warning2": "that causes it to eat through memory like a whale.",
+    "worldexport.gui.memory_warning3": "If you intend to use the fluid exporter,",
+    "worldexport.gui.memory_warning4": "you might want to increase the memory allocated to your game.",
+
     "worldexport.chat.camerafailed": "Failed to import camera animation. See console for details.",
     "worldexport.chat.camerasavefailed": "Failed to save camera animation. See console for details."
 }
