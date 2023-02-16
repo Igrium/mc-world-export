@@ -15,7 +15,7 @@ import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3f;
+import net.minecraft.util.math.RotationAxis;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {    
@@ -34,8 +34,8 @@ public class GameRendererMixin {
     @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;getPitch()F"))
     void applyRoll(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
         Entity entity = this.client.getCameraEntity() == null ? this.client.player : this.client.getCameraEntity();
-        if (entity instanceof RollProvider) {
-            matrices.multiply(Vec3f.NEGATIVE_Z.getDegreesQuaternion(((RollProvider) entity).getRoll()));
+        if (entity instanceof RollProvider rollProvider) {
+            matrices.multiply(RotationAxis.NEGATIVE_Z.rotationDegrees(rollProvider.getRoll()));
         }
     }
 }

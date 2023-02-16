@@ -1,5 +1,7 @@
 package org.scaffoldeditor.worldexport;
 
+import javax.annotation.Nullable;
+
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.block.BlockState;
@@ -11,11 +13,11 @@ import net.minecraft.world.World;
  */
 public interface ClientBlockPlaceCallback {
     Event<ClientBlockPlaceCallback> EVENT = EventFactory.createArrayBacked(ClientBlockPlaceCallback.class,
-        (listeners) -> (pos, state, world) -> {
+        (listeners) -> (pos, oldState, state, world) -> {
             for (ClientBlockPlaceCallback listener : listeners) {
-                listener.place(pos, state, world);
+                listener.place(pos, oldState, state, world);
             }
     });
     
-    void place(BlockPos pos, BlockState state, World world);
+    void place(BlockPos pos, @Nullable BlockState oldState, BlockState state, World world);
 }

@@ -13,6 +13,7 @@ import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityRenderer;
 import org.scaffoldeditor.worldexport.replaymod.render.CameraPathRenderer;
 import org.scaffoldeditor.worldexport.test.ExportCommand;
 import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
+import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import com.replaymod.simplepathing.ReplayModSimplePathing;
 
@@ -30,10 +31,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType; 
 import net.minecraft.entity.SpawnGroup;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.registry.Registry;
 
 public class ReplayExportMod implements ClientModInitializer {
 
@@ -41,7 +43,7 @@ public class ReplayExportMod implements ClientModInitializer {
     private static ReplayExportMod instance;
 
     public static final EntityType<AnimatedCameraEntity> ANIMATED_CAMERA = Registry.register(
-            Registry.ENTITY_TYPE, AnimatedCameraEntity.ID,
+            Registries.ENTITY_TYPE, AnimatedCameraEntity.ID,
             FabricEntityTypeBuilder.create(SpawnGroup.MISC, AnimatedCameraEntity::new)
                     .dimensions(EntityDimensions.fixed(.75f, .75f))
                     .disableSummon().build());
@@ -60,6 +62,8 @@ public class ReplayExportMod implements ClientModInitializer {
 
     private final Version modVersion = FabricLoader.getInstance().getModContainer("worldexport").get().getMetadata().getVersion();
     
+    private WorldSnapshotManager worldSnapshotManager;
+    
     public Version getModVersion() {
         return modVersion;
     }
@@ -72,6 +76,10 @@ public class ReplayExportMod implements ClientModInitializer {
         return blockUpdateListeners.remove(listener);
     }
 
+    public WorldSnapshotManager getWorldSnapshotManager() {
+        return worldSnapshotManager;
+    }
+
     @Override
     public void onInitializeClient() {
         instance = this;
@@ -82,9 +90,11 @@ public class ReplayExportMod implements ClientModInitializer {
         }
 
 
-        ClientBlockPlaceCallback.EVENT.register((pos, state, world) -> {
-            blockUpdateListeners.forEach(listener -> listener.place(pos, state, world));
+        ClientBlockPlaceCallback.EVENT.register((pos, oldState, state, world) -> {
+            blockUpdateListeners.forEach(listener -> listener.place(pos, oldState, state, world));
         });
+
+        worldSnapshotManager = new WorldSnapshotManager();
 
         ReplayModels.registerDefaults();
         EntityRendererRegistry.register(ANIMATED_CAMERA, CameraEntityRenderer::new);

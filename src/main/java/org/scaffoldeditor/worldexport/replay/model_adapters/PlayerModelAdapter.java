@@ -1,7 +1,12 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
+import javax.annotation.Nullable;
+
+import org.joml.Quaterniond;
+import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
+import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
 import net.minecraft.client.MinecraftClient;
@@ -16,7 +21,6 @@ import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
-import net.minecraft.util.math.Matrix4f;
 
 public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEntity> {
 
@@ -48,9 +52,10 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
     }
     
     @Override
-    protected void scale(AbstractClientPlayerEntity entity, Matrix4f matrix, float amount) {
-        float g = 0.9375f;
-        matrix.multiply(g);
+    protected Transform prepareTransform(float animationProgress, float bodyYaw, float tickDelta,
+            @Nullable Vector3d translation, @Nullable Quaterniond rotation, @Nullable Vector3d scale) {
+        if (scale == null) scale = new Vector3d(1);
+        return super.prepareTransform(animationProgress, bodyYaw, tickDelta, translation, rotation, scale.mul(0.9375f));
     }
 
     @Override

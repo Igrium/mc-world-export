@@ -5,30 +5,38 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
 import org.scaffoldeditor.worldexport.ClientBlockPlaceCallback;
 import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.mat.TextureSerializer;
+import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 import org.scaffoldeditor.worldexport.util.ZipEntryOutputStream;
+import org.scaffoldeditor.worldexport.vcap.BlockExporter.CaptureCallback;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
+import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,7 +66,7 @@ public class VcapExporter {
      */
     public final WorldAccess world;
 
-    public final List<Frame> frames = new ArrayList<>();
+    public final List<Frame> frames = Collections.synchronizedList(new ArrayList<>());
     public final ExportContext context;
     
     public VcapSettings getSettings() {
@@ -76,7 +84,6 @@ public class VcapExporter {
         this.world = world;
         context = new ExportContext();        
         setBBox(minChunk, maxChunk);
-
     }
 
     /**
@@ -116,10 +123,10 @@ public class VcapExporter {
      * @param os Output stream to write to.
      * @return A future that completes when the file has been saved.
      */
-    public CompletableFuture<Void> saveAsync(OutputStream os) {
+    public CompletableFuture<Void> saveAsync(OutputStream os, Consumer<String> phaseConsumer) {
         return CompletableFuture.runAsync(() -> {
             try {
-                save(os);
+                save(os, phaseConsumer);
             } catch (IOException e) {
                 throw new CompletionException(e);
             }
@@ -139,11 +146,11 @@ public class VcapExporter {
      * @throws IOException If an IO exception occurs while writing the file
      *                     or extracting the texture.
      */
-    public void save(OutputStream os) throws IOException {
+    public void save(OutputStream os, Consumer<String> phaseConsumer) throws IOException {
         ZipOutputStream out = new ZipOutputStream(os);
 
         // WORLD
-        LOGGER.info("Compiling frames...");
+        phaseConsumer.accept(ExportPhase.COMPILING_FRAMES);
         NbtList frames = new NbtList();
         this.frames.forEach(frame -> frames.add(frame.getFrameData()));
         NbtCompound worldData = new NbtCompound();
@@ -158,6 +165,7 @@ public class VcapExporter {
         // MODELS
         int numLayers = 0;
 
+        phaseConsumer.accept(ExportPhase.MESHES);
         for (Map.Entry<String, ModelProvider> entry : context.models.entrySet()) {
             String id = entry.getKey();
             ModelProvider modelProvider = entry.getValue();
@@ -197,7 +205,7 @@ public class VcapExporter {
         serializer.save(textures);
         
         // META
-        LOGGER.info("Writing Vcap metadata.");
+        LOGGER.info(ExportPhase.VCAP_META);
         VcapMeta meta = new VcapMeta(numLayers);
         context.getIDMapping(meta.blockTypes);
         Gson gson = new GsonBuilder()
@@ -231,14 +239,82 @@ public class VcapExporter {
      * take multiple seconds.
      * </p>
      * 
+     * @param time     Time stamp of the frame, in seconds since the beginning
+     *                 of the animation.
+     * @param callback A callback to use in the block exporter.
+     * @return The frame.
+     */
+    public IFrame captureIFrame(double time, @Nullable CaptureCallback callback) {
+        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getMinChunk(),
+                getSettings().getMaxChunk(), context, time, callback);
+        frames.add(iFrame);
+        return iFrame;
+    }
+
+    /**
+     * <p>
+     * Capture an intracoded frame and add it to the vcap.
+     * </p>
+     * <p>
+     * Warning: depending on the size of the capture, this may
+     * take multiple seconds.
+     * </p>
+     * 
      * @param time Time stamp of the frame, in seconds since the beginning
      *             of the animation.
      * @return The frame.
      */
     public IFrame captureIFrame(double time) {
-        IFrame iFrame = IFrame.capture(world, getSettings().getMinChunk(), getSettings().getMaxChunk(), context, time);
-        frames.add(iFrame);
-        return iFrame;
+        return captureIFrame(time, null);
+    }
+
+    /**
+     * Asynchronously capture an intracoded frame and add it to the vcap.
+     * 
+     * @param time     Time stamp of the frame, in seconds since the beginning of
+     *                 the animation.
+     * @param executor The executor to use for the capture.
+     * @param callback A callback to use in the block exporter.
+     * @return A future that completes once the frame has been captured and added to
+     *         the vcap.
+     */
+    public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor, @Nullable CaptureCallback callback) {
+        int index = frames.size();
+        return IFrame.captureAsync(new ChunkView.Wrapper(world), getMinChunk(), getMaxChunk(), context, time, executor, callback).thenApply(frame -> {
+            addFrame(index, frame);
+            LogManager.getLogger().info("Finished capturing world at {} seconds.", time);
+            return frame;
+        });
+    }
+
+    /**
+     * Asynchronously capture an intracoded frame and add it to the vcap.
+     * 
+     * @param time     Time stamp of the frame, in seconds since the beginning of
+     *                 the animation.
+     * @param executor The executor to use for the capture.
+     * @return A future that completes once the frame has been captured and added to
+     *         the vcap.
+     */
+    public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor) {
+        return captureIFrameAsync(time, executor, null);
+    }
+
+    /**
+     * Insert a frame into this vcap, adjusting subsequent P frames as necessary.
+     * @param index The index to insert at.
+     * @param frame The frame to insert.
+     */
+    public void addFrame(int index, Frame frame) {
+        synchronized(frames) {
+            if (index < 0 || index > frames.size()) {
+                throw new IndexOutOfBoundsException(index);
+            }
+            if (index < frames.size() && frames.get(index) instanceof PFrame) {
+                ((PFrame) frames.get(index)).setPrevious(Optional.of(frame));
+            }
+            frames.add(index, frame);
+        }
     }
 
     /**
@@ -269,7 +345,8 @@ public class VcapExporter {
      * @return The captured frame.
      */
     public PFrame capturePFrame(double time, Set<BlockPos> blocks, WorldAccess world) {
-        PFrame pFrame = PFrame.capture(world, blocks, time, frames.get(frames.size() - 1), context);
+        Optional<Frame> previous = !frames.isEmpty() ? Optional.of(frames.get(frames.size() - 1)) : Optional.empty();
+        PFrame pFrame = PFrame.capture(new ChunkView.Wrapper(world), blocks, time, previous, context);
         frames.add(pFrame);
         return pFrame;
     }
@@ -280,7 +357,7 @@ public class VcapExporter {
         private boolean isCaptureQueued = false;
 
         @Override
-        public void place(BlockPos t, BlockState u, World world) {
+        public void place(BlockPos t, @Nullable BlockState old, BlockState u, World world) {
             updateCache.add(t);
             if (!isCaptureQueued) {
                 RenderSystem.recordRenderCall(() -> {

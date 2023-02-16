@@ -9,6 +9,27 @@
     "worldexport.gui.editcamera.start_time": "Start Time (seconds)",
     "worldexport.gui.editcamera.color": "Display Color",
 
+    "worldexport.gui.exporting.title": "Exporting Replay",
+    "worldexport.gui.exporting.frame_progress": "Frames captured: %d / %d",
+    "worldexport.gui.exporting.world_progress": "Chunks exported: %d / %d",
+
+    "worldexport.gui.status.init": "Initializing",
+    "worldexport.gui.status.capture": "Capturing game",
+    "worldexport.gui.status.serialization": "Initializing replay serialization",
+    "worldexport.gui.status.compiling_frames": "Compiling frames",
+    "worldexport.gui.status.writing_meshes": "Writing Meshes",
+    "worldexport.gui.status.vcap_meta": "Writing Vcap metadata",
+
+    "worldexport.gui.status.world": "Writing world",
+    "worldexport.gui.status.entities": "Serializing entities",
+    "worldexport.gui.status.materials": "Saving materials",
+    "worldexport.gui.status.finished": "Finished writing replay file!",
+
+    "worldexport.gui.memory_warning1": "WARNING: There is currently an issue with the fluid exporter",
+    "worldexport.gui.memory_warning2": "that causes it to eat through memory like a whale.",
+    "worldexport.gui.memory_warning3": "If you intend to use the fluid exporter,",
+    "worldexport.gui.memory_warning4": "you might want to increase the memory allocated to your game.",
+
     "worldexport.chat.camerafailed": "Failed to import camera animation. See console for details.",
     "worldexport.chat.camerasavefailed": "Failed to save camera animation. See console for details."
 }

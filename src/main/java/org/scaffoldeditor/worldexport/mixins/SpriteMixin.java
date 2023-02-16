@@ -8,18 +8,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.client.texture.SpriteContents;
+import net.minecraft.client.texture.SpriteDimensions;
+import net.minecraft.util.Identifier;
 
-@Mixin(Sprite.class)
+@Mixin(SpriteContents.class)
 public class SpriteMixin implements SpriteAnimMetaProvider {
     
     AnimationResourceMetadata animData;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    public void onInit(SpriteAtlasTexture atlas, Sprite.Info info, int maxLevel, int atlasWidth, int atlasHeight, int x,
-            int y, NativeImage image, CallbackInfo ci) {
-        animData = ((SpriteInfoAccessor) (Object) info).getAnimData();
+    public void onInit(Identifier id, SpriteDimensions dimensions, NativeImage image, AnimationResourceMetadata metadata, CallbackInfo ci) {
+        this.animData = metadata;
     }
 
     public AnimationResourceMetadata getAnimData() {

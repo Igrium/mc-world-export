@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtList;
 import net.minecraft.util.math.BlockPos;
 
 /**
@@ -13,6 +14,12 @@ import net.minecraft.util.math.BlockPos;
 public interface Frame {
     public static final byte INTRACODED_TYPE = 0;
     public static final byte PREDICTED_TYPE = 1;
+
+    /**
+     * A frame with no blocks in it.
+     */
+    public static final Frame EMPTY = new EmptyFrame();
+
     /**
      * Get the type of frame this is.
      * @return <code>0</code> for Intracoded and <code>1</code> for Predicted.
@@ -48,4 +55,36 @@ public interface Frame {
     public default Optional<FluidDomain> fluidAt(BlockPos pos) {
         return Optional.empty();
     }
+}
+
+class EmptyFrame implements Frame {
+
+    private NbtCompound data = new NbtCompound();
+
+    public EmptyFrame() {
+        data.putByte("type", getFrameType());
+        data.putDouble("time", getTimestamp());
+        data.put("sections", new NbtList());
+    }
+
+    @Override
+    public byte getFrameType() {
+        return INTRACODED_TYPE;
+    }
+
+    @Override
+    public double getTimestamp() {
+        return 0;
+    }
+
+    @Override
+    public NbtCompound getFrameData() {
+        return data;
+    }
+
+    @Override
+    public String modelAt(BlockPos pos) throws IndexOutOfBoundsException {
+        return MeshWriter.EMPTY_MESH;
+    }
+    
 }

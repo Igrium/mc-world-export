@@ -79,7 +79,7 @@ public final class MeshWriter {
 
         Sprite sprite = quad.getSprite();
 
-        boolean useAnimation = sprite.getAnimation() != null;
+        boolean useAnimation = sprite.createAnimation() != null;
         MaterialProvider material;
         String matName;
 

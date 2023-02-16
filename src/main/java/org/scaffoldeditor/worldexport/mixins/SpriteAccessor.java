@@ -4,11 +4,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.Sprite;
+import net.minecraft.client.texture.SpriteContents;
 
-@Mixin(Sprite.class)
+@Mixin(SpriteContents.class)
 public interface SpriteAccessor {
 
-    @Accessor("images")
+    @Accessor("mipmapLevelsImages")
     NativeImage[] getImages();
 }

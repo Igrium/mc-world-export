@@ -9,6 +9,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
 
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
@@ -25,16 +31,22 @@ import org.scaffoldeditor.worldexport.ReplayExportMod;
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 import org.scaffoldeditor.worldexport.replay.ReplayFile;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ModelNotFoundException;
+import org.scaffoldeditor.worldexport.replaymod.export.ReplayExportSettings;
+import org.scaffoldeditor.worldexport.vcap.IFrame;
+import org.scaffoldeditor.worldexport.vcap.BlockExporter.CaptureCallback;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
 public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
+
+    protected int fps = 20;
 
     protected int framesDone;
     protected RenderInfo renderInfo;
@@ -45,18 +57,27 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     protected Map<Entity, ReplayEntity<?>> entityCache = new HashMap<>();
     protected Set<Entity> skippedEnts = new HashSet<>();
 
+    protected CompletableFuture<IFrame> initialWorldCapture;
+
     private float tickDelta = 0;
     private MinecraftClient client = MinecraftClient.getInstance();
 
-    public ReplayFrameCapturer(RenderInfo renderInfo, ReplayExportSettings settings) {
+    private ExecutorService worldCaptureService;
+
+    public ReplayFrameCapturer(RenderInfo renderInfo, int fps, ReplayExportSettings settings) {
         this.renderInfo = renderInfo;
+        this.fps = fps;
+        this.settings = settings;
+    }
+
+    public ReplayFrameCapturer(ReplayExportSettings settings) {
         this.settings = settings;
     }
 
     protected ClientBlockPlaceCallback blockUpdateListener = new ClientBlockPlaceCallback() {
 
         @Override
-        public void place(BlockPos pos, BlockState state, World world) {
+        public void place(BlockPos pos, @Nullable BlockState oldState, BlockState state, World world) {
             blockUpdateCache.put(pos, state);
         }
         
@@ -70,8 +91,20 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         return renderInfo;
     }
     
+    /**
+     * Setup the exporter and capture the initial world.
+     * @param callback A callback to use for the initial world capture.
+     * @return A future that completes once the initial world capture has finished.
+     */
+    public CompletableFuture<IFrame> setup(@Nullable CaptureCallback callback) {
+        if (worldCaptureService == null || worldCaptureService.isShutdown()) {
+            worldCaptureService = Executors.newSingleThreadExecutor(r -> {
+                Thread thread = new Thread(r, "Replay Exporter");
+                // thread.setPriority(Thread.MAX_PRIORITY);
+                return thread;
+            });
+        }
 
-    protected void setup() {
         if (exporter == null) {
             // int viewDistance = client.options.viewDistance;
             int viewDistance = settings.getViewDistance();
@@ -84,15 +117,15 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             exporter.meta.offset = new Vector3i(-centerBlock.getX(), -centerBlock.getY(), -centerBlock.getZ());
         }
         
-        exporter.setFps(renderInfo.getRenderSettings().getFramesPerSecond());
+        exporter.setFps(fps);
         exporter.getWorldExporter()
                 .getSettings()
                 .setFluidMode(settings.getFluidMode())
                 .setLowerDepth(settings.getLowerDepth());
 
-        LogManager.getLogger().info("Capturing initial world");
-        exporter.getWorldExporter().captureIFrame(0);
+        initialWorldCapture = exporter.getWorldExporter().captureIFrameAsync(0, Util.getMainWorkerExecutor(), callback);
         ReplayExportMod.getInstance().onBlockUpdated(blockUpdateListener);
+        return initialWorldCapture;
     }
 
     @Override
@@ -101,13 +134,14 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     }
 
     @Override
+    @Deprecated
     public Map<Channel, BitmapFrame> process() {
         tickDelta = renderInfo.updateForNextFrame();
         if (framesDone == 0) {
-            setup();
+            setup(null);
         }
 
-        double time = framesDone / (double) renderInfo.getRenderSettings().getFramesPerSecond();
+        double time = framesDone / (double) fps;
         if (blockUpdateCache.size() > 0) {
             exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet(), client.world);
             blockUpdateCache.clear();
@@ -118,6 +152,25 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         // Bogus frame to satisfy encoder.
         BitmapFrame frame = new BitmapFrame(framesDone++, new Dimension(0, 0), 0, ByteBufferPool.allocate(0));
         return Collections.singletonMap(Channel.BRGA, frame);
+    }
+    
+    /**
+     * Capture a frame of the replay.
+     */
+    public void captureFrame() {
+        if (exporter == null) {
+            throw new IllegalStateException("Frame capture has not been setup!");
+        }
+        renderInfo.updateForNextFrame();
+
+        double time = framesDone / (double) fps;
+        if (blockUpdateCache.size() > 0) {
+            exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet(), client.world);
+            blockUpdateCache.clear();
+        }
+        // TODO: Don't export camera.
+        client.world.getEntities().forEach(this::captureEntity);
+        framesDone++;
     }
 
     protected void captureEntity(Entity ent) {
@@ -137,7 +190,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
                 return;
             }
             
-            rEnt.setStartTime(framesDone / (float) renderInfo.getRenderSettings().getFramesPerSecond());
+            rEnt.setStartTime(framesDone / (float) fps);
             exporter.entities.add(rEnt);
             entityCache.put(ent, rEnt);
         }
@@ -145,29 +198,39 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         rEnt.capture(tickDelta);
     }
 
-    /**
-     * Close and save the replay out to file.
-     */
-    @Override
-    public void close() throws IOException {
-        cleanUp();
+    public ExecutorService getWorldCaptureService() {
+        return worldCaptureService;
+    }
 
-        File output = renderInfo.getRenderSettings().getOutputFile();
+    /**
+     * Close the resources associated with this capturer.
+     */
+    public void close() throws IOException {
+        ReplayExportMod.getInstance().removeOnBlockUpdated(blockUpdateListener);
+        worldCaptureService.shutdown();
+        worldCaptureService = null;
+    }
+
+    /**
+     * Save this replay out to file.
+     */
+    public void save(@Nullable Consumer<String> phaseConsumer) throws IOException {
+        File output = settings.getOutputFile();
         Path folder = output.getParentFile().toPath();
         File target = folder.resolve(FilenameUtils.getBaseName(output.getName())+".replay").normalize().toFile();
 
         LogManager.getLogger().info("Saving replay file to "+target);
+
+        // Wait for initial world capture to finish.
+        initialWorldCapture.join();
         
         FileOutputStream out = new FileOutputStream(target);
-        exporter.save(out);
+        exporter.save(out, phaseConsumer);
         out.close();
     }
-
-    /**
-     * Close this capturer without saving it to file.
-     */
-    public void cleanUp() {
-        ReplayExportMod.getInstance().removeOnBlockUpdated(blockUpdateListener);
+    
+    public void save() throws IOException {
+        save(null);
     }
     
 }

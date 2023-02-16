@@ -162,10 +162,10 @@ public abstract class AbstractCameraAnimation extends AbstractList<CameraPathFra
             Rotation prev = getRotation(frame);
             Rotation next = getRotation(frame + 1);
 
-            return new Rotation.Euler(
-                    MathHelper.lerp(delta, prev.pitch(), next.pitch()),
-                    MathHelper.lerp(delta, prev.yaw(), next.yaw()),
-                    MathHelper.lerp(delta, prev.roll(), next.roll()));
+            return Rotation.of(
+                    (float) MathHelper.lerp(delta, prev.pitch(), next.pitch()),
+                    (float) MathHelper.lerp(delta, prev.yaw(), next.yaw()),
+                    (float) MathHelper.lerp(delta, prev.roll(), next.roll()));
         } else {
             return getRotation(frame);
         }

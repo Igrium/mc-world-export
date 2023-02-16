@@ -1,7 +1,9 @@
 package org.scaffoldeditor.worldexport.util;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -83,5 +85,21 @@ public final class FutureUtils {
         } catch (ExecutionException | TimeoutException e) {
             throw new IOException(e);
         }
+    }
+    
+    /**
+     * Return the exceptional value of a future if completed. If the future is not
+     * completed or it didn't complete exceptionally, return an empty optional.
+     * 
+     * @param future The future to use.
+     * @return The thrown exception, if any.
+     */
+    public static Optional<Throwable> getException(CompletableFuture<?> future) {
+        try {
+            future.getNow(null);
+        } catch (CompletionException e) {
+            return Optional.of(e.getCause());
+        }
+        return Optional.empty();
     }
 }

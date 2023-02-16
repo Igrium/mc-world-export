@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replaymod.render;
 
+import org.joml.Quaternionf;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 
@@ -19,7 +20,6 @@ import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3f;
 
 /**
  * Renders a camera in the viewport.
@@ -48,9 +48,12 @@ public class CameraModelRenderer {
         Rotation rot = animation.getRotationAt(time);
 
         matrices.translate(pos.x, pos.y, pos.z);
-        matrices.multiply(Vec3f.POSITIVE_Y.getRadialQuaternion((float) rot.yaw()));
-        matrices.multiply(Vec3f.NEGATIVE_X.getRadialQuaternion((float) (Math.toRadians(90) - rot.pitch())));
-        matrices.multiply(Vec3f.POSITIVE_Z.getRadialQuaternion((float) rot.roll()));
+        matrices.multiply(new Quaternionf().rotateAxis((float) (rot.yaw()), 0, 1, 0));
+        matrices.multiply(new Quaternionf().rotateAxis((float) (Math.toRadians(90) - rot.pitch()), -1, 0, 0));
+        matrices.multiply(new Quaternionf().rotateAxis((float) rot.roll(), 0, 0, 1));
+        // matrices.multiply(Vec3f.POSITIVE_Y.getRadialQuaternion((float) rot.yaw()));
+        // matrices.multiply(Vec3f.NEGATIVE_X.getRadialQuaternion((float) (Math.toRadians(90) - rot.pitch())));
+        // matrices.multiply(Vec3f.POSITIVE_Z.getRadialQuaternion((float) rot.roll()));
         
         ReadableColor color = animation.getColor();
         float r = color.getRed() / 255f;

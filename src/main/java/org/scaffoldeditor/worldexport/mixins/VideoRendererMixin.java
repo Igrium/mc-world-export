@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(value = VideoRenderer.class, remap = false)
+@Deprecated
 public class VideoRendererMixin {
 
     @Redirect(method = "<init>", at = @At(value = "INVOKE", target = 

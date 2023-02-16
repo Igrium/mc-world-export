@@ -34,7 +34,7 @@
     "fabric": "*",
     "minecraft": "1.19.x",
     "java": ">=17",
-    "replaymod": ">=1.19.1-2.6.8"
+    "replaymod": ">=1.19.3-2.6.10"
   },
   "suggests": {
     "another-mod": "*"

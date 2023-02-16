@@ -3,6 +3,10 @@ package org.scaffoldeditor.worldexport.replaymod.render;
 import java.util.Map;
 import java.util.Optional;
 
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 import org.scaffoldeditor.worldexport.replaymod.AnimatedCameraEntity;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.AbstractCameraAnimation;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
@@ -26,10 +30,7 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Matrix3f;
-import net.minecraft.util.math.Matrix4f;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3f;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.LightType;
 
@@ -117,12 +118,12 @@ public class CameraPathRenderer extends EventRegistrations {
         int color = RenderUtils.stripAlpha(RenderUtils.colorToARGB(animation.getColor()));
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLines());
 
-        Vec3f prevPos = null;
-        Vec3f pos;
-        Vec3f delta = new Vec3f();
+        Vector3f prevPos = null;
+        Vector3f pos;
+        Vector3f delta = new Vector3f();
         for (CameraPathFrame frame : animation) {
-            pos = new Vec3f(frame.pos());
-            if (prevPos != null && vecLengthSquared(subtractVec(pos, prevPos, delta)) <= MAX_DISTANCE_SQUARED) {
+            pos = frame.pos().toVector3f();
+            if (prevPos != null && pos.sub(prevPos, delta).lengthSquared() <= MAX_DISTANCE_SQUARED) {
                 drawLine(matrices, consumer, prevPos, pos, color);
             }
             prevPos = pos;
@@ -130,31 +131,16 @@ public class CameraPathRenderer extends EventRegistrations {
         
     }
 
-    // Why the fuck does Vec3f not have these functions inbuilt?
-    private static Vec3f subtractVec(Vec3f first, Vec3f second, Vec3f dest) {
-        dest.set(
-            second.getX() - first.getX(),
-            second.getY() - first.getY(),
-            second.getZ() - first.getZ()
-        );
-        return dest;
-    }
-
-    private static float vecLengthSquared(Vec3f vec) {
-        float x = vec.getX();
-        float y = vec.getY();
-        float z = vec.getZ();
-        return (x * x + y * y + z * z);
-    }
-
-    private void drawLine(MatrixStack matrices, VertexConsumer consumer, Vec3f pos1, Vec3f pos2, int color) {
+    private void drawLine(MatrixStack matrices, VertexConsumer consumer, Vector3fc pos1, Vector3fc pos2, int color) {
         drawLine(matrices.peek(), consumer,
-                pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX(), pos2.getY(), pos2.getZ(), color);
+                pos1.x(), pos1.y(), pos1.z(), pos2.x(), pos2.y(), pos2.z(), color);
     }
 
     private void drawLine(MatrixStack.Entry matrix, VertexConsumer consumer, float x1, float y1, float z1,
             float x2, float y2, float z2, int color) {
         
+        // Matrix4f model = matrix.getPositionMatrix();
+        // Matrix3f normal = matrix.getNormalMatrix();
         Matrix4f model = matrix.getPositionMatrix();
         Matrix3f normal = matrix.getNormalMatrix();
 

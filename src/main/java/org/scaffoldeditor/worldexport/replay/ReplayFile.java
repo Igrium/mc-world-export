@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
@@ -74,8 +75,8 @@ public class ReplayFile extends BaseReplayFile<ReplayEntity<?>> implements Mater
     }
 
     @Override
-    protected void saveWorld(OutputStream out) throws IOException {
-        worldExporter.save(out);
+    protected void saveWorld(OutputStream out, Consumer<String> phaseConsumer) throws IOException {
+        worldExporter.save(out, phaseConsumer);
     }
 
     @Override
