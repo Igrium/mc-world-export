@@ -57,7 +57,7 @@ def write_data(obj: Object, context: Context):
         root.append(channel('fov', 1))
     
     builder = []
-    for i in range(context.scene.frame_start, context.scene.frame_end + 1):
+    for i in range(0, context.scene.frame_end + 1):
         frame = []
         context.scene.frame_set(i)
         location = [obj.location[0], obj.location[2], -obj.location[1]]
