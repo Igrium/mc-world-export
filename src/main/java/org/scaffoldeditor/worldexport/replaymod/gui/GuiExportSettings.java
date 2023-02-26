@@ -1,15 +1,18 @@
 package org.scaffoldeditor.worldexport.replaymod.gui;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.export.ReplayExportSettings;
 import org.scaffoldeditor.worldexport.replaymod.export.ReplayExporter;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.AbstractGuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
@@ -19,6 +22,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiDropdownMenu;
+import com.replaymod.lib.de.johni0702.minecraft.gui.function.Closeable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
@@ -36,7 +40,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
 
-public class GuiExportSettings extends GuiScreen {
+public class GuiExportSettings extends GuiScreen implements Closeable {
 
     public final GuiPanel contentPanel = new GuiPanel(this).setBackgroundColor(Colors.DARK_TRANSPARENT);
     public final GuiVerticalList settingsList = new GuiVerticalList(contentPanel).setDrawSlider(true);
@@ -59,11 +63,7 @@ public class GuiExportSettings extends GuiScreen {
     public void export() {
         close();
 
-        ReplayExportSettings settings = new ReplayExportSettings()
-                .setViewDistance(getViewDistance())
-                .setLowerDepth(getLowerDepth())
-                .setFluidMode(getFluidMode())
-                .setOutputFile(outputFile);
+        ReplayExportSettings settings = readSettings();
         
         try {
             ReplayExporter exporter = new ReplayExporter(settings, replayHandler, timeline);
@@ -71,6 +71,21 @@ public class GuiExportSettings extends GuiScreen {
         } catch (Throwable e) {
             throw new CrashException(CrashReport.create(e, "Exporting replay"));
         }
+    }
+
+    public ReplayExportSettings readSettings() {
+        return new ReplayExportSettings()
+                .setViewDistance(getViewDistance())
+                .setLowerDepth(getLowerDepth())
+                .setFluidMode(getFluidMode())
+                .setOutputFile(outputFile);
+    }
+
+    public void applySettings(ReplayExportSettings settings) {
+        setViewDistance(settings.getViewDistance());
+        setLowerDepth(settings.getLowerDepth());
+        setFluidMode(settings.getFluidMode());
+        setOutputFile(settings.getOutputFile());
     }
 
     public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(this::handleClickOutputFile);
@@ -177,6 +192,10 @@ public class GuiExportSettings extends GuiScreen {
         return viewDistanceSlider.getValue() + MIN_VIEW_DISTANCE;
     }
 
+    public void setFluidMode(FluidMode fluidMode) {
+        fluidModeDropdown.setSelected(fluidMode);
+    }
+
     public FluidMode getFluidMode() {
         return fluidModeDropdown.getSelectedValue();
     }
@@ -216,12 +235,24 @@ public class GuiExportSettings extends GuiScreen {
             
         });
 
-        minLowerDepth = client.world.getBottomSectionCoord();
-        maxLowerDepth = client.world.getTopSectionCoord();
-        
-        setOutputFile(generateOutputFile());
-        setViewDistance(Math.min(client.options.getClampedViewDistance(), 8));
-        setLowerDepth(minLowerDepth);
+        ReplayExportSettings settings;
+        try {
+            settings = ReplayExportSettings.readFromFile(replayHandler.getReplayFile());
+        } catch (IOException e) {
+            LogManager.getLogger().error("Error reading export settings from file.", e);
+            settings = null;
+        }
+
+        if (settings != null) {
+            applySettings(settings);
+        } else {
+            minLowerDepth = client.world.getBottomSectionCoord();
+            maxLowerDepth = client.world.getTopSectionCoord();
+            
+            setOutputFile(generateOutputFile());
+            setViewDistance(Math.min(client.options.getClampedViewDistance(), 8));
+            setLowerDepth(minLowerDepth);
+        }
     }
 
     protected File generateOutputFile() {
@@ -230,10 +261,18 @@ public class GuiExportSettings extends GuiScreen {
         return new File(folder, fileName+".replay");
     }
 
+    @Override
     @SuppressWarnings("null") // WHY does my null checker think this is dangerous?
     public void close() {
+        try {
+            ReplayExportSettings.writeToFile(replayHandler.getReplayFile(), readSettings());
+        } catch (IOException e) {
+            LogManager.getLogger().error("Error saving export settings to file.", e);
+        }
+
         if (prevScreen != null) {
-            prevScreen.display();
+            // We need to finish exiting out of this screen before we call the next one.
+            RenderSystem.recordRenderCall(prevScreen::display);
         } else {
             client.setScreen(null);
         }
