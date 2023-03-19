@@ -85,7 +85,13 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         setViewDistance(settings.getViewDistance());
         setLowerDepth(settings.getLowerDepth());
         setFluidMode(settings.getFluidMode());
-        setOutputFile(settings.getOutputFile());
+
+        // So we don't crash opening the file select screen
+        File outputFile = settings.getOutputFile();
+        if (outputFile == null || !outputFile.getParentFile().isDirectory()) {
+            outputFile = generateOutputFile();
+        }
+        setOutputFile(outputFile);
     }
 
     public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(this::handleClickOutputFile);
