@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidBlockEntry;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
@@ -250,21 +251,6 @@ public final class BlockExporter {
         return id;
     }
 
-    private static void genFluid(BlockPos worldPos, ChunkView world, ExportContext context, FluidConsumer fluidConsumer) {
-        // The fluid for this block was already generated.
-        if (fluidConsumer.fluidAt(worldPos).isPresent()) return;
-        
-        FluidState state = world.getBlockState(worldPos).getFluidState();
-        if (state.isEmpty()) {
-            throw new IllegalArgumentException("This block is not a fluid!");
-        }
-
-        FluidDomain domain = new FluidDomain(worldPos, state.getFluid(), context);
-        domain.capture(world);
-
-        fluidConsumer.putFluid(domain);
-    }
-
     private static NbtCompound writeSection(ChunkView world,
             int sectionX, int sectionY, int sectionZ, ExportContext context, @Nullable FluidConsumer fluidConsumer) {
 
@@ -290,18 +276,20 @@ public final class BlockExporter {
 
                     FluidState fluid = state.getFluidState();
                     if (!fluid.isEmpty() && context.getSettings().exportStaticFluids() && fluidConsumer != null) {
-                        genFluid(worldPos, world, context, fluidConsumer);
+                        // genFluid(worldPos, world, context, fluidConsumer);
 
-                        Optional<FluidDomain> thisDomain = fluidConsumer.fluidAt(worldPos);
-                        if (!thisDomain.isPresent()) {
-                            throw new IllegalStateException("Block at "+worldPos+" is a fluid, but no fluid domain was generated!");
-                        }
+                        // Optional<FluidDomain> thisDomain = fluidConsumer.fluidAt(worldPos);
+                        // if (!thisDomain.isPresent()) {
+                        //     throw new IllegalStateException("Block at "+worldPos+" is a fluid, but no fluid domain was generated!");
+                        // }
 
-                        if (thisDomain.get().getRootPos().equals(worldPos)) {
-                            id = context.addFluid(thisDomain.get());
-                        } else {
-                            id = MeshWriter.EMPTY_MESH;
-                        }
+                        // if (thisDomain.get().getRootPos().equals(worldPos)) {
+                        //     id = context.addFluid(thisDomain.get());
+                        // } else {
+                        //     id = MeshWriter.EMPTY_MESH;
+                        // }
+                        FluidBlockEntry fluidMesh = MeshWriter.writeFluidMesh(worldPos, world, state);
+                        id = context.addFluid(fluidMesh);
 
                     } else {
                         BlockPos.Mutable mutable = worldPos.mutableCopy();
