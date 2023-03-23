@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.scaffoldeditor.worldexport.vcap.BlockModelEntry.Builder;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidBlockEntry;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidConsumer;
-import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.world_snapshot.ChunkView;
 import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshot;
 import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
@@ -34,6 +32,7 @@ import net.minecraft.nbt.NbtIntArray;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
@@ -67,10 +66,10 @@ public final class BlockExporter {
     
     private static final Logger LOGGER = LogManager.getLogger();
     
-    public static void writeStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+    public static void writeStill(ChunkView world, BlockBox bounds, ExportContext context,
             OutputStream os, @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) throws IOException {
         NbtCompound tag = new NbtCompound();
-        tag.put("sections", exportStill(world, minChunk, maxChunk, context, fluidConsumer, callback));
+        tag.put("sections", exportStill(world, bounds, context, fluidConsumer, callback));
         NbtIo.writeCompressed(tag, os);
     }
 
@@ -95,54 +94,30 @@ public final class BlockExporter {
      *             as the executor instead.
      */
     @Deprecated
-    public static NbtList exportStill(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+    public static NbtList exportStill(ChunkView world, BlockBox bounds, ExportContext context,
             @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
-        NbtList sectionTag = new NbtList();
-        
-        int totalChunks = (maxChunk.x - minChunk.x) * (maxChunk.z - minChunk.z);
-        int index = 0;
-        for (int x = minChunk.x; x < maxChunk.x; x++) {
-            for (int z = minChunk.z; z < maxChunk.z; z++) {
-                if (!world.isChunkLoaded(x, z))
-                    continue;
-                LOGGER.debug("Exporting chunk [{}, {}]", x, z);
-                for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
-                    if (!world.isSectionLoaded(x, y, z)) continue;
-                    if (y < context.getSettings().getLowerDepth()) continue;
-
-                    sectionTag.add(writeSection(world, x, y, z, context, fluidConsumer));
-                }
-                if (callback != null) {
-                    callback.onChunkCaptured(x, z, index, totalChunks);
-                }
-
-                index++;
-            }
-        }
-
-        return sectionTag;
+        return exportStillAsync(world, bounds, context, fluidConsumer, callback, Runnable::run).join();
     }
     
     /**
      * Capture the entire block world.
      * 
      * @param world         World to capture.
-     * @param minChunk      The minimum corner of the export bounds.
-     * @param maxChunk      The maximum corner of the export bounds.
+     * @param bounds        The region to export.
      * @param context       The export context.
      * @param fluidConsumer The fluid consumer to use. Must be thread-safe!
      * @param callback      A capture callback to use. Must be thread-safe!.
      * @param executor      The executor to export the chunks on.
      * @return A list with all the exported sections.
      */
-    public static CompletableFuture<NbtList> exportStillAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk,
+    public static CompletableFuture<NbtList> exportStillAsync(ChunkView world, BlockBox bounds,
             ExportContext context,
             @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback, Executor executor) {
         if (!(world instanceof WorldSnapshot)) {
             world = WorldSnapshotManager.getInstance().snapshot(world);
         }
         
-        return new StillExporterAsync(world, minChunk, maxChunk, context, fluidConsumer, callback)
+        return new StillExporterAsync(world, bounds, context, fluidConsumer, callback)
                 .exportStill(executor);
     }
     
@@ -151,8 +126,7 @@ public final class BlockExporter {
      */
     private static class StillExporterAsync {
         final ChunkView world;
-        final ChunkPos minChunk;
-        final ChunkPos maxChunk;
+        final BlockBox bounds;
         final ExportContext context;
         @Nullable
         final FluidConsumer fluidConsumer;
@@ -162,10 +136,9 @@ public final class BlockExporter {
         private int totalChunks;
         private final AtomicInteger chunksExported = new AtomicInteger();
 
-        public StillExporterAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
+        public StillExporterAsync(ChunkView world, BlockBox bounds, ExportContext context, @Nullable FluidConsumer fluidConsumer, @Nullable CaptureCallback callback) {
             this.world = world;
-            this.minChunk = minChunk;
-            this.maxChunk = maxChunk;
+            this.bounds = bounds;
             this.context = context;
             this.fluidConsumer = fluidConsumer;
             this.callback = callback;
@@ -180,12 +153,22 @@ public final class BlockExporter {
          * @return
          */
         public synchronized CompletableFuture<NbtList> exportStill(Executor executor) {
-            totalChunks = (maxChunk.x - minChunk.x) * (maxChunk.z - minChunk.z);
+
+            // Convert to chunk coordinates
+            ChunkPos minChunk = new ChunkPos(
+                    Math.floorDiv(bounds.getMinX(), 16),
+                    Math.floorDiv(bounds.getMinZ(), 16));
+
+            ChunkPos maxChunk = new ChunkPos(
+                    Math.floorDiv(bounds.getMaxX(), 16),
+                    Math.floorDiv(bounds.getMaxZ(), 16));
+
+            totalChunks = (maxChunk.x - minChunk.x + 1) * (maxChunk.z - minChunk.z + 1);
             chunksExported.set(0);
 
             List<CompletableFuture<? extends Collection<NbtCompound>>> futures = new ArrayList<>();
-            for (int x = minChunk.x; x < maxChunk.x; x++) {
-                for (int z = minChunk.z; z < maxChunk.z; z++) {
+            for (int x = minChunk.x; x <= maxChunk.x; x++) {
+                for (int z = minChunk.z; z <= maxChunk.z; z++) {
                     if (!world.isChunkLoaded(x, z)) continue;
                     futures.add(exportChunkAsync(x, z, executor));
                 }
@@ -210,9 +193,13 @@ public final class BlockExporter {
             if (!world.isChunkLoaded(x, z)) return Collections.emptyList();
             List<NbtCompound> chunks = new ArrayList<>();
 
+            // Convert to section coordinates
+            int minHeight = Math.floorDiv(bounds.getMinY(), 16);
+            int maxHeight = Math.floorDiv(bounds.getMaxY(), 16);
+
             for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
                 if (!world.isSectionLoaded(x, y, z)) continue;
-                if (context.getSettings().getLowerDepth() > y) continue;
+                if (y < minHeight || y > maxHeight) continue;
 
                 chunks.add(writeSection(world, x, y, z, context, fluidConsumer));
             }

@@ -18,8 +18,8 @@ import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
 
 public class IFrame implements Frame, FluidConsumer {
@@ -43,16 +43,15 @@ public class IFrame implements Frame, FluidConsumer {
      * </p>
      * 
      * @param world    World to capture.
-     * @param minChunk Bounding box min.
-     * @param maxChunk Bounding box max.
+     * @param bounds   Region to export.
      * @param context  The export context.
      * @param time     Time stamp of the frame, in seconds since the beginning
      *                 of the animation.
      * @return Captured frame.
      */
-    public static IFrame capture(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context, double time, @Nullable CaptureCallback callback) {
+    public static IFrame capture(ChunkView world, BlockBox bounds, ExportContext context, double time, @Nullable CaptureCallback callback) {
         IFrame iFrame = new IFrame();
-        iFrame.captureData(world, minChunk, maxChunk, context, time, callback);
+        iFrame.captureData(world, bounds, context, time, callback);
         return iFrame;
     }
 
@@ -68,27 +67,27 @@ public class IFrame implements Frame, FluidConsumer {
      * @param executor The executor to use for capture.
      * @return A future that completes with the captured frame.
      */
-    public static CompletableFuture<IFrame> captureAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk,
+    public static CompletableFuture<IFrame> captureAsync(ChunkView world, BlockBox bounds,
             ExportContext context, double time, Executor executor, @Nullable CaptureCallback callback) {
 
         WorldSnapshot snapshot = WorldSnapshotManager.getInstance().snapshot(world);
         IFrame iFrame = new IFrame();
-        return iFrame.captureDataAsync(snapshot, minChunk, maxChunk, context, time, callback, executor)
+        return iFrame.captureDataAsync(snapshot, bounds, context, time, callback, executor)
                 .thenApply(data -> iFrame);
     }
 
-    protected void captureData(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk, ExportContext context,
+    protected void captureData(ChunkView world, BlockBox bounds, ExportContext context,
             double time, @Nullable CaptureCallback callback) {
         NbtCompound frame = new NbtCompound();
-        frame.put("sections", BlockExporter.exportStillAsync(world, minChunk, maxChunk, context, this, callback, Runnable::run).join());
+        frame.put("sections", BlockExporter.exportStillAsync(world, bounds, context, this, callback, Runnable::run).join());
         frame.putByte("type", INTRACODED_TYPE);
         frame.putDouble("time", time);
         this.data = frame;
     }
     
-    protected CompletableFuture<NbtCompound> captureDataAsync(ChunkView world, ChunkPos minChunk, ChunkPos maxChunk,
+    protected CompletableFuture<NbtCompound> captureDataAsync(ChunkView world, BlockBox bounds,
             ExportContext context, double time, @Nullable CaptureCallback callback, Executor executor) {
-        return BlockExporter.exportStillAsync(world, minChunk, maxChunk, context, this, callback, executor)
+        return BlockExporter.exportStillAsync(world, bounds, context, this, callback, executor)
         .thenApply(sections -> {
             NbtCompound frame = new NbtCompound();
             frame.put("sections", sections);
