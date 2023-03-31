@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.gui;
+package org.scaffoldeditor.worldexport.gui;
 
 import com.replaymod.core.versions.MCVer.Keyboard;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;

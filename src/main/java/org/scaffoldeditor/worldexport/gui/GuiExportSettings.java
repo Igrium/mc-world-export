@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.gui;
+package org.scaffoldeditor.worldexport.gui;
 
 import java.io.File;
 import java.io.IOException;

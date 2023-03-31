@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.gui;
+package org.scaffoldeditor.worldexport.gui;
 
 import org.lwjgl.opengl.GL11;
 
