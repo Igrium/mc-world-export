@@ -8,6 +8,7 @@ import java.util.Date;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
+import org.scaffoldeditor.worldexport.gui.bounds_editor.GuiBoundsEditor;
 import org.scaffoldeditor.worldexport.replaymod.export.ReplayExportSettings;
 import org.scaffoldeditor.worldexport.replaymod.export.ReplayExporter;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
@@ -39,6 +40,8 @@ import com.replaymod.replaystudio.pathing.path.Timeline;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
+import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
 
 public class GuiExportSettings extends GuiScreen implements Closeable {
 
@@ -154,6 +157,11 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
             .setSize(100, 20)
             .onClick(this::close);
 
+    public final GuiButton boundsButton = new GuiButton(buttonPanel)
+            .setLabel("Bounds Editor")
+            .setSize(100, 20)
+            .onClick(this::openBoundsEditor);
+
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
@@ -265,6 +273,13 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         String fileName = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
         File folder = ReplayModRender.instance.getVideoFolder();
         return new File(folder, fileName+".replay");
+    }
+
+    public void openBoundsEditor() {
+        GuiBoundsEditor editor = new GuiBoundsEditor(this, MinecraftClient.getInstance().world, maxLowerDepth,
+                MIN_VIEW_DISTANCE,
+                ChunkSectionPos.from(MinecraftClient.getInstance().getCameraEntity().getBlockPos()).toChunkPos());
+        editor.open();
     }
 
     @Override
