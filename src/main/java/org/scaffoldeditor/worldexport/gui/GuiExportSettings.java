@@ -41,8 +41,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.Vec2f;
 
 public class GuiExportSettings extends GuiScreen implements Closeable {
 
@@ -278,14 +276,13 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
 
     public void openBoundsEditor() {
         MinecraftClient client = getMinecraft();
-        int radius = client.options.getClampedViewDistance();
+        int radius = client.options.getClampedViewDistance() * 2;
         ChunkPos centerPos = client.getCameraEntity().getChunkPos();
 
         GuiBoundsEditor editor = new GuiBoundsEditor(this, client.world,
                 radius * 2, radius * 2,
                 new ChunkPos(centerPos.x - radius, centerPos.z - radius));
-
-        editor.getOverview().setPanOffset(new Vec2f(0, -10));
+        editor.getOverview().setZoomAmount(-2);
 
         editor.open();
     }

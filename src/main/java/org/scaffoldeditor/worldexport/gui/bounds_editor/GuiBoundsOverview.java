@@ -10,6 +10,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
 
+import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
@@ -66,32 +67,44 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     }
 
     private void drawMap(GuiRenderer renderer, ReadableDimension size, RenderInfo renderInfo) {
+        NativeImage image = overviewData.getTexture().getImage();
 
         MatrixStack matrices = renderer.getMatrixStack();
         matrices.push();
 
         ReadablePoint glOffset = renderer.getOpenGlOffset();
-        float centerX = size.getWidth() / 2f + glOffset.getX();
-        float centerY = size.getHeight() / 2f + glOffset.getY();
+        matrices.translate(glOffset.getX(), glOffset.getY(), 0);
 
+        // Center image
+        matrices.translate(size.getWidth() / 2f - image.getWidth() / 2f, size.getHeight() / 2f - image.getHeight() / 2f, 0);
+
+        // Apply zoom
         float zoomMultiplier = (float) getZoomMultiplier();
+        float centerX = image.getWidth() / 2f;
+        float centerY = image.getHeight() / 2f;
 
         matrices.translate(centerX, centerY, 0);
         matrices.scale(zoomMultiplier, zoomMultiplier, zoomMultiplier);
         matrices.translate(-centerX, -centerY, 0);
-        matrices.translate(panOffset.x, panOffset.y, 0);;
+        
+        matrices.translate(panOffset.x, panOffset.y, 0);
 
-        NativeImage image = overviewData.getTexture().getImage();
+        // matrices.translate(-image.getWidth() / 2f, -image.getHeight() / 2f, 0);
+        
+        // Center image
+        int imageX = 0;
+        int imageY = 0;
 
         renderer.bindTexture(texID);
-        renderer.drawTexturedRect(0, 0, 0, 0, image.getWidth(), image.getHeight());
+        DrawableHelper.drawTexture(matrices, imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
+        // renderer.drawTexturedRect(imageX, imageY, 0, 0, image.getWidth(), image.getHeight());
 
         matrices.pop();
     }
 
     @Override
     protected ReadableDimension calcMinSize() {
-        return new Dimension(128, 128);
+        return new Dimension(384, 256);
     }
 
     @Override
