@@ -282,7 +282,6 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         GuiBoundsEditor editor = new GuiBoundsEditor(this, client.world,
                 radius * 2, radius * 2,
                 new ChunkPos(centerPos.x - radius, centerPos.z - radius));
-        editor.getOverview().setZoomAmount(-2);
 
         editor.open();
     }
