@@ -5,6 +5,8 @@ import java.util.Objects;
 import com.replaymod.lib.de.johni0702.minecraft.gui.GuiRenderer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.RenderInfo;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
+import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 
@@ -26,20 +28,28 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     private Vec2f panOffset = Vec2f.ZERO;
     private double zoomAmount = 0;
 
+    private final GuiButton updateButton = new GuiButton(this).setLabel("Reload").onClick(this::updateTexture);
+
     public GuiBoundsEditor(GuiContainer<?> container, World world, int width, int height, ChunkPos rootPos) {
         super(container);
         Objects.requireNonNull(world);
         this.world = world;
         
         overviewData = new OverviewData(width, height, rootPos);
-        overviewData.updateTexture(world, world.getBottomY(), world.getBottomY() + height, Util.getMainWorkerExecutor());
+        updateTexture();
         textureID = MinecraftClient.getInstance().getTextureManager().registerDynamicTexture("overview/", overviewData.getTexture());
+        this.addElements(new GridLayout.Data(), updateButton);
+    }
+
+    public void updateTexture() {
+        overviewData.updateTexture(world, world.getBottomY(), world.getBottomY() + world.getHeight(), Util.getMainWorkerExecutor());
     }
 
     @Override
     public void draw(GuiRenderer renderer, ReadableDimension size, RenderInfo renderInfo) {
         // TODO Auto-generated method stub
         super.draw(renderer, size, renderInfo);
+        this.updateTexture();
         drawOverview(renderer, size, renderInfo);
     }
 

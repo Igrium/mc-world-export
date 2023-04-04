@@ -277,7 +277,7 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
 
     public void openBoundsEditor() {
         GuiBoundsEditor editor = new GuiBoundsEditor(this, MinecraftClient.getInstance().world, maxLowerDepth,
-                MIN_VIEW_DISTANCE,
+                maxLowerDepth,
                 ChunkSectionPos.from(MinecraftClient.getInstance().getCameraEntity().getBlockPos()).toChunkPos());
         editor.open();
     }
