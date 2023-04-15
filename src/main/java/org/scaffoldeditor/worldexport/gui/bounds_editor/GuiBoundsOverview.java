@@ -3,10 +3,12 @@ package org.scaffoldeditor.worldexport.gui.bounds_editor;
 import java.io.Closeable;
 import java.util.Objects;
 
+import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector2fc;
 import org.joml.Vector2i;
 import org.joml.Vector2ic;
+import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.scaffoldeditor.worldexport.util.Box2i;
 
@@ -17,6 +19,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.element.AbstractGuiElement;
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Draggable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Scrollable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Point;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
 
@@ -39,6 +42,9 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     private Vector2f panOffset = new Vector2f();
     private double zoomAmount = 0;
+
+    private ReadablePoint lastGlOffset = new Point();
+    private Matrix4f lastTransformMatrix = new Matrix4f();
 
     private final Box2i bounds;
 
@@ -138,28 +144,87 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         DrawableHelper.fill(matrices, bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, BORDER_COLOR);
         DrawableHelper.fill(matrices, bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, BORDER_COLOR);
         
+
+        lastGlOffset = glOffset;
+        lastTransformMatrix.identity();
+
+        // lastTransformMatrix.set(matrices.peek().getPositionMatrix());
+        calcTransformMatrix(lastTransformMatrix);
         matrices.pop();
+
     }
 
-    private Vector2i worldToImage(Vector2ic world, Vector2i dest) {
+    private Matrix4f calcTransformMatrix(Matrix4f dest) {
+        NativeImage image = overviewData.getTexture().getImage();
+
+        dest.translate(lastGlOffset.getX(), lastGlOffset.getY(), 0);
+
+        // Center image
+        dest.translate(getLastSize().getWidth() / 2f - image.getWidth() / 2f,
+                getLastSize().getHeight() / 2f - image.getHeight() / 2f, 0);
+
+        // Apply zoom
+        float zoomMultiplier = (float) getZoomMultiplier();
+        float centerX = image.getWidth() / 2f;
+        float centerY = image.getHeight() / 2f;
+
+        dest.translate(centerX, centerY, 0);
+        dest.scale(zoomMultiplier);
+        dest.translate(-centerX, -centerY, 0);
+
+        dest.translate(panOffset.x, panOffset.y, 0);
+
+        return dest;
+    }
+    
+    public Vector2f viewportToImage(Vector2ic viewport, Vector2f dest) {
+        dest.set(viewport);
+        viewportToImage(dest);
+        return dest;
+    }
+
+    public Vector2f viewportToImage(Vector2fc viewport, Vector2f dest) {
+        dest.set(viewport);
+        viewportToImage(dest);
+        return dest;
+    }
+
+    public Vector2f viewportToImage(Vector2f viewport) {
+        Vector4f vec = new Vector4f(viewport.x, viewport.y, 0, 1);
+        lastTransformMatrix.invert(new Matrix4f()).transform(vec);
+        viewport.set(vec.x, vec.y);
+
+        return viewport;
+    }
+
+    public Vector2i viewportToWorld(Vector2ic viewport, Vector2i dest) {
+        Vector2f image = viewportToImage(new Vector2f(viewport));
+        return imageToWorld(dest.set((int) image.x, (int) image.y));
+    }
+
+    public Vector2i viewportToWorld(Vector2i viewport) {
+        return viewportToWorld(viewport, viewport);
+    }
+
+    public Vector2i worldToImage(Vector2ic world, Vector2i dest) {
         return dest.set(
             world.x() - overviewData.getOrigin().x * 16,
             world.y() - overviewData.getOrigin().z * 16
         );
     }
 
-    private Vector2i worldToImage(Vector2i world) {
+    public Vector2i worldToImage(Vector2i world) {
         return worldToImage(world, world);
     }
 
-    private Vector2i imageToWorld(Vector2ic image, Vector2i dest) {
+    public Vector2i imageToWorld(Vector2ic image, Vector2i dest) {
         return dest.set(
             image.x() + overviewData.getOrigin().x * 16,
             image.y() + overviewData.getOrigin().z * 16
         );
     }
     
-    private Vector2i imageToWorld(Vector2i image) {
+    public Vector2i imageToWorld(Vector2i image) {
         return imageToWorld(image, image);
     }
 
@@ -181,7 +246,10 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     @Override
     public boolean mouseClick(ReadablePoint position, int button) {
         // return (button == GLFW.GLFW_MOUSE_BUTTON_1);
-        LogUtils.getLogger().info("Clock pos: " + position);
+        LogUtils.getLogger().info("Click pos: " + position);
+        // Vector2f worldPos = viewportToImage(new Vector2f(position.getX(), position.getY()));
+        Vector2i worldPos = viewportToWorld(new Vector2i(position.getX(), position.getY()));
+        LogUtils.getLogger().info(String.format("World pos: [%d, %d]", worldPos.x, worldPos.y));
         return false;
     }
 
@@ -195,6 +263,10 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     @Override
     public boolean mouseDrag(ReadablePoint position, int button, long timeSinseLastCall) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_2) {
+            return mouseDragSecondary(position);
+        }
+
         if (button != GLFW.GLFW_MOUSE_BUTTON_1) return false;
         
         if (lastDragPosition == null) {
@@ -210,6 +282,17 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         this.panOffset.y += deltaY;
 
         lastDragPosition = position;
+        return true;
+    }
+
+    private boolean mouseDragSecondary(ReadablePoint position) {
+        Vector2i worldPos = viewportToWorld(new Vector2i(position.getX(), position.getY()));
+        
+        worldPos.x = Math.round(worldPos.x / 16f);
+        worldPos.y = Math.round(worldPos.y / 16f);
+
+        Box2i.Corner corner = bounds.getClosestCorner(worldPos);
+        bounds.setCorner(corner, worldPos);
         return true;
     }
 
