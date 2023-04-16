@@ -12,7 +12,7 @@ import org.joml.Vector4f;
 import org.lwjgl.glfw.GLFW;
 import org.scaffoldeditor.worldexport.util.Box2i;
 
-import com.mojang.logging.LogUtils;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.lib.de.johni0702.minecraft.gui.GuiRenderer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.RenderInfo;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.AbstractGuiElement;
@@ -48,9 +48,15 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     private final Box2i bounds;
 
+    private int bottomY;
+    private int topY;
+
     public GuiBoundsOverview(World world, OverviewData overviewData) {
         Objects.requireNonNull(world);
         Objects.requireNonNull(overviewData);
+
+        bottomY = world.getBottomY();
+        topY = world.getTopY();
 
         this.overviewData = overviewData;
         this.world = world;
@@ -88,8 +94,26 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         this.panOffset.set(panOffset);
     }
 
+    public int getBottomY() {
+        return bottomY;
+    }
+    
+    public void setBottomY(int bottomY) {
+        this.bottomY = bottomY;
+        RenderSystem.recordRenderCall(() -> updateTexture());
+    }
+
+    public int getTopY() {
+        return topY;
+    }
+
+    public void setTopY(int topY) {
+        this.topY = topY;
+        RenderSystem.recordRenderCall(() -> updateTexture());
+    }
+
     public void updateTexture() {
-        overviewData.updateTexture(world, world.getBottomY(), world.getTopY(), Util.getMainWorkerExecutor());
+        overviewData.updateTexture(world, bottomY, topY, Util.getMainWorkerExecutor());
     }
 
     @Override
@@ -245,11 +269,6 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     @Override
     public boolean mouseClick(ReadablePoint position, int button) {
-        // return (button == GLFW.GLFW_MOUSE_BUTTON_1);
-        LogUtils.getLogger().info("Click pos: " + position);
-        // Vector2f worldPos = viewportToImage(new Vector2f(position.getX(), position.getY()));
-        Vector2i worldPos = viewportToWorld(new Vector2i(position.getX(), position.getY()));
-        LogUtils.getLogger().info(String.format("World pos: [%d, %d]", worldPos.x, worldPos.y));
         return false;
     }
 
@@ -261,8 +280,19 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     private ReadablePoint lastDragPosition;
 
+    protected boolean isMouseHovering(ReadablePoint pos) {
+        return pos.getX() > 0 && pos.getY() > 0
+                && pos.getX() < getLastSize().getWidth() && pos.getY() < getLastSize().getHeight();
+    }
+
     @Override
     public boolean mouseDrag(ReadablePoint position, int button, long timeSinseLastCall) {
+        Point pos = new Point(position);
+        if (getContainer() != null) {
+            getContainer().convertFor(this, pos);
+        }
+        if (!isMouseHovering(pos)) return false;
+
         if (button == GLFW.GLFW_MOUSE_BUTTON_2) {
             return mouseDragSecondary(position);
         }
