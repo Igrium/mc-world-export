@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.vcap;
 
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkSectionPos;
 
 public class VcapSettings {
     public enum FluidMode { 
@@ -88,6 +89,6 @@ public class VcapSettings {
      * @return Is it in the export region?
      */
     public boolean isInExport(BlockPos pos) {
-        return bounds.contains(pos);
+        return bounds.contains(ChunkSectionPos.from(pos));
     }
 }

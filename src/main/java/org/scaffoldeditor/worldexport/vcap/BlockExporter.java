@@ -103,7 +103,7 @@ public final class BlockExporter {
      * Capture the entire block world.
      * 
      * @param world         World to capture.
-     * @param bounds        The region to export.
+     * @param bounds        The region to export, in chunk section coordinates.
      * @param context       The export context.
      * @param fluidConsumer The fluid consumer to use. Must be thread-safe!
      * @param callback      A capture callback to use. Must be thread-safe!.
@@ -155,13 +155,9 @@ public final class BlockExporter {
         public synchronized CompletableFuture<NbtList> exportStill(Executor executor) {
 
             // Convert to chunk coordinates
-            ChunkPos minChunk = new ChunkPos(
-                    Math.floorDiv(bounds.getMinX(), 16),
-                    Math.floorDiv(bounds.getMinZ(), 16));
+            ChunkPos minChunk = new ChunkPos(bounds.getMinX(), bounds.getMinZ());
 
-            ChunkPos maxChunk = new ChunkPos(
-                    Math.floorDiv(bounds.getMaxX(), 16),
-                    Math.floorDiv(bounds.getMaxZ(), 16));
+            ChunkPos maxChunk = new ChunkPos(bounds.getMaxX(), bounds.getMaxZ());
 
             totalChunks = (maxChunk.x - minChunk.x + 1) * (maxChunk.z - minChunk.z + 1);
             chunksExported.set(0);
@@ -194,8 +190,8 @@ public final class BlockExporter {
             List<NbtCompound> chunks = new ArrayList<>();
 
             // Convert to section coordinates
-            int minHeight = Math.floorDiv(bounds.getMinY(), 16);
-            int maxHeight = Math.floorDiv(bounds.getMaxY(), 16);
+            int minHeight = bounds.getMinY();
+            int maxHeight = bounds.getMaxY();
 
             for (int y = world.getBottomSectionCoord(); y < world.getTopSectionCoord(); y++) {
                 if (!world.isSectionLoaded(x, y, z)) continue;
