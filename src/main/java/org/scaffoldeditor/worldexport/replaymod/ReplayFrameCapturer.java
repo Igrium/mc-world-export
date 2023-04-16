@@ -40,7 +40,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
@@ -105,19 +104,20 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             });
         }
 
-        // TODO: export box UI
         if (exporter == null) {
             // int viewDistance = client.options.viewDistance;
-            int viewDistance = settings.getViewDistance();
-            int viewDistanceBlocks = viewDistance * 16;
-            // ChunkPos centerPos = client.getCameraEntity().getChunkPos();
-            // exporter = new ReplayFile(client.world, 
-            //         new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
-            //         new ChunkPos(centerPos.x + viewDistance, centerPos.z + viewDistance));
-            BlockPos centerPos = client.getCameraEntity().getBlockPos();
-            exporter = new ReplayFile(client.world, new BlockBox(
-                centerPos.getX() - viewDistanceBlocks, Integer.MIN_VALUE, centerPos.getZ() - viewDistanceBlocks, 
-                centerPos.getX() + viewDistanceBlocks, Integer.MAX_VALUE, centerPos.getZ() + viewDistanceBlocks));
+            // int viewDistance = settings.getViewDistance();
+            // int viewDistanceBlocks = viewDistance * 16;
+            // // ChunkPos centerPos = client.getCameraEntity().getChunkPos();
+            // // exporter = new ReplayFile(client.world, 
+            // //         new ChunkPos(centerPos.x - viewDistance, centerPos.z - viewDistance),
+            // //         new ChunkPos(centerPos.x + viewDistance, centerPos.z + viewDistance));
+            // BlockPos centerPos = client.getCameraEntity().getBlockPos();
+            // exporter = new ReplayFile(client.world, new BlockBox(
+            //     centerPos.getX() - viewDistanceBlocks, Integer.MIN_VALUE, centerPos.getZ() - viewDistanceBlocks, 
+            //     centerPos.getX() + viewDistanceBlocks, Integer.MAX_VALUE, centerPos.getZ() + viewDistanceBlocks));
+
+            exporter = new ReplayFile(client.world, settings.getBounds());
 
             BlockPos centerBlock = client.getCameraEntity().getBlockPos();
             exporter.meta.offset = new Vector3i(-centerBlock.getX(), -centerBlock.getY(), -centerBlock.getZ());

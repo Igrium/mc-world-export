@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nullable;
@@ -12,6 +13,13 @@ import javax.annotation.Nullable;
 import org.scaffoldeditor.worldexport.vcap.VcapSettings.FluidMode;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.stream.JsonReader;
@@ -19,43 +27,24 @@ import com.google.gson.stream.JsonWriter;
 import com.replaymod.replaystudio.lib.guava.base.Optional;
 import com.replaymod.replaystudio.replay.ReplayFile;
 
+import net.minecraft.util.math.BlockBox;
+
 public final class ReplayExportSettings {
-    private int viewDistance = 8;
-    private int lowerDepth = 0;
+
+    @JsonAdapter(BoxSerializer.class)
+    private BlockBox bounds;
 
     private FluidMode fluidMode = FluidMode.DYNAMIC;
 
     @JsonAdapter(FileSerializer.class)
     private File outputFile = new File("output.replay");
 
-    public int getViewDistance() {
-        return viewDistance;
+    public BlockBox getBounds() {
+        return bounds;
     }
 
-    public ReplayExportSettings setViewDistance(int viewDistance) {
-        if (viewDistance < 1) {
-            throw new IllegalArgumentException("Minimum view distance is 1.");
-        }
-
-        this.viewDistance = viewDistance;
-        return this;
-    }
-    
-    /**
-     * Get the lower depth.
-     * @return Lower depth in section coordinates.
-     */
-    public int getLowerDepth() {
-        return lowerDepth;
-    }
-
-    /**
-     * Set the lower depth.
-     * @param lowerDepth Lower depth in section coordinates.
-     * @return <code>this</code>
-     */
-    public ReplayExportSettings setLowerDepth(int lowerDepth) {
-        this.lowerDepth = lowerDepth;
+    public ReplayExportSettings setBounds(BlockBox bounds) {
+        this.bounds = bounds;
         return this;
     }
 
@@ -89,6 +78,39 @@ public final class ReplayExportSettings {
             writer.value(file.toString());
         }
 
+    }
+
+    private static class BoxSerializer implements JsonSerializer<BlockBox>, JsonDeserializer<BlockBox> {
+
+        @Override
+        public BlockBox deserialize(JsonElement element, Type type, JsonDeserializationContext context) throws JsonParseException {
+            if (!element.isJsonArray()) {
+                throw new JsonParseException("Bounding box must be a json array.");
+            }
+            JsonArray array = element.getAsJsonArray();
+            
+            return new BlockBox(array.get(0).getAsInt(),
+                    array.get(1).getAsInt(),
+                    array.get(2).getAsInt(),
+                    array.get(3).getAsInt(),
+                    array.get(4).getAsInt(),
+                    array.get(5).getAsInt());
+        }
+
+        @Override
+        public JsonElement serialize(BlockBox box, Type type, JsonSerializationContext context) {
+            JsonArray array = new JsonArray(6);
+            
+            array.add(box.getMinX());
+            array.add(box.getMinY());
+            array.add(box.getMinZ());
+            array.add(box.getMaxX());
+            array.add(box.getMaxY());
+            array.add(box.getMaxZ());
+
+            return array;
+        }
+        
     }
 
     private static final Gson gson = new Gson();

@@ -21,7 +21,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiVerticalList;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
-import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiDropdownMenu;
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Closeable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
@@ -30,7 +29,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.GuiFileChooserPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.Colors;
-import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.render.ReplayModRender;
@@ -40,6 +38,8 @@ import com.replaymod.replaystudio.pathing.path.Timeline;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
+import net.minecraft.util.math.BlockBox;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 
 public class GuiExportSettings extends GuiScreen implements Closeable {
@@ -53,11 +53,8 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
 
     private MinecraftClient client = MinecraftClient.getInstance();
 
-    private int minLowerDepth = 0;
-    private int maxLowerDepth = 16;
-    private static final int MIN_VIEW_DISTANCE = 1;
-
     private File outputFile;
+    private BlockBox bounds;
 
     @Nullable
     public AbstractGuiScreen<?> prevScreen = null; 
@@ -77,16 +74,21 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
 
     public ReplayExportSettings readSettings() {
         return new ReplayExportSettings()
-                .setViewDistance(getViewDistance())
-                .setLowerDepth(getLowerDepth())
+                .setBounds(bounds)
                 .setFluidMode(getFluidMode())
                 .setOutputFile(outputFile);
     }
 
     public void applySettings(ReplayExportSettings settings) {
-        setViewDistance(settings.getViewDistance());
-        setLowerDepth(settings.getLowerDepth());
-        setFluidMode(settings.getFluidMode());
+
+        if (settings.getBounds() != null) {
+            setBounds(settings.getBounds());
+        }
+
+        if (settings.getFluidMode() != null) {
+            setFluidMode(settings.getFluidMode());
+
+        }
 
         // So we don't crash opening the file select screen
         File outputFile = settings.getOutputFile();
@@ -108,43 +110,15 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         });
     }
 
-    public final GuiSlider viewDistanceSlider = new GuiSlider().onValueChanged(this::handleChangeViewDistance)
-            .setSize(122, 20).setSteps(32 - MIN_VIEW_DISTANCE);
-
-    private void handleChangeViewDistance() {
-        viewDistanceSlider.setI18nText("worldexport.gui.export.radius", getViewDistance());
-    }
-
-    public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(this::handleChangeLowerDepth)
-            .setSize(122, 20).setSteps(32);
-
-    private void handleChangeLowerDepth() {
-        lowerDepthSlider.setI18nText("worldexport.gui.export.lower_depth", getLowerDepth() * 16);
-    }
+    private final GuiButton boundsEditorButton = new GuiButton().setI18nLabel("worldexport.gui.export.edit_bounds")
+            .setMinSize(new Dimension(192, 20)).onClick(this::openBoundsEditor);
 
     public final GuiDropdownMenu<FluidMode> fluidModeDropdown = new GuiDropdownMenu<FluidMode>()
-            .setMinSize(new Dimension(0, 20)).setValues(FluidMode.NONE, FluidMode.STATIC).setSelected(FluidMode.NONE)
+            .setMinSize(new Dimension(192, 20)).setValues(FluidMode.NONE, FluidMode.STATIC).setSelected(FluidMode.NONE)
             .onSelection(this::handleChangeFluidMode);
 
     private void handleChangeFluidMode(Integer ordinal) {
-        boolean showWarning = ordinal != FluidMode.NONE.ordinal();
-        memoryWarning1.setEnabled(showWarning);
-        memoryWarning2.setEnabled(showWarning);
-        memoryWarning3.setEnabled(showWarning);
-        memoryWarning4.setEnabled(showWarning);
     }
-
-    public final GuiLabel memoryWarning1 = new GuiLabel().setI18nText("worldexport.gui.memory_warning1")
-            .setColor(Color.ORANGE).setEnabled(false);
-
-    public final GuiLabel memoryWarning2 = new GuiLabel().setI18nText("worldexport.gui.memory_warning2")
-            .setColor(Color.ORANGE).setEnabled(false);
-
-    public final GuiLabel memoryWarning3 = new GuiLabel().setI18nText("worldexport.gui.memory_warning3")
-            .setColor(Color.ORANGE).setEnabled(false);
-
-    public final GuiLabel memoryWarning4 = new GuiLabel().setI18nText("worldexport.gui.memory_warning4")
-            .setColor(Color.ORANGE).setEnabled(false);
 
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setI18nLabel("worldexport.gui.export")
@@ -156,15 +130,10 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
             .setSize(100, 20)
             .onClick(this::close);
 
-    public final GuiButton boundsButton = new GuiButton(buttonPanel)
-            .setLabel("Bounds Editor")
-            .setSize(100, 20)
-            .onClick(this::openBoundsEditor);
-
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    viewDistanceSlider, lowerDepthSlider,
+                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
                     new GuiLabel().setI18nText("worldexport.gui.export.fluid_mode"), fluidModeDropdown)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
 
@@ -172,11 +141,7 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         settingsList.getListPanel().setLayout(new VerticalLayout().setSpacing(10))
                 .addElements(new VerticalLayout.Data(0.5),
                         new GuiLabel().setI18nText("worldexport.gui.export.title"),
-                        mainPanel,
-                        memoryWarning1,
-                        memoryWarning2,
-                        memoryWarning3,
-                        memoryWarning4);
+                        mainPanel);
     }
 
     public File getOutputFile() {
@@ -188,29 +153,20 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         outputFileButton.setLabel(outputFile.getName());
     }
 
-    public void setLowerDepth(int lowerSectionCoord) {
-        lowerDepthSlider.setSteps(maxLowerDepth - minLowerDepth);
-        lowerDepthSlider.setValue(lowerSectionCoord - minLowerDepth);
-    }
-    
-    public int getLowerDepth() {
-        return lowerDepthSlider.getValue() + minLowerDepth;
-    }
-
-    public void setViewDistance(int viewDistance) {
-        viewDistanceSlider.setValue(viewDistance - MIN_VIEW_DISTANCE);
-    }
-
-    public int getViewDistance() {
-        return viewDistanceSlider.getValue() + MIN_VIEW_DISTANCE;
-    }
-
     public void setFluidMode(FluidMode fluidMode) {
         fluidModeDropdown.setSelected(fluidMode);
     }
 
     public FluidMode getFluidMode() {
         return fluidModeDropdown.getSelectedValue();
+    }
+
+    public BlockBox getBounds() {
+        return bounds;
+    }
+
+    public void setBounds(BlockBox bounds) {
+        this.bounds = bounds;
     }
 
     public GuiExportSettings(ReplayHandler replayHandler, Timeline timeline) {
@@ -256,15 +212,21 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
             settings = null;
         }
 
+        // Run these even if we're applying settings in case the settings are missing something
+        int minLowerDepth = client.world.getBottomSectionCoord();
+        int maxLowerDepth = client.world.getTopSectionCoord();
+
+        BlockPos centerPos = client.getCameraEntity().getBlockPos();
+        ChunkPos centerChunk = new ChunkPos(centerPos);
+
+        setBounds(new BlockBox(
+            centerChunk.x - 4, minLowerDepth, centerChunk.z - 4,
+            centerChunk.x + 4, maxLowerDepth, centerChunk.z + 4));
+        
+        setOutputFile(generateOutputFile());
+
         if (settings != null) {
             applySettings(settings);
-        } else {
-            minLowerDepth = client.world.getBottomSectionCoord();
-            maxLowerDepth = client.world.getTopSectionCoord();
-            
-            setOutputFile(generateOutputFile());
-            setViewDistance(Math.min(client.options.getClampedViewDistance(), 8));
-            setLowerDepth(minLowerDepth);
         }
     }
 
@@ -279,11 +241,8 @@ public class GuiExportSettings extends GuiScreen implements Closeable {
         int radius = client.options.getClampedViewDistance() * 2;
         ChunkPos centerPos = client.getCameraEntity().getChunkPos();
 
-        GuiBoundsEditor editor = new GuiBoundsEditor(this, client.world,
-                radius * 2, radius * 2,
-                new ChunkPos(centerPos.x - radius, centerPos.z - radius));
-
-        editor.open();
+        GuiBoundsEditor.openEditor(bounds, this, client.world, radius * 2, radius * 2,
+                new ChunkPos(centerPos.x - radius, centerPos.z - radius)).thenAccept(this::setBounds);
     }
 
     @Override

@@ -14,6 +14,8 @@
     "worldexport.gui.export.radius": "Radius (chunks): %d",
     "worldexport.gui.export.upper_limit": "Upper Limit: %d",
     "worldexport.gui.export.lower_depth": "Lower Depth: %d",
+    "worldexport.gui.export.bounds": "Export Bounds",
+    "worldexport.gui.export.edit_bounds": "Edit Bounds",
     "worldexport.gui.export.fluid_mode": "Fluid Mode",
 
     "worldexport.gui.exporting.title": "Exporting Replay",

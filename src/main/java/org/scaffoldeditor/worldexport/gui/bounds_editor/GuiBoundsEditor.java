@@ -1,11 +1,18 @@
 package org.scaffoldeditor.worldexport.gui.bounds_editor;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import org.scaffoldeditor.worldexport.util.Box2i;
+
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
@@ -15,6 +22,8 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     private int minSection;
     private int maxSection = 16;
+
+    private List<Runnable> closeListeners = new LinkedList<>();
 
     public final GuiSlider upperLimitSlider = new GuiSlider().onValueChanged(this::handleChangeUpperLimit)
             .setHeight(20).setSteps(32);
@@ -82,15 +91,48 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     protected GuiBoundsEditor getThis() {
         return this;
     }
+
+    public BlockBox getBounds() {
+        Box2i bounds = overview.getBounds();
+        return new BlockBox(bounds.getX1(), getLowerDepth(), bounds.getY1(),
+                bounds.getX2(), getUpperLimit(), bounds.getY2());
+    }
+
+    public void setBounds(BlockBox bounds) {
+        Box2i bounds2d = new Box2i(bounds.getMinX(), bounds.getMinZ(), bounds.getMaxX(), bounds.getMaxZ());
+
+        overview.setBounds(bounds2d);
+        setLowerDepth(bounds.getMinY());
+        setUpperLimit(bounds.getMaxY());
+    }
     
     @Override
     protected void close() {
         super.close();
         overview.close();
+        closeListeners.forEach(Runnable::run);
+        closeListeners.clear();
     }
 
     @Override
     public void open() {
         super.open();
+    }
+
+    public void onClose(Runnable r) {
+        closeListeners.add(r);
+    }
+
+    public static CompletableFuture<BlockBox> openEditor(BlockBox defaultBounds, GuiContainer<?> container, World world, int width, int height, ChunkPos rootPos) {
+        GuiBoundsEditor editor = new GuiBoundsEditor(container, world, width, height, rootPos);
+        editor.setBounds(defaultBounds);
+
+        CompletableFuture<BlockBox> future = new CompletableFuture<>();
+        editor.onClose(() -> {
+            future.complete(editor.getBounds());
+        });
+
+        editor.open();
+        return future;
     }
 }
