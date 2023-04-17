@@ -254,7 +254,7 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     @Override
     protected ReadableDimension calcMinSize() {
-        return new Dimension(384, 256);
+        return new Dimension(128, 128);
     }
 
     @Override

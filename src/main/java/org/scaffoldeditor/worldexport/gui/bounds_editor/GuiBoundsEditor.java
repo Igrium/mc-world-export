@@ -7,10 +7,14 @@ import java.util.concurrent.CompletableFuture;
 import org.scaffoldeditor.worldexport.util.Box2i;
 
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
+import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
+import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.ChunkPos;
@@ -67,7 +71,10 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         return lowerDepthSlider.getValue() + minSection;
     }
 
-    private final GuiButton closeButton = new GuiButton().setLabel("Close").onClick(this::close);
+    private final GuiButton closeButton = new GuiButton().setI18nLabel("worldexport.gui.export.apply").onClick(this::close);
+
+    private final GuiPanel bottomPanel = new GuiPanel().setLayout(new VerticalLayout().setSpacing(5))
+            .addElements(new VerticalLayout.Data(0.5), upperLimitSlider, lowerDepthSlider, closeButton);
 
     public GuiBoundsEditor(GuiContainer<?> container, World world, int width, int height, ChunkPos rootPos) {
         super(container);
@@ -76,8 +83,43 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         maxSection = world.getTopSectionCoord();
 
         overview = new GuiBoundsOverview(world, new OverviewData(width, height, rootPos));
-        popup.setLayout(new VerticalLayout().setSpacing(10))
-                .addElements(new VerticalLayout.Data(0.5), overview, upperLimitSlider, lowerDepthSlider, closeButton);
+        popup.setLayout(new CustomLayout<GuiPanel>() {
+
+            @Override
+            protected void layout(GuiPanel panel, int width, int height) {
+                pos(bottomPanel, 0, height - height(bottomPanel));
+                width(bottomPanel, width);
+
+                size(overview, container.getMinSize());
+
+                pos(overview, 0, 0);
+                width(overview, width);
+                height(overview, height - height(bottomPanel) - 5);
+                
+            }
+
+            @Override
+            public ReadableDimension calcMinSize(GuiContainer<?> localContainer) {
+                // ReadableDimension overviewSize = overview.calcMinSize();
+                // ReadableDimension panelSize = bottomPanel.calcMinSize();
+
+                // return new Dimension(Math.max(overviewSize.getWidth(), panelSize.getWidth()),
+                //         overviewSize.getHeight() + panelSize.getHeight() + 5);
+
+                ReadableDimension containerMin = container.getMinSize();
+                return new Dimension(Math.min(384, containerMin.getWidth() - 64),
+                        Math.min(384, containerMin.getHeight() - 64));
+
+                // return new Dimension(containerMin.getWidth() - 128, containerMin.getHeight() - 128);
+            }
+            
+        }).addElements(null, overview, bottomPanel);
+        
+        
+
+        // overview.setSize(256, 266);
+        // popup.setLayout(new VerticalLayout().setSpacing(10))
+        //         .addElements(new VerticalLayout.Data(0.5), overview, upperLimitSlider, lowerDepthSlider, closeButton);
 
         setLowerDepth(minSection);
         setUpperLimit(maxSection);

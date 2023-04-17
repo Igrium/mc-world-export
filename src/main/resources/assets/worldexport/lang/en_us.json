@@ -17,6 +17,7 @@
     "worldexport.gui.export.bounds": "Export Bounds",
     "worldexport.gui.export.edit_bounds": "Edit Bounds",
     "worldexport.gui.export.fluid_mode": "Fluid Mode",
+    "worldexport.gui.export.apply": "Apply",
 
     "worldexport.gui.exporting.title": "Exporting Replay",
     "worldexport.gui.exporting.frame_progress": "Frames captured: %d / %d",
