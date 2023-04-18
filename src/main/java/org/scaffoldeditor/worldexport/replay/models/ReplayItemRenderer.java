@@ -3,7 +3,6 @@ package org.scaffoldeditor.worldexport.replay.models;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
-import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.mat.TextureExtractor;
 import org.scaffoldeditor.worldexport.vcap.ObjVertexConsumer;
 import org.scaffoldeditor.worldexport.vcap.WrappedVertexConsumerProvider;
@@ -13,17 +12,18 @@ import com.google.common.collect.ImmutableSet;
 import de.javagl.obj.Obj;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.TexturedRenderLayers;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.json.ModelTransformation.Mode;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 
 public class ReplayItemRenderer {
 
     public static final Material ITEM_MAT = new Material().setColor("world").setRoughness(1).setTransparent(true);
-
-    private static ReplayTexture worldTex;
+    public static final Material SHEID_MAT = new Material().setColor("shield").setRoughness(1).setTransparent(true);
 
     public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model, MaterialConsumer materials) {
         renderItem(stack, renderMode, leftHanded, matrices, obj, model);
@@ -32,8 +32,13 @@ public class ReplayItemRenderer {
 
     public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model) {
         if (stack.isEmpty()) return;
+
+        if (stack.isOf(Items.SHIELD)) {
+            obj.setActiveMaterialGroupName("shield");
+        } else {
+            obj.setActiveMaterialGroupName("item");
+        }
         
-        obj.setActiveMaterialGroupName("item");
         // VertexConsumerProvider vertices = MeshUtils.wrapVertexConsumer(new ObjVertexConsumer(obj));
         VertexConsumerProvider vertices = new WrappedVertexConsumerProvider(new ObjVertexConsumer(obj), null,
                 ImmutableSet.of(
@@ -49,11 +54,17 @@ public class ReplayItemRenderer {
      * @param materials Material consumer to add to.
      */
     public static void addMaterials(MaterialConsumer materials) {
-        if (worldTex == null) {
-            worldTex = new PromisedReplayTexture(TextureExtractor.getAtlasTexture());
-        }
 
         materials.addMaterial("item", ITEM_MAT);
-        materials.addTexture("world", worldTex);
+        
+        if (!materials.hasTexture("world")) {
+            materials.addTexture("world", new PromisedReplayTexture(TextureExtractor.getAtlasTexture()));
+        }
+
+        materials.addMaterial("shield", SHEID_MAT);
+
+        if (!materials.hasTexture("shield")) {
+            materials.addTexture("shield", new PromisedReplayTexture(TextureExtractor.getAtlasTexture(TexturedRenderLayers.SHIELD_PATTERNS_ATLAS_TEXTURE)));
+        }
     }
 }
