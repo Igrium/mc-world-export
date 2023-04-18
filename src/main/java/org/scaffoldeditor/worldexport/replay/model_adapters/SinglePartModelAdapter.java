@@ -7,6 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.joml.Matrix4dStack;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.MaterialUtils;
 import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
@@ -127,7 +129,7 @@ public class SinglePartModelAdapter<T extends LivingEntity> extends LivingModelA
     }
 
     private void appendPartMesh(ReplayModelPart bone, ModelPart part) {
-        bone.getMesh().setActiveMaterialGroupName(getTexName(this.getTexture()));
+        bone.getMesh().setActiveMaterialGroupName(getMaterialName());
         part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
             if (!path.equals("")) return;
             MeshUtils.appendCuboid(cuboid, bone.getMesh(), MeshUtils.NEUTRAL_TRANSFORM);
@@ -184,9 +186,26 @@ public class SinglePartModelAdapter<T extends LivingEntity> extends LivingModelA
         offset.popMatrix();
     }
 
+    /**
+     * Get the name of the material that will be used on this mesh.
+     * @return Material name.
+     */
+    protected String getMaterialName() {
+        return MaterialUtils.getTexName(texture);
+    }
+
+    /**
+     * Create the material that will be used on this mesh.
+     * @param materialName Material name to use.
+     * @param file Material consumer to add to.
+     */
+    protected void writeMaterial(String materialName, MaterialConsumer file) {
+        createMaterial(texture, file);
+    }
+    
     @Override
-    Identifier getTexture() {
-        return texture;
+    public void generateMaterials(MaterialConsumer file) {
+        writeMaterial(getMaterialName(), file);
     }
     
 }
