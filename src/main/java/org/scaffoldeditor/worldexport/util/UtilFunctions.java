@@ -8,8 +8,6 @@ import java.util.function.Function;
 
 import org.scaffoldeditor.worldexport.replay.ReplayEntity;
 
-import net.minecraft.util.Identifier;
-
 public final class UtilFunctions {
     private UtilFunctions() {}
 
@@ -37,21 +35,6 @@ public final class UtilFunctions {
         }
 
         return name;
-    }
-
-    /**
-     * Get the filename of a texture, excluding the extension.
-     * @param texture Texture identifier.
-     * @return Filename, without extension. Compatible with material fields.
-     */
-    public static String getTexName(Identifier texture) {
-        String name = texture.toString().replace(':', '/');
-        int index = name.lastIndexOf('.');
-        if (index > 0) {
-            return name.substring(0, index);
-        } else {
-            return name;
-        }
     }
 
     /**

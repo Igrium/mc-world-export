@@ -99,12 +99,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         String texName = MaterialUtils.getTexName(texID);
         if (file.hasMaterial(texName)) return texName;
 
-        Material mat = new Material();
-        mat.setColor(texName);
-        mat.setRoughness(1);
-        mat.setTransparent(isTransparent(entity));
-        mat.setColor2BlendMode(BlendMode.SOFT_LIGHT);
-        mat.addOverride("color2", tint.getName());
+        Material mat = createMaterial(texName);
 
         file.addMaterial(texName, mat);
         file.addTexture(texName, new PromisedReplayTexture(texID));
@@ -112,6 +107,21 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         return texName;
     }
 
+    /**
+     * Create a material suitable for use with this model adapter.
+     * @param texName Base texture name.
+     * @return The material.
+     */
+    protected Material createMaterial(String texName) {
+        Material mat = new Material();
+        mat.setColor(texName);
+        mat.setRoughness(1);
+        mat.setTransparent(isTransparent(entity));
+        mat.setColor2BlendMode(BlendMode.SOFT_LIGHT);
+        mat.addOverride("color2", tint.getName());
+
+        return mat;
+    }
 
     protected boolean isTransparent(T entity) {
         return true;

@@ -8,13 +8,13 @@ import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.MaterialUtils;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
-import org.scaffoldeditor.worldexport.util.UtilFunctions;
 
 import de.javagl.obj.ObjReader;
 import net.minecraft.client.render.entity.ArrowEntityRenderer;
@@ -71,7 +71,7 @@ public class ProjectileModelAdapter implements ReplayModelAdapter<MultipartRepla
     @Override
     public void generateMaterials(MaterialConsumer file) {
         PromisedReplayTexture tex = new PromisedReplayTexture(ArrowEntityRenderer.TEXTURE);
-        String texName = UtilFunctions.getTexName(ArrowEntityRenderer.TEXTURE);
+        String texName = MaterialUtils.getTexName(ArrowEntityRenderer.TEXTURE);
 
         Material mat = new Material();
         mat.setRoughness(1f);
