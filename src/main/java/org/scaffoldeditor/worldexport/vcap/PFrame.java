@@ -120,6 +120,7 @@ public class PFrame implements Frame {
         }
     }
 
+    @Deprecated
     private void genFluid(BlockPos pos, ChunkView world, ExportContext context) {
         if (!context.getSettings().exportDynamicFluids()) return;
         // We've already exported this fluid.

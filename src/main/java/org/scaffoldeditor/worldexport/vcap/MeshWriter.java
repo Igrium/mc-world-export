@@ -13,22 +13,30 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.jetbrains.annotations.Nullable;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidBlockEntry;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.SpriteMaterialProvider;
 import org.scaffoldeditor.worldexport.vcap.model.VcapWorldMaterial;
 import org.scaffoldeditor.worldexport.vcap.model.ModelProvider.ModelInfo;
+
+import com.google.common.collect.ImmutableMap;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;
 import de.javagl.obj.Objs;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.texture.Sprite;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.world.BlockRenderView;
 
 public final class MeshWriter {
     private MeshWriter() {}
@@ -157,6 +165,26 @@ public final class MeshWriter {
         obj.addFace(indices, indices, null);
 
         return layerIndex;
+    }
+
+    public static FluidBlockEntry writeFluidMesh(BlockPos pos, BlockRenderView world, BlockState state) {
+        FluidState fluidState = state.getFluidState();
+        if (fluidState == null || fluidState.isEmpty()) {
+            throw new IllegalArgumentException("Supplied blockstate must be a fluid.");
+        }
+
+        Obj mesh = Objs.create();
+        VcapWorldMaterial material = new VcapWorldMaterial(true, true,
+                state.getLuminance() > BlockExporter.EMISSIVE_THRESHOLD);
+        mesh.setActiveMaterialGroupName(material.getName());
+
+        Vec3d offset = new Vec3d(-(pos.getX() & 15), -(pos.getY() & 15), -(pos.getZ() & 15));
+        ObjVertexConsumer consumer = new ObjVertexConsumer(mesh, offset);
+
+        MinecraftClient.getInstance().getBlockRenderManager().renderFluid(pos, world, consumer, state, state.getFluidState());
+
+        ModelInfo modelInfo = new ModelInfo(mesh, 1, ImmutableMap.of(material.getName(), material));
+        return new FluidBlockEntry(fluidState.getFluid(), modelInfo);
     }
 
     private static float makeLocal(float globalMin, float globalMax, float globalVal) {

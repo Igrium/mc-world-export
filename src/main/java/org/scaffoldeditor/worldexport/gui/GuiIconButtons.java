@@ -1,4 +1,4 @@
-package org.scaffoldeditor.worldexport.replaymod.gui;
+package org.scaffoldeditor.worldexport.gui;
 
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;

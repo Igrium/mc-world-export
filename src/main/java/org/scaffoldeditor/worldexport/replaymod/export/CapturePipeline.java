@@ -9,6 +9,8 @@ import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
 import org.scaffoldeditor.worldexport.replaymod.util.ExportInfo;
 import org.scaffoldeditor.worldexport.util.FutureUtils;
 
+import com.mojang.logging.LogUtils;
+
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
 
@@ -31,6 +33,14 @@ public class CapturePipeline {
             info.setChunksDone(index + 1);
             info.setTotalChunks(total);
         });
+
+        // Bullshit workaround to let skins finish downloading before attempting to capture them.
+        // TODO: Find a proper solution to this.
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            LogUtils.getLogger().error("Error waiting for skin downloads", e);
+        }
 
         int framesDone = 0;
         while (!frameCapture.isDone() && !abort) {

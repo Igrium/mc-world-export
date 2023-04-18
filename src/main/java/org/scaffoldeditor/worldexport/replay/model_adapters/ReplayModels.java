@@ -51,6 +51,15 @@ public final class ReplayModels {
           
     }
 
+    public static class CompositeModelFactory implements ReplayModelAdapterFactory<LivingEntity> {
+
+        @Override
+        public ReplayModelAdapter<?> create(LivingEntity entity) {
+                return new CompositeModelAdapter<LivingEntity>(entity);
+        }
+        
+    }
+
     @SuppressWarnings("rawtypes")
     public static void registerDefaults() {
 
@@ -159,7 +168,6 @@ public final class ReplayModels {
         registerSinglePart("salmon");
         registerSinglePart("spider");
         registerSinglePart("phantom");
-        registerSinglePart("shulker");
         registerSinglePart("ghast");
         registerSinglePart("strider");
         registerSinglePart("ravager");
@@ -172,6 +180,11 @@ public final class ReplayModels {
         registerSinglePart("bat");
         registerSinglePart("endermite");
         registerSinglePart("blaze");
+
+        /**
+         * COMPOSITE
+         */
+        registerComposite("shulker");
 
         /**
          * CUSTOM
@@ -192,5 +205,13 @@ public final class ReplayModels {
 
     private static void registerSinglePart(String id) {
         registerSinglePart(new Identifier(id));
+    }
+
+    private static void registerComposite(Identifier id) {
+        ReplayModelAdapter.REGISTRY.put(id, new CompositeModelFactory());
+    }
+
+    private static void registerComposite(String id) {
+        registerComposite(new Identifier(id));
     }
 }

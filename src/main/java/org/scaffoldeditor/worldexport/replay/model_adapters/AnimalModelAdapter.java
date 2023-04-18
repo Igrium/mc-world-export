@@ -9,6 +9,8 @@ import org.joml.Matrix4dStack;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
+import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.MaterialUtils;
 import org.scaffoldeditor.worldexport.mixins.AnimalModelAccessor;
 import org.scaffoldeditor.worldexport.mixins.ModelPartAccessor;
 import org.scaffoldeditor.worldexport.mixins.QuadrupedModelAccessor;
@@ -227,42 +229,41 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             }
         });
 
-        // forEachPart((generatedName, part, transform) -> {
-        //     // Check if we need to override this name.
-        //     String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
-
-        //     // Bone bone = new Bone(name);
-        //     ReplayModelPart bone = new ReplayModelPart(name);
-
-        //     // bone.pos = transform.getTranslation(new Vector3d());
-        //     // bone.rot = transform.getUnnormalizedRotation(new Quaterniond());
-
-        //     replayModel.bones.add(bone);
-        //     boneMapping.put(part, bone);
-
-        //     // replayModel.mesh.setActiveMaterialGroupName(getTexName(this.texture));
-        //     bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
-
-        //     part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
-        //         if (!path.equals("")) return; // We only want to get the cuboids from this part.
-        //         MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
-        //     });
-        // });
-
         return replayModel;
     }
 
     private void appendPartMesh(ReplayModelPart bone, ModelPart part) {
-        bone.getMesh().setActiveMaterialGroupName(getTexName(this.texture));
+        bone.getMesh().setActiveMaterialGroupName(getMaterialName());
         part.forEachCuboid(new MatrixStack(), (matrix, path, index, cuboid) -> {
             if (!path.equals("")) return;
             MeshUtils.appendCuboid(cuboid, bone.getMesh(), NEUTRAL_TRANSFORM);
         });
     }
 
-    @Override
-    Identifier getTexture() {
+    protected Identifier getTexture() {
         return texture;
+    }
+    
+    /**
+     * Get the name of the material that will be used on this mesh.
+     * @return Material name.
+     */
+    protected String getMaterialName() {
+        return MaterialUtils.getTexName(texture);
+    }
+
+    /**
+     * Create the material that will be used on this mesh.
+     * @param materialName Material name to use.
+     * @param file Material consumer to add to.
+     */
+    protected void writeMaterial(String materialName, MaterialConsumer file) {
+        createMaterial(texture, file);
+    }
+    
+    @Override
+    public void generateMaterials(MaterialConsumer file) {
+        writeMaterial(getMaterialName(), file);
     }
 
     /**

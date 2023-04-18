@@ -49,8 +49,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 
@@ -76,39 +76,21 @@ public class VcapExporter {
     /**
      * Create a new export instance.
      * 
-     * @param world    World to capture.
-     * @param minChunk Bounding box min (inclusive).
-     * @param maxChunk Bounding box max (exclusive).
+     * @param world  World to capture.
+     * @param bounds Bounding box of the export region.
      */
-    public VcapExporter(WorldAccess world, ChunkPos minChunk, ChunkPos maxChunk) {
+    public VcapExporter(WorldAccess world, BlockBox bounds) {
         this.world = world;
         context = new ExportContext();        
-        setBBox(minChunk, maxChunk);
+        setBounds(bounds);
     }
 
-    /**
-     * Get the bounding box min point.
-     * @return Bounding box min (inclusive)
-     */
-    public ChunkPos getMinChunk() {
-        return getSettings().getMinChunk();
+    public BlockBox getBounds() {
+        return getSettings().getBounds();
     }
-    
-    /**
-     * Get the bounding box max point.
-     * @return Bounding box max (exclusive).
-     */
-    public ChunkPos getMaxChunk() {
-        return getSettings().getMaxChunk();
-    }
-    
-    /**
-     * Set the bounding box.
-     * @param minChunk Bounding box min (inclusive).
-     * @param maxChunk Bounding box max (exclusive).
-     */
-    public void setBBox(ChunkPos minChunk, ChunkPos maxChunk) {
-        getSettings().setBBox(minChunk, maxChunk);
+
+    public void setBounds(BlockBox bounds) {
+        getSettings().setBounds(bounds);
     }
 
     /**
@@ -245,8 +227,7 @@ public class VcapExporter {
      * @return The frame.
      */
     public IFrame captureIFrame(double time, @Nullable CaptureCallback callback) {
-        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getMinChunk(),
-                getSettings().getMaxChunk(), context, time, callback);
+        IFrame iFrame = IFrame.capture(new ChunkView.Wrapper(world), getSettings().getBounds(), context, time, callback);
         frames.add(iFrame);
         return iFrame;
     }
@@ -280,7 +261,7 @@ public class VcapExporter {
      */
     public CompletableFuture<IFrame> captureIFrameAsync(double time, Executor executor, @Nullable CaptureCallback callback) {
         int index = frames.size();
-        return IFrame.captureAsync(new ChunkView.Wrapper(world), getMinChunk(), getMaxChunk(), context, time, executor, callback).thenApply(frame -> {
+        return IFrame.captureAsync(new ChunkView.Wrapper(world), getSettings().getBounds(), context, time, executor, callback).thenApply(frame -> {
             addFrame(index, frame);
             LogManager.getLogger().info("Finished capturing world at {} seconds.", time);
             return frame;

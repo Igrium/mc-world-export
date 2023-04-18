@@ -9,6 +9,16 @@
     "worldexport.gui.editcamera.start_time": "Start Time (seconds)",
     "worldexport.gui.editcamera.color": "Display Color",
 
+    "worldexport.gui.export": "Export",
+    "worldexport.gui.export.title": "Replay Export Settings",
+    "worldexport.gui.export.radius": "Radius (chunks): %d",
+    "worldexport.gui.export.upper_limit": "Upper Limit: %d",
+    "worldexport.gui.export.lower_depth": "Lower Depth: %d",
+    "worldexport.gui.export.bounds": "Export Bounds",
+    "worldexport.gui.export.edit_bounds": "Edit Bounds",
+    "worldexport.gui.export.fluid_mode": "Fluid Mode",
+    "worldexport.gui.export.apply": "Apply",
+
     "worldexport.gui.exporting.title": "Exporting Replay",
     "worldexport.gui.exporting.frame_progress": "Frames captured: %d / %d",
     "worldexport.gui.exporting.world_progress": "Chunks exported: %d / %d",

@@ -12,6 +12,7 @@ import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.util.FloodFill;
 import org.scaffoldeditor.worldexport.util.MeshComparator;
+import org.scaffoldeditor.worldexport.vcap.fluid.FluidBlockEntry;
 import org.scaffoldeditor.worldexport.vcap.fluid.FluidDomain;
 import org.scaffoldeditor.worldexport.vcap.model.BlockModelProvider;
 import org.scaffoldeditor.worldexport.vcap.model.MaterialProvider;
@@ -45,6 +46,7 @@ public class ExportContext implements MaterialConsumer {
     private static record FluidCacheEntry(ReadableObj obj, Fluid fluid) {};
 
     private final BiMap<FluidCacheEntry, String> fluidCache = HashBiMap.create();
+    private final BiMap<FluidBlockEntry, String> newFluidCache = HashBiMap.create();
 
     /**
      * The materials used in this vcap.
@@ -134,6 +136,7 @@ public class ExportContext implements MaterialConsumer {
      * @param fluid The fluid domain.
      * @return The name that was generated.
      */
+    @Deprecated
     public synchronized String addFluid(FluidDomain fluid) {
         ModelInfo model = fluid.getModel();
         Optional<FluidCacheEntry> existing = fluidCache.keySet().stream().filter(entry -> {
@@ -147,6 +150,20 @@ public class ExportContext implements MaterialConsumer {
 
         String modelID = addModel("fluid.0", model); // Name conflict resolution will handle this.
         fluidCache.put(new FluidCacheEntry(model.mesh(), fluid.getFluid()), modelID);
+        return modelID;
+    }
+
+    public synchronized String addFluid(FluidBlockEntry fluid) {
+        var existing = newFluidCache.entrySet().stream().filter(entry -> {
+            return entry.getKey().equals(fluid, comparator, .001f);
+        }).findAny();
+
+        if (existing.isPresent()) {
+            return existing.get().getValue();
+        }
+
+        String modelID = addModel("fluid.0", fluid.getModel());
+        newFluidCache.put(fluid, modelID);
         return modelID;
     }
 

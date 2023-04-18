@@ -14,6 +14,7 @@ import org.scaffoldeditor.worldexport.mat.ReplayTexture;
 import org.scaffoldeditor.worldexport.vcap.VcapExporter;
 
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.ChunkPos;
 
 public class ReplayFile extends BaseReplayFile<ReplayEntity<?>> implements MaterialConsumer {
@@ -31,9 +32,17 @@ public class ReplayFile extends BaseReplayFile<ReplayEntity<?>> implements Mater
 
     private float fps = 20f;
 
+    public ReplayFile(ClientWorld world, BlockBox bounds) {
+        this.world = world;
+        this.worldExporter = new VcapExporter(world, bounds);
+    }
+
+    @Deprecated
     public ReplayFile(ClientWorld world, ChunkPos minChunk, ChunkPos maxChunk) {
         this.world = world;
-        this.worldExporter = new VcapExporter(world, minChunk, maxChunk);
+        this.worldExporter = new VcapExporter(world, new BlockBox(
+                minChunk.getStartX(), Integer.MIN_VALUE, minChunk.getStartZ(),
+                minChunk.getEndX(), Integer.MAX_VALUE, minChunk.getEndZ()));
     }
 
     public ReplayFile(ClientWorld world, VcapExporter exporter) {

@@ -10,8 +10,8 @@ import java.util.concurrent.Future;
 import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
+import org.scaffoldeditor.worldexport.gui.GuiReplayExporter;
 import org.scaffoldeditor.worldexport.replaymod.ReplayFrameCapturer;
-import org.scaffoldeditor.worldexport.replaymod.gui.GuiReplayExporter;
 import org.scaffoldeditor.worldexport.replaymod.util.ExportInfo;
 import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 

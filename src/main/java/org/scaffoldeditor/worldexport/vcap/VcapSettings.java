@@ -1,7 +1,8 @@
 package org.scaffoldeditor.worldexport.vcap;
 
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
 
 public class VcapSettings {
     public enum FluidMode { 
@@ -34,10 +35,7 @@ public class VcapSettings {
     }
 
     private FluidMode fluidMode = FluidMode.STATIC;
-    private int lowerDepth = Integer.MIN_VALUE;
-    private ChunkPos minChunk = new ChunkPos(0, 0);
-    private ChunkPos maxChunk = new ChunkPos(0, 0);
-
+    private BlockBox bounds = BlockBox.infinite();
     private int fluidChunkSize = 16;
 
     @Deprecated
@@ -77,40 +75,12 @@ public class VcapSettings {
         return this;
     }
 
-    /**
-     * Set the lower depth.
-     * @param lowerDepth Lower depth in section coordinates.
-     * @return <code>this</code>
-     */
-    public VcapSettings setLowerDepth(int lowerDepth) {
-        this.lowerDepth = lowerDepth;
-        return this;
+    public BlockBox getBounds() {
+        return bounds;
     }
 
-    /**
-     * Get the lower depth.
-     * @return Lower depth in section coordinates.
-     */
-    public int getLowerDepth() {
-        return lowerDepth;
-    }
-
-    public ChunkPos getMinChunk() {
-        return minChunk;
-    }
-
-    public ChunkPos getMaxChunk() {
-        return maxChunk;
-    }
-
-    public VcapSettings setBBox(ChunkPos minChunk, ChunkPos maxChunk) {
-        if (minChunk.x > maxChunk.x || minChunk.z > maxChunk.z) {
-            throw new IllegalArgumentException("Min chunk "+minChunk+" must be less than max chunk "+maxChunk);
-        }
-        this.minChunk = minChunk;
-        this.maxChunk = maxChunk;
-
-        return this;
+    public void setBounds(BlockBox bounds) {
+        this.bounds = bounds;
     }
 
     /**
@@ -119,11 +89,6 @@ public class VcapSettings {
      * @return Is it in the export region?
      */
     public boolean isInExport(BlockPos pos) {
-        return pos.getY() >= (getLowerDepth() * 16) && isInBBox(pos, minChunk, maxChunk);
-    }
-
-    private static boolean isInBBox(BlockPos pos, ChunkPos minChunk, ChunkPos maxChunk) {
-        return (minChunk.getStartX() <= pos.getX()) && (pos.getX() < maxChunk.getStartX())
-            && (minChunk.getStartZ() <= pos.getZ()) && (pos.getZ() < maxChunk.getStartZ());
+        return bounds.contains(ChunkSectionPos.from(pos));
     }
 }

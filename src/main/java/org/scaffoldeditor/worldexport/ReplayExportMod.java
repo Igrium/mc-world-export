@@ -11,14 +11,11 @@ import org.scaffoldeditor.worldexport.replaymod.ReplayModHooks;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.CameraAnimationModule;
 import org.scaffoldeditor.worldexport.replaymod.render.CameraEntityRenderer;
 import org.scaffoldeditor.worldexport.replaymod.render.CameraPathRenderer;
-import org.scaffoldeditor.worldexport.test.ExportCommand;
-import org.scaffoldeditor.worldexport.test.ReplayTestCommand;
 import org.scaffoldeditor.worldexport.world_snapshot.WorldSnapshotManager;
 
 import com.replaymod.simplepathing.ReplayModSimplePathing;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -85,8 +82,6 @@ public class ReplayExportMod implements ClientModInitializer {
         instance = this;
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-            ClientCommandRegistrationCallback.EVENT.register(ExportCommand::register);
-            ClientCommandRegistrationCallback.EVENT.register(ReplayTestCommand::register);
         }
 
 

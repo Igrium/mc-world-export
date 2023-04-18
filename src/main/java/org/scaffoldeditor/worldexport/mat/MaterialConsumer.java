@@ -105,4 +105,9 @@ public interface MaterialConsumer {
         }
         
     }
+
+    /**
+     * A replay texture associated with a name.
+     */
+    public static record NamedReplayTexture(String name, ReplayTexture texture) {};
 }

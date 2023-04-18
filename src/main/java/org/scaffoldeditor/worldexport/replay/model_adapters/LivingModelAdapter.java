@@ -10,6 +10,7 @@ import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.mat.MaterialUtils;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
 import org.scaffoldeditor.worldexport.mat.Material.BlendMode;
 import org.scaffoldeditor.worldexport.replay.models.OverrideChannel;
@@ -20,7 +21,6 @@ import org.scaffoldeditor.worldexport.replay.models.OverrideChannel.OverrideChan
 import org.scaffoldeditor.worldexport.util.MathUtils;
 
 import net.minecraft.client.model.ModelPart;
-import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.PlayerModelPart;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
@@ -90,41 +90,37 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     protected abstract Pose<?> writePose(float tickDelta);
 
     /**
-     * Get the texture of this entity. Identical to {@link EntityRenderer#getTexture}
-     * @return Texture identifier.
+     * Get or create a material suitable for use with this model adapter.
+     * @param texID Minecraft texture ID.
+     * @param file Material consumer to use.
+     * @return The material name.
      */
-    abstract Identifier getTexture();
+    protected String createMaterial(Identifier texID, MaterialConsumer file) {
+        String texName = MaterialUtils.getTexName(texID);
+        if (file.hasMaterial(texName)) return texName;
 
-    @Override
-    public void generateMaterials(MaterialConsumer file) {
-        Identifier texture = getTexture();
-        String texName = getTexName(texture);
-        if (file.getMaterial(texName) != null) return;
-        
+        Material mat = createMaterial(texName);
+
+        file.addMaterial(texName, mat);
+        file.addTexture(texName, new PromisedReplayTexture(texID));
+
+        return texName;
+    }
+
+    /**
+     * Create a material suitable for use with this model adapter.
+     * @param texName Base texture name.
+     * @return The material.
+     */
+    protected Material createMaterial(String texName) {
         Material mat = new Material();
         mat.setColor(texName);
         mat.setRoughness(1);
         mat.setTransparent(isTransparent(entity));
         mat.setColor2BlendMode(BlendMode.SOFT_LIGHT);
         mat.addOverride("color2", tint.getName());
-        file.putMaterial(texName, mat);
 
-        file.addTexture(texName, new PromisedReplayTexture(texture));
-    }
-
-    /**
-     * Get the filename of a texture, excluding the extension.
-     * @param texture Texture identifier.
-     * @return Filename, without extension. Compatible with material fields.
-     */
-    protected String getTexName(Identifier texture) {
-        String name = texture.toString().replace(':', '/');
-        int index = name.lastIndexOf('.');
-        if (index > 0) {
-            return name.substring(0, index);
-        } else {
-            return name;
-        }
+        return mat;
     }
 
     protected boolean isTransparent(T entity) {
