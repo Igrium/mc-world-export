@@ -37,9 +37,9 @@ This will open a screen for you to select an output file and configure some repl
 
 - `Lower Depth`: The Y value at which to cut off exporting.
 
-Blocks are quite expensive to import and export, and the radius will heavily impact your import/export times. It is recommended to determine the bare minimum of what must be exported in your scene and clamp your radius to that.
+Blocks are quite expensive to import and export, and your export region will *significantly* impact how long the file takes to process. It is recommended to determine the bare minimum of what must be exported in your scene and clamp your export bounds to that.
 
-<img title="" src="doc/images/export_settings.png" alt="The Export Settings menu" width="362" data-align="center">
+<img title="" src="doc/images/export_settings.png" alt="The Export Settings menu" data-align="center" width="647">
 
 Once you're ready, click the "Export" button at the bottom left and wait for it to complete. It is common for the window to appear frozen while the initial block world is captured.
 
