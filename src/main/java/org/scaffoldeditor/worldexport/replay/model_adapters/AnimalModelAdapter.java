@@ -20,6 +20,10 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
+import org.scaffoldeditor.worldexport.util.UtilFunctions;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.model.ModelPart;
@@ -42,7 +46,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
      * Maps model parts to their corrisponding bones, allowing the pose generator to
      * reference the proper replay bones.
      */
-    protected Map<ModelPart, ReplayModelPart> boneMapping = new HashMap<>();
+    protected BiMap<ModelPart, ReplayModelPart> boneMapping = HashBiMap.create();
 
     private AnimalModel<T> model;
     private MultipartReplayModel replayModel;
@@ -337,7 +341,14 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             if (part.roll != 0)
                 offset.rotateZ(part.roll);
 
-            String name = boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString();
+            String name;
+            if (boneMapping.containsKey(part)) {
+                name = boneMapping.get(part).getName();
+            } else {
+                name = UtilFunctions.validateName("unknown",
+                        str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
+            }
+
             consumer.accept(name, part, offset);
         };
 
