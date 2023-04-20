@@ -36,7 +36,9 @@
     "java": ">=17",
     "replaymod": ">=1.19.3-2.6.10"
   },
+  "breaks": {
+    "sodium": "*"
+  },
   "suggests": {
-    "another-mod": "*"
   }
 }
