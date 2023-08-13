@@ -134,15 +134,15 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     @Override
     protected Pose<ReplayModelPart> writePose(float tickDelta) {
         Pose<ReplayModelPart> pose = new Pose<>();
-        forEachPart((name, part, transform) -> {
+        forEachPart((name, part, transform, localTransform) -> {
             ReplayModelPart bone = boneMapping.get(part);
             if (bone == null) {
                 // LogManager.getLogger("Replay Models").error("Model part '"+name+"' not found in bone mapping!");
                 return;
             }
 
-            Vector3d translation = transform.getTranslation(new Vector3d());
-            Vector3d scale = transform.getScale(new Vector3d());
+            Vector3d translation = localTransform.getTranslation(new Vector3d());
+            Vector3d scale = localTransform.getScale(new Vector3d());
 
             Quaterniond rotation = transform.getUnnormalizedRotation(new Quaterniond());
             if (lastPose != null) {
@@ -213,7 +213,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         Map<ModelPart, String> partNames = new HashMap<>();
         extractPartNames(model, partNames);
 
-        forRootParts((generatedName, part, transform) -> {
+        forRootParts((generatedName, part, transform, localTransform) -> {
             // Check if we need to override this name;
             String name = partNames.containsKey(part) ? partNames.get(part) : generatedName;
 
@@ -288,7 +288,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
          * @param part The model part.
          * @param transform The part's transformation relative to the model root (y offset included)
          */
-        void accept(String name, ModelPart part, Matrix4dc transform);
+        void accept(String name, ModelPart part, Matrix4dc transform, Matrix4dc localTransform);
     }
 
     /**
@@ -311,19 +311,21 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     }
     
     private void forEachPartInternal(String name, ModelPart part, org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer, Matrix4dStack offset) {
-        offset.pushMatrix();
-        offset.rotate(Math.PI, 1, 0, 0);
-        offset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
-        offset.translate(0, -yOffset, 0);
+        var localOffset = new Matrix4d();
+
+        localOffset.rotate(Math.PI, 1, 0, 0);
+        localOffset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
 
         if (part.yaw != 0)
-            offset.rotateY(part.yaw);
+            localOffset.rotateY(part.yaw);
         if (part.pitch != 0)
-            offset.rotateX(part.pitch);
+            localOffset.rotateX(part.pitch);
         if (part.roll != 0)
-            offset.rotateZ(part.roll);
+            localOffset.rotateZ(part.roll);
 
-        consumer.accept(name, part, offset);
+        offset.pushMatrix();
+        offset.mulLocal(localOffset);
+        consumer.accept(name, part, offset, localOffset);
         ((ModelPartAccessor) (Object) part).getChildren().forEach((key, child) -> {
             forEachPartInternal(key, child, consumer, offset);
         });
@@ -348,8 +350,9 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
                 name = UtilFunctions.validateName("unknown",
                         str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
             }
+            offset.translate(0, -yOffset, 0);
 
-            consumer.accept(name, part, offset);
+            consumer.accept(name, part, offset, offset);
         };
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(handlePart);
