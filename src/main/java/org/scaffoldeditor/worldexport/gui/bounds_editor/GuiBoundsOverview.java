@@ -1,18 +1,5 @@
 package org.scaffoldeditor.worldexport.gui.bounds_editor;
 
-import java.io.Closeable;
-import java.util.Objects;
-
-import net.minecraft.client.gui.DrawContext;
-import org.joml.Matrix4f;
-import org.joml.Vector2f;
-import org.joml.Vector2fc;
-import org.joml.Vector2i;
-import org.joml.Vector2ic;
-import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
-import org.scaffoldeditor.worldexport.util.Box2i;
-
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.lib.de.johni0702.minecraft.gui.GuiRenderer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.RenderInfo;
@@ -23,13 +10,20 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Point;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
-
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.ColorHelper;
 import net.minecraft.world.World;
+import org.joml.*;
+import org.lwjgl.glfw.GLFW;
+import org.scaffoldeditor.worldexport.util.Box2i;
+
+import java.io.Closeable;
+import java.util.Objects;
+import java.lang.Math;
 
 public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> implements Closeable, Draggable, Scrollable {
 
@@ -156,7 +150,7 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
         renderer.bindTexture(texID);
         DrawContext context = renderer.getContext();
-        context.drawTexture(new Identifier("minecraft:dirt"), imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
+        context.drawTexture(texID, imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
         
         Vector2i bounds1 = worldToImage(bounds.point1(new Vector2i()).mul(16));
         Vector2i bounds2 = worldToImage(bounds.point2(new Vector2i()).mul(16)).add(1, 1); // Inclusive
