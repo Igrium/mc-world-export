@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.gui.bounds_editor;
 import java.io.Closeable;
 import java.util.Objects;
 
+import net.minecraft.client.gui.DrawContext;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector2fc;
@@ -23,7 +24,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Point;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
 
-import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
@@ -155,18 +155,19 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         int imageY = 0;
 
         renderer.bindTexture(texID);
-        DrawableHelper.drawTexture(matrices, imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
+        DrawContext context = renderer.getContext();
+        context.drawTexture(new Identifier("minecraft:dirt"), imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
         
         Vector2i bounds1 = worldToImage(bounds.point1(new Vector2i()).mul(16));
         Vector2i bounds2 = worldToImage(bounds.point2(new Vector2i()).mul(16)).add(1, 1); // Inclusive
         
-        DrawableHelper.fill(matrices, bounds1.x, bounds1.y, bounds2.x, bounds2.y, FILL_COLOR);
+        context.fill(bounds1.x, bounds1.y, bounds2.x, bounds2.y, FILL_COLOR);
 
         // Selection border
-        DrawableHelper.fill(matrices, bounds1.x - 1, bounds1.y - 1, bounds2.x + 1, bounds1.y, BORDER_COLOR);
-        DrawableHelper.fill(matrices, bounds1.x - 1, bounds2.y, bounds2.x + 1, bounds2.y + 1, BORDER_COLOR);
-        DrawableHelper.fill(matrices, bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, BORDER_COLOR);
-        DrawableHelper.fill(matrices, bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, BORDER_COLOR);
+        context.fill(bounds1.x - 1, bounds1.y - 1, bounds2.x + 1, bounds1.y, BORDER_COLOR);
+        context.fill(bounds1.x - 1, bounds2.y, bounds2.x + 1, bounds2.y + 1, BORDER_COLOR);
+        context.fill(bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, BORDER_COLOR);
+        context.fill(bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, BORDER_COLOR);
         
 
         lastGlOffset = glOffset;

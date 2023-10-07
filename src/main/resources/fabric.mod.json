@@ -32,9 +32,9 @@
   "depends": {
     "fabricloader": ">=0.14.6",
     "fabric": "*",
-    "minecraft": "1.19.x",
+    "minecraft": "1.20.x",
     "java": ">=17",
-    "replaymod": ">=1.19.3-2.6.10"
+    "replaymod": ">=1.20.1-2.6.13"
   },
   "breaks": {
     "sodium": "*"

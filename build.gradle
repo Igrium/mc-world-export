@@ -19,6 +19,11 @@ repositories {
         metadataSources { artifact() }
         content { includeGroup("com.replaymod") }
     }
+		maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+		maven { url 'https://jitpack.io' }
 }
 }
 
@@ -30,7 +35,11 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "com.replaymod:replaymod-${project.replaymod_version}"
+
+	// Replay Mod
+	modImplementation "maven.modrinth:replaymod:${project.replaymod_version}"
+	implementation("com.github.LlamaLad7:MixinExtras:0.1.1")
+    annotationProcessor("com.github.LlamaLad7:MixinExtras:0.1.1")
 	
 	implementation(include('de.javagl:obj:0.3.0'))
 	implementation('org.joml:joml:1.10.2')

@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.models;
 
+import net.minecraft.client.render.model.json.ModelTransformationMode;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
@@ -15,7 +16,6 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.TexturedRenderLayers;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.client.render.model.json.ModelTransformation.Mode;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -25,12 +25,12 @@ public class ReplayItemRenderer {
     public static final Material ITEM_MAT = new Material().setColor("world").setRoughness(1).setTransparent(true);
     public static final Material SHEID_MAT = new Material().setColor("shield").setRoughness(1).setTransparent(true);
 
-    public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model, MaterialConsumer materials) {
+    public static void renderItem(ItemStack stack, ModelTransformationMode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model, MaterialConsumer materials) {
         renderItem(stack, renderMode, leftHanded, matrices, obj, model);
         addMaterials(materials);
     }
 
-    public static void renderItem(ItemStack stack, Mode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model) {
+    public static void renderItem(ItemStack stack, ModelTransformationMode renderMode, boolean leftHanded, MatrixStack matrices, Obj obj, BakedModel model) {
         if (stack.isEmpty()) return;
 
         if (stack.isOf(Items.SHIELD)) {

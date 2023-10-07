@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replaymod;
 
+import net.minecraft.network.packet.Packet;
 import org.apache.logging.log4j.LogManager;
 import org.scaffoldeditor.worldexport.replaymod.camera_animations.Rotation;
 import org.scaffoldeditor.worldexport.replaymod.util.FovProvider;
@@ -13,7 +14,6 @@ import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EntityType;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.Packet;
 import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;

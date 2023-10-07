@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.replay.feature_adapters;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.minecraft.client.render.model.json.ModelTransformationMode;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
@@ -16,7 +17,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.model.EntityModelPartNames;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.BakedModel;
-import net.minecraft.client.render.model.json.ModelTransformation.Mode;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Item;
@@ -134,7 +134,7 @@ public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelP
 
         ReplayModelPart part = new ReplayModelPart("item."+Registries.ITEM.getId(item.getItem())+"."+arm);
 
-        Mode renderMode = arm == Arm.LEFT ? Mode.THIRD_PERSON_LEFT_HAND : Mode.THIRD_PERSON_RIGHT_HAND;
+        ModelTransformationMode renderMode = arm == Arm.LEFT ? ModelTransformationMode.THIRD_PERSON_LEFT_HAND : ModelTransformationMode.THIRD_PERSON_RIGHT_HAND;
         BakedModel itemModel = itemRenderer.getModel(item, entity.getWorld(), entity, 0);
         ReplayItemRenderer.renderItem(item, renderMode, arm == Arm.LEFT, new MatrixStack(), part.getMesh(), itemModel);
 

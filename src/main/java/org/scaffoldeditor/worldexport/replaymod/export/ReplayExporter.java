@@ -328,7 +328,7 @@ public class ReplayExporter implements RenderInfo {
                     0,
                     1000, 3000);
 
-            RenderSystem.setProjectionMatrix(projection);
+            RenderSystem.setProjectionMatrix(projection, null);
             
             MatrixStack matrixStack = RenderSystem.getModelViewStack();
             matrixStack.loadIdentity();
@@ -345,13 +345,13 @@ public class ReplayExporter implements RenderInfo {
                 Screen oldScreen = client.currentScreen;
                 try {
                     client.currentScreen = gui.toMinecraft();
-                    client.getOverlay().render(new MatrixStack(), mouseX, mouseY, 0);
+                    //client.getOverlay().render(new MatrixStack(), mouseX, mouseY, 0);
                 } finally {
                     client.currentScreen = oldScreen;
                 }
             } else {
                 gui.toMinecraft().tick();
-                gui.toMinecraft().render(new MatrixStack(), mouseX, mouseY, 0);
+                //gui.toMinecraft().render(new MatrixStack(), mouseX, mouseY, 0);
             }
 
             guiWindow.endWrite();

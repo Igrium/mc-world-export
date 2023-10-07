@@ -181,8 +181,8 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         float limbDistance = 0;
         float pitch = MathHelper.lerp(tickDelta, entity.prevPitch, entity.getPitch());
         if (!entity.hasVehicle() && entity.isAlive()) {
-            limbDistance = MathHelper.lerp(tickDelta, entity.lastLimbDistance, entity.limbDistance);
-            limbAngle = entity.limbAngle - entity.limbDistance * (1 - tickDelta);
+            limbDistance = entity.limbAnimator.getSpeed(tickDelta);
+            limbAngle = entity.limbAnimator.getPos(tickDelta);
 
             if (entity.isBaby()) {
                 limbAngle *= 3f;
