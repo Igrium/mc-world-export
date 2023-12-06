@@ -125,8 +125,8 @@ public class IFrame implements Frame, FluidConsumer {
 
     @Override
     public String modelAt(BlockPos pos) throws IndexOutOfBoundsException {
-        Vec3i sectionCoord = new Vec3i(Math.floor(pos.getX() / 16), Math.floor(pos.getY() / 16),
-                Math.floor(pos.getZ() / 16));
+        Vec3i sectionCoord = new Vec3i((int) Math.floor(pos.getX() / 16), (int) Math.floor(pos.getY() / 16),
+                (int) Math.floor(pos.getZ() / 16));
         
         NbtCompound section = sectionCache.get(sectionCoord);
 

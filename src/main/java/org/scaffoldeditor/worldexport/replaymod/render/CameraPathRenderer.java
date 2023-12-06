@@ -101,7 +101,8 @@ public class CameraPathRenderer extends EventRegistrations {
             Optional<AnimatedCameraEntity> ent = module.optCameraEntity(client.world, animation.getId());
             // Don't render if we're currently viewing from this camera.
             if (ent.isPresent() && ent.get().equals(client.cameraEntity)) continue;
-            BlockPos pos = new BlockPos(animation.getPositionAt(time));
+            Vec3d vecPos = animation.getPositionAt(time);
+            BlockPos pos = new BlockPos((int) vecPos.getX(), (int) vecPos.getY(), (int) vecPos.getZ());
 
             modelRenderer.render(animation, time, matrices, context.consumers(), getLight(pos, context.world()));
         }

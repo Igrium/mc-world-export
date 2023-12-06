@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '0.12-SNAPSHOT'
+	id 'fabric-loom' version '1.4-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -12,14 +12,19 @@ group = project.maven_group
 
 repositories {
 	repositories {
-    ivy {
-        setName("ReplayMod")
-        setUrl("https://minio.replaymod.com/replaymod/")
-        patternLayout { artifact("[artifact]-[revision](-[classifier])(.[ext])") }
-        metadataSources { artifact() }
-        content { includeGroup("com.replaymod") }
-    }
-}
+		ivy {
+			setName("ReplayMod")
+			setUrl("https://minio.replaymod.com/replaymod/")
+			patternLayout { artifact("[artifact]-[revision](-[classifier])(.[ext])") }
+			metadataSources { artifact() }
+			content { includeGroup("com.replaymod") }
+		}
+		maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+		maven { url 'https://jitpack.io' }
+	}
 }
 
 dependencies {
@@ -30,7 +35,11 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	modImplementation "com.replaymod:replaymod-${project.replaymod_version}"
+
+	// Replay Mod
+	modImplementation "maven.modrinth:replaymod:${project.replaymod_version}"
+	implementation("com.github.LlamaLad7:MixinExtras:0.1.1")
+    annotationProcessor("com.github.LlamaLad7:MixinExtras:0.1.1")
 	
 	implementation(include('de.javagl:obj:0.3.0'))
 	implementation('org.joml:joml:1.10.2')
@@ -52,9 +61,6 @@ tasks.withType(JavaCompile).configureEach {
 	// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 	// If Javadoc is generated, this must be specified in that task too.
 	it.options.encoding = "UTF-8"
-
-	// Minecraft 1.18 upwards uses Java 18.
-	it.options.release = 17
 }
 
 java {

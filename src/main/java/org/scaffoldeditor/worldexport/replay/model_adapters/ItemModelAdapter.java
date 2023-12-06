@@ -1,5 +1,6 @@
 package org.scaffoldeditor.worldexport.replay.model_adapters;
 
+import net.minecraft.client.render.model.json.ModelTransformationMode;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
@@ -14,7 +15,6 @@ import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.client.render.model.json.ModelTransformation.Mode;
 import net.minecraft.client.util.math.MatrixStack;
 
 
@@ -39,7 +39,7 @@ public class ItemModelAdapter implements ReplayModelAdapter<MultipartReplayModel
 
         ItemStack stack = getEntity().getStack();
         itemModel = itemRenderer.getModel(stack, entity.getWorld(), null, entity.getId());
-        ReplayItemRenderer.renderItem(stack, Mode.GROUND, false, new MatrixStack(), base.getMesh(), itemModel);
+        ReplayItemRenderer.renderItem(stack, ModelTransformationMode.GROUND, false, new MatrixStack(), base.getMesh(), itemModel);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class ItemModelAdapter implements ReplayModelAdapter<MultipartReplayModel
         Quaterniond rot = new Quaterniond();
 
         double bobbing = Math.sin((entity.getItemAge() + tickDelta) / 10f + entity.uniqueOffset) * .1f + .1f;
-        float modelYOffset = itemModel.getTransformation().getTransformation(Mode.GROUND).scale.y();
+        float modelYOffset = itemModel.getTransformation().getTransformation(ModelTransformationMode.GROUND).scale.y();
         pos.add(0, bobbing + .25 * modelYOffset, 0);
 
         rot.rotateY(entity.getRotation(tickDelta));
