@@ -61,7 +61,7 @@ These frames are fairly heavy and represent the world data in it's entirety. Sho
     - `colorPalette`: TAG_BYTE_ARRAY An array of the different color values contained within this chunk (biome colors, etc.). The array is broken into sets of three bytes, each representing a different color entry, thus making the size of this array 3 * the number of colors in the section. The three bytes in each set represent the red, green, and blue values of the color, in that order. It's worth noting that, although the NBT format specifies that all values are signed, these bytes are an exception to this rule, giving each channel the unsigned range of `0-255`. The values returned by most NBT libraries will require conversion.
     - `colors`: TAG_BYTE_ARRAY The actual color data of the chunk. Like the block data, these bytes each reference an index of the `colorPalette` array, following the same arrangement pattern as the block data. Due to the fact that the color palette is broken into sets of three, only indices that are multiples are permitted.
 
-This format is modeled loosely off of Minecraft [schematic](https://minecraft.fandom.com/wiki/Schematic_file_format) files, modified to fit the requirements for Vcap.
+This format is modeled loosely off of Minecraft [schematic](https://minecraft.wiki/w/Schematic_file_format) files, modified to fit the requirements for Vcap.
 
 ### Predicted Frames
 
