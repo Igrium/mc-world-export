@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 import org.scaffoldeditor.worldexport.gui.GuiReplayExporter;
@@ -17,6 +16,7 @@ import org.scaffoldeditor.worldexport.replaymod.util.ExportPhase;
 
 import com.google.common.collect.Iterables;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.systems.VertexSorter;
 import com.replaymod.core.mixin.MinecraftAccessor;
 import com.replaymod.core.versions.MCVer;
 import com.replaymod.core.versions.MCVer.MinecraftMethodAccessor;
@@ -35,6 +35,7 @@ import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.render.RenderTickCounter;
@@ -300,13 +301,14 @@ public class ReplayExporter implements RenderInfo {
     public int getReplayTime() { return framesDone * 1000 / FPS; }
 
     public boolean drawGui() {
-        try {
-            // because the jGui lib uses Minecraft's displayWidth and displayHeight values, update these temporarily
-            guiWindow.bind();
-            return drawGuiInternal();
-        } finally {
-            guiWindow.unbind();
-        }
+        return drawGuiInternal();
+        // try {
+        //     // because the jGui lib uses Minecraft's displayWidth and displayHeight values, update these temporarily
+        //     guiWindow.bind();
+        //     return drawGuiInternal();
+        // } finally {
+        //     guiWindow.unbind();
+        // }
     }
 
     protected boolean drawGuiInternal() {
@@ -321,14 +323,11 @@ public class ReplayExporter implements RenderInfo {
             guiWindow.beginWrite();
 
             RenderSystem.clear(256, MinecraftClient.IS_SYSTEM_MAC);
-            Matrix4f projection = new Matrix4f().setOrtho(
-                    0,
-                    (float) (window.getFramebufferWidth() / window.getScaleFactor()),
-                    (float) (window.getFramebufferHeight() / window.getScaleFactor()),
-                    0,
-                    1000, 3000);
-
-            RenderSystem.setProjectionMatrix(projection, null);
+            RenderSystem.setProjectionMatrix(
+                    com.replaymod.core.versions.MCVer.ortho(0,
+                            (float) (window.getFramebufferWidth() / window.getScaleFactor()), 0,
+                            (float) (window.getFramebufferHeight() / window.getScaleFactor()), 1000, 3000),
+                    VertexSorter.BY_Z            );
             
             MatrixStack matrixStack = RenderSystem.getModelViewStack();
             matrixStack.loadIdentity();
@@ -342,16 +341,21 @@ public class ReplayExporter implements RenderInfo {
             int mouseY = (int) client.mouse.getY() * window.getScaledHeight() / Math.max(window.getHeight(), 1);
 
             if (client.getOverlay() != null) {
-                Screen oldScreen = client.currentScreen;
+                Screen orgScreen = client.currentScreen;
                 try {
                     client.currentScreen = gui.toMinecraft();
-                    //client.getOverlay().render(new MatrixStack(), mouseX, mouseY, 0);
+                    client.getOverlay().render(
+                            new DrawContext(client, client.getBufferBuilders().getEntityVertexConsumers()), 
+                            mouseX, mouseY, 0);
                 } finally {
-                    client.currentScreen = oldScreen;
+                    client.currentScreen = orgScreen;
                 }
+
             } else {
                 gui.toMinecraft().tick();
-                //gui.toMinecraft().render(new MatrixStack(), mouseX, mouseY, 0);
+                gui.toMinecraft().render(
+                        new DrawContext(client, client.getBufferBuilders().getEntityVertexConsumers()),
+                        mouseX, mouseY, 0);
             }
 
             guiWindow.endWrite();
@@ -360,13 +364,12 @@ public class ReplayExporter implements RenderInfo {
             guiWindow.flip();
             MCVer.popMatrix();
 
-            if (client.mouse.isCursorLocked()) {
+            if (client.mouse.isCursorLocked())
                 client.mouse.unlockCursor();
-            }
 
             return failureCause == null && !cancelled;
-
         } while (true);
+        
     }
 
     private class TimelinePlayer extends AbstractTimelinePlayer {
