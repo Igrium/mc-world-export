@@ -101,4 +101,5 @@ public final class UtilFunctions {
     public static Set<String> nameView(Set<ReplayEntity<?>> ents) {
         return new SetView<>(ents, (ent) -> ent.getName());
     }
+
 }
