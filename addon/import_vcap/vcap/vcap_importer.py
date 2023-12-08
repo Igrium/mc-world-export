@@ -81,6 +81,7 @@ def load(file: Union[str, IO[bytes]],
         obj = bpy.data.objects.new(vcontext.name, outMesh)
         collection.objects.link(obj)
         obj.rotation_euler = (math.radians(90), 0, 0)
+        obj.update_tag()
 
         for mat in vcontext.materials.values():
             obj.data.materials.append(mat)
@@ -174,10 +175,7 @@ def readWorld(world_dat: IO[bytes], vcontext: VCAPContext, settings: VCAPSetting
                 add_keyframe(obj, False, seconds_to_frames(blame[id].time))
 
             for kf in obj.animation_data.action.fcurves[0].keyframe_points:
-                kf.interpolation = 'CONSTANT'
-
-
-
+                kf.interpolation = 'CONSTANT'        
 
     # if progressFunction:
     #     progressFunction(0)
