@@ -4,9 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.joml.Math;
 import org.joml.Matrix4d;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.MaterialUtils;
@@ -294,6 +296,9 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         if (isRoot) {
             offset.translate(0, 1.501, 0);
             localOffset.translate(0, 1.501, 0);
+
+            offset.multiply(new Quaternionf().rotateX((float) Math.PI));
+            localOffset.rotateX(Math.PI);
         }
 
         ModelUtils.getPartTransform(part, localOffset);

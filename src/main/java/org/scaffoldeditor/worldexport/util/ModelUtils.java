@@ -10,7 +10,6 @@ import net.minecraft.client.util.math.MatrixStack;
 
 public class ModelUtils {
     public static MatrixStack getPartTransform(ModelPart part, MatrixStack dest) {
-        dest.multiply(new Quaternionf().rotateX((float) Math.PI));
         dest.translate(part.pivotX / 16f, part.pivotY / 16, part.pivotZ / 16f);
         dest.multiply(new Quaternionf().rotateZYX(part.roll, part.yaw, part.pitch));
         dest.scale(part.xScale, part.yScale, part.zScale);
@@ -18,7 +17,6 @@ public class ModelUtils {
     }
 
     public static Matrix4f getPartTransform(ModelPart part, Matrix4f dest) {
-        dest.rotateX((float) Math.PI);
         dest.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
         dest.rotate(new Quaternionf().rotateZYX(part.roll, part.yaw, part.pitch));
         dest.scale(part.xScale, part.yScale, part.zScale);
@@ -26,7 +24,6 @@ public class ModelUtils {
     }
 
     public static Matrix4d getPartTransform(ModelPart part, Matrix4d dest) {
-        dest.rotateX(Math.PI);
         dest.translate(part.pivotX / 16d, part.pivotY / 16d, part.pivotZ / 16d);
         dest.rotate(new Quaterniond().rotateZYX(part.roll, part.yaw, part.pitch));
         dest.scale(part.xScale, part.yScale, part.zScale);
