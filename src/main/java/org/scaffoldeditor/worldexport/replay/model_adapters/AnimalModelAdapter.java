@@ -147,7 +147,8 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
                 if (lastBone != null) MathUtils.makeQuatsCompatible(rotation, lastBone.rotation, .2, rotation);
             }
 
-            pose.bones.put(bone, new Transform(translation, rotation, scale));
+            // TODO: check if visibility is recursive
+            pose.bones.put(bone, new Transform(translation, rotation, scale, part.visible));
 
         });
 
