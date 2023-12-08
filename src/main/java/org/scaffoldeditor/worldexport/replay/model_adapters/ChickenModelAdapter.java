@@ -14,7 +14,7 @@ public class ChickenModelAdapter extends AnimalModelAdapter<ChickenEntity> {
 
     public ChickenModelAdapter(ChickenEntity entity)
             throws IllegalArgumentException {
-        super(entity, TEXTURE, ReplayModels.QUADRUPED_Y_OFFSET);
+        super(entity, TEXTURE);
     }
     
     @Override

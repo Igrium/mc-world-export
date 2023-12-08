@@ -22,6 +22,10 @@ import net.minecraft.util.Identifier;
  */
 public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapter<T> {
 
+    public BipedModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
+        super(entity, texture);
+    }
+
     private static final MinecraftClient client = MinecraftClient.getInstance();
 
     public static class BipedModelFactory<U extends LivingEntity> implements ReplayModelAdapterFactory<U> {
@@ -34,7 +38,7 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
 
         @Override
         public BipedModelAdapter<U> create(U entity) {
-            return new BipedModelAdapter<U>(entity, texture, ReplayModels.BIPED_Y_OFFSET);
+            return new BipedModelAdapter<U>(entity, texture);
         }
 
     }
@@ -42,9 +46,6 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
     protected HeldItemFeatureAdapter heldItemAdapter;
     protected ArmorFeatureAdapter armorAdapter;
 
-    public BipedModelAdapter(T entity, Identifier texture, float yOffset) throws IllegalArgumentException {
-        super(entity, texture, yOffset);
-    }
 
     @Override
     protected MultipartReplayModel captureBaseModel(AnimalModel<T> model) {

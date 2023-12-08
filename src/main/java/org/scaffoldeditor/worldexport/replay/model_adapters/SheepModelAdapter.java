@@ -13,8 +13,8 @@ public class SheepModelAdapter extends AnimalModelAdapter<SheepEntity> {
 
     protected AnimalModelAdapter<SheepEntity> wool;
 
-    public SheepModelAdapter(SheepEntity entity, float yOffset) throws IllegalArgumentException {
-        super(entity, TEXTURE, yOffset);
+    public SheepModelAdapter(SheepEntity entity) throws IllegalArgumentException {
+        super(entity, TEXTURE);
         
     }
     

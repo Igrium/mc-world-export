@@ -27,7 +27,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
     static MinecraftClient client = MinecraftClient.getInstance();
 
     protected PlayerModelAdapter(AbstractClientPlayerEntity player, Identifier texture) {
-        super(player, texture, ReplayModels.BIPED_Y_OFFSET);
+        super(player, texture);
     }
 
     

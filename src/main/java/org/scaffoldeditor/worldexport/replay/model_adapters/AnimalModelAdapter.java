@@ -61,7 +61,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     private AnimalModel<T> model;
     private MultipartReplayModel replayModel;
 
-    protected float yOffset = 0;
     protected Identifier texture;
 
     final Matrix4dc NEUTRAL_TRANSFORM = new Matrix4d();
@@ -76,26 +75,13 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
      * 
      * @param entity  The entity to use.
      * @param texture The Minecraft texture to use on this model.
-     * @throws IllegalArgumentException If you try to create an AnimalModelAdapter
-     *                                  for an entity that doesn't use an animal
-     *                                  model.
-     */
-    public AnimalModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
-        this(entity, texture, ReplayModels.BIPED_Y_OFFSET);
-    }
-
-    /**
-     * Construct an animal model wrapper.
-     * 
-     * @param entity  The entity to use.
-     * @param texture The Minecraft texture to use on this model.
      * @param yOffset Vertical root offset. See {@link #getYOffset()} for more info.
      * @throws IllegalArgumentException If you try to create an AnimalModelAdapter
      *                                  for an entity that doesn't use an animal
      *                                  model.
      */
     @SuppressWarnings("unchecked")
-    public AnimalModelAdapter(T entity, Identifier texture, float yOffset) throws IllegalArgumentException {
+    public AnimalModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
         super(entity);
 
         try {
@@ -107,7 +93,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         
         // replayModel = new ArmatureReplayModel();
         this.texture = texture;
-        this.yOffset = yOffset;
         replayModel = captureBaseModel(model);
 
     }
@@ -281,17 +266,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     }
 
     /**
-     * Some animal models (biped) have their roots at the neck instead of the feet.
-     * This obviously doesn't work when animating entities, so this value designates
-     * a vertical offset to apply to all values in order to fix this.
-     * 
-     * @return The vertical root offset in meters.
-     */
-    public float getYOffset() {
-        return yOffset;
-    }
-
-    /**
      * Execute a function for every model part, including child parts.
      * 
      * @param consumer The function, consuming the part and the transformation of
@@ -314,21 +288,17 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         var localOffset = new Matrix4d();
         offset.push();
 
+        // For some dumb reason, animal models are built exactly this far into the
+        // ground, and fixing it is hardcoded into LivingEntityRenderer. Seriously
+        // Mojang, clean up your rendering code.
+        if (isRoot) {
+            offset.translate(0, 1.501, 0);
+            localOffset.translate(0, 1.501, 0);
+        }
+
         ModelUtils.getPartTransform(part, localOffset);
         ModelUtils.getPartTransform(part, offset);
 
-        // if (isRoot) localOffset.rotate(Math.PI, 1, 0, 0);
-        // localOffset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
-
-        // if (part.yaw != 0)
-        //     localOffset.rotateY(part.yaw);
-        // if (part.pitch != 0)
-        //     localOffset.rotateX(part.pitch);
-        // if (part.roll != 0)
-        //     localOffset.rotateZ(part.roll);
-
-        // offset.pushMatrix();
-        // offset.mulLocal(localOffset);
         consumer.accept(name, part, offset, localOffset);
         ((ModelPartAccessor) (Object) part).getChildren().forEach((key, child) -> {
             forEachPartInternal(key, child, consumer, offset, false);
@@ -345,11 +315,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             ModelUtils.getPartTransform(part, localOffset);
             ModelUtils.getPartTransform(part, offset);
 
-            // For some dumb reason, animal models are built exactly this far into the
-            // ground, and fixing it is hardcoded into LivingEntityRenderer. Seriously
-            // Mojang, clean up your rendering code.
-            offset.translate(0, 1.501, 0);
-            localOffset.translate(0, 1.501, 0);
 
             ReplayModelPart modelPart = boneMapping.get(part);
             String name = UtilFunctions.validateName(modelPart != null ? modelPart.getName() : "unknown",
@@ -357,24 +322,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             
             
             consumer.accept(name, part, offset, localOffset);
-            // Matrix4d offset = new Matrix4d();
-            // if (part.yaw != 0)
-            //     offset.rotateY(part.yaw);
-            // if (part.pitch != 0)
-            //     offset.rotateX(part.pitch);
-            // if (part.roll != 0)
-            //     offset.rotateZ(part.roll);
 
-            // String name;
-            // if (boneMapping.containsKey(part)) {
-            //     name = boneMapping.get(part).getName();
-            // } else {
-            //     name = UtilFunctions.validateName("unknown",
-            //             str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
-            // }
-            // offset.translate(0, -yOffset, 0);
-
-            // consumer.accept(name, part, offset, offset);
         };
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(handlePart);
