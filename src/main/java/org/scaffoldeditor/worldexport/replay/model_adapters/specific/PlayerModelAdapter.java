@@ -1,9 +1,10 @@
-package org.scaffoldeditor.worldexport.replay.model_adapters;
+package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
 import javax.annotation.Nullable;
 
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
+import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;

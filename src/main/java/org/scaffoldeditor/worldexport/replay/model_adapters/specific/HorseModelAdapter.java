@@ -1,6 +1,8 @@
-package org.scaffoldeditor.worldexport.replay.model_adapters;
+package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
 import java.util.Map;
+
+import org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter;
 
 import com.google.common.collect.Maps;
 

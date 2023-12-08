@@ -4,6 +4,10 @@ import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter.Bi
 import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter.ReplayModelAdapterFactory;
 import org.scaffoldeditor.worldexport.replay.model_adapters.custom.FireballModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.custom.ProjectileModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.specific.ChickenModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.specific.HorseModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.specific.ItemModelAdapter;
+import org.scaffoldeditor.worldexport.replay.model_adapters.specific.PlayerModelAdapter;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;

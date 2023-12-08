@@ -1,5 +1,6 @@
-package org.scaffoldeditor.worldexport.replay.model_adapters;
+package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
+import org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 
 import net.minecraft.client.render.entity.model.AnimalModel;

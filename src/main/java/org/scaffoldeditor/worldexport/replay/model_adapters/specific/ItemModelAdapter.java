@@ -1,9 +1,10 @@
-package org.scaffoldeditor.worldexport.replay.model_adapters;
+package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
 import net.minecraft.client.render.model.json.ModelTransformationMode;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
+import org.scaffoldeditor.worldexport.replay.model_adapters.ReplayModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayItemRenderer;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
