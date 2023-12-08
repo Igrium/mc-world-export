@@ -119,6 +119,8 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
         mod = obj.modifiers.new('Armature', 'ARMATURE')
         mod.object = armature
 
+    final_objects: list[Object]
+    
     if len(parsed_objs) > 0:
         if separate_parts:
             for obj in parsed_objs:
@@ -147,6 +149,7 @@ def load_entity(file: IO[str], context: Context, collection: Collection, materia
                 attach_armature(obj, armature_obj)
     else:
         print(f"Entity {name} has no meshes!")
+        final_objects = []
     
     # ANIMATION
     if (anim is not None):
