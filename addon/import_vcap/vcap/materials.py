@@ -239,6 +239,7 @@ def generate_nodes(obj, node_tree: NodeTree, image_provider: Callable[[str, bool
         if (id == VERTEX_COLOR):
             node = node_tree.nodes.new('ShaderNodeVertexColor')
             node.parent = frame
+            node.layer_name = 'tint'
         else:
             node = node_tree.nodes.new('ShaderNodeAttribute')
             node.attribute_type = 'OBJECT'
