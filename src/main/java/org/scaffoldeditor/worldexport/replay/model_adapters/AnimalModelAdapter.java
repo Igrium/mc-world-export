@@ -23,8 +23,16 @@ import net.minecraft.util.Pair;
  */
 public class AnimalModelAdapter<T extends LivingEntity> extends LivingEntityModelAdapter<T, AnimalModel<T>> {
 
+    private Identifier texture;
+
     public AnimalModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
-        super(entity, texture);
+        super(entity);
+        this.texture = texture;
+    }
+
+    @Override
+    public Identifier getTexture() {
+        return texture;
     }
 
     @Override

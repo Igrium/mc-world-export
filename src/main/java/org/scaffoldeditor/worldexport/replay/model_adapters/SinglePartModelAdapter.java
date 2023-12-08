@@ -14,12 +14,21 @@ import net.minecraft.util.Pair;
 
 public class SinglePartModelAdapter<T extends LivingEntity> extends LivingEntityModelAdapter<T, SinglePartEntityModel<T>> {
 
+    private Identifier texture;
+
     public SinglePartModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
-        super(entity, texture);
+        super(entity);
+        this.texture = texture;
     }
 
     public SinglePartModelAdapter(T entity) {
-        this(entity, getEntityTexture(entity));
+        super(entity);
+        this.texture = getEntityTexture(entity);
+    }
+
+    @Override
+    public Identifier getTexture() {
+        return texture;
     }
 
     @Override

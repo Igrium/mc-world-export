@@ -58,16 +58,15 @@ public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends
     protected BiMap<ModelPart, ReplayModelPart> boneMapping = HashBiMap.create();
 
     protected final M model;
-    protected final MultipartReplayModel replayModel;
+    protected MultipartReplayModel replayModel;
 
-    protected Identifier texture;
 
     /**
      * Keep track of the previous frame's pose for quaternion compatibility.
      */
     protected Pose<ReplayModelPart> lastPose;
 
-    public LivingEntityModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
+    public LivingEntityModelAdapter(T entity) throws IllegalArgumentException {
         super(entity);
 
         try {
@@ -77,14 +76,13 @@ public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends
             throw new IllegalArgumentException("Supplied entity had an incorrect model.", e);
         }
         
-        this.texture = texture;
-        replayModel = captureBaseModel(model);
     }
 
     protected abstract M extractModel(LivingEntityRenderer<? super T, ?> entityRenderer) throws ClassCastException;
 
     @Override
     public final MultipartReplayModel getModel() {
+        if (replayModel == null) replayModel = captureBaseModel(model);
         return replayModel;
     }
 
@@ -92,13 +90,15 @@ public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends
         return model;
     }
 
+    public abstract Identifier getTexture();
+
     protected String getMaterialName() {
-        return MaterialUtils.getTexName(texture);
+        return MaterialUtils.getTexName(getTexture());
     }
 
     @Override
     public void generateMaterials(MaterialConsumer file) {
-        createMaterial(texture, file);
+        createMaterial(getTexture(), file);
     }
 
     @Override
@@ -121,6 +121,9 @@ public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends
 
     @Override
     protected Pose<ReplayModelPart> writePose(float tickDelta) {
+        if (replayModel == null)
+            replayModel = captureBaseModel(model);
+
         Pose<ReplayModelPart> pose = new Pose<>();
         forEachPart((name, part, transform, localTransform) -> {
             ReplayModelPart bone = boneMapping.get(part);
