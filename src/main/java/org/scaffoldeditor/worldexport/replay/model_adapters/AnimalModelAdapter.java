@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.joml.Matrix4d;
-import org.joml.Matrix4dStack;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -20,6 +19,7 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.util.MathUtils;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
+import org.scaffoldeditor.worldexport.util.ModelUtils;
 import org.scaffoldeditor.worldexport.util.UtilFunctions;
 
 import com.google.common.collect.BiMap;
@@ -42,6 +42,16 @@ import net.minecraft.util.Identifier;
 public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, MultipartReplayModel> {
     private MinecraftClient client = MinecraftClient.getInstance();
 
+    protected interface ModelPartConsumer {
+        /**
+         * Called for every model part.
+         * @param name The model part's name.
+         * @param part The model part.
+         * @param transform The part's transformation relative to the model root (y offset included)
+         */
+        void accept(String name, ModelPart part, MatrixStack transform, Matrix4dc localTransform);
+    }
+
     /**
      * Maps model parts to their corrisponding bones, allowing the pose generator to
      * reference the proper replay bones.
@@ -54,7 +64,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
     protected float yOffset = 0;
     protected Identifier texture;
 
-    final Matrix4d NEUTRAL_TRANSFORM = new Matrix4d();
+    final Matrix4dc NEUTRAL_TRANSFORM = new Matrix4d();
 
     /**
      * Keep track of the previous frame's pose for quaternion compatibility.
@@ -144,7 +154,7 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
             Vector3d translation = localTransform.getTranslation(new Vector3d());
             Vector3d scale = localTransform.getScale(new Vector3d());
 
-            Quaterniond rotation = transform.getUnnormalizedRotation(new Quaterniond());
+            Quaterniond rotation = localTransform.getUnnormalizedRotation(new Quaterniond());
             if (lastPose != null) {
                 Transform lastBone = lastPose.bones.get(bone);
                 if (lastBone != null) MathUtils.makeQuatsCompatible(rotation, lastBone.rotation, .2, rotation);
@@ -281,16 +291,6 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
         return yOffset;
     }
 
-    protected interface ModelPartConsumer {
-        /**
-         * Called for every model part.
-         * @param name The model part's name.
-         * @param part The model part.
-         * @param transform The part's transformation relative to the model root (y offset included)
-         */
-        void accept(String name, ModelPart part, Matrix4dc transform, Matrix4dc localTransform);
-    }
-
     /**
      * Execute a function for every model part, including child parts.
      * 
@@ -298,61 +298,83 @@ public class AnimalModelAdapter<T extends LivingEntity> extends LivingModelAdapt
      *                 said point, in relation to the model root.
      */
     protected void forEachPart(org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer) {
-        Matrix4dStack offset = new Matrix4dStack(10);
+        MatrixStack offset = new MatrixStack();
 
         // If a bone is assigned to this part, and we're guessing part names anyway, use the bone's name.
         ((AnimalModelAccessor) model).retrieveBodyParts().forEach(part -> {
-            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset, true);
         });
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(part -> {
-            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset);
+            forEachPartInternal(boneMapping.containsKey(part) ? boneMapping.get(part).getName() : part.toString(), part, consumer, offset, true);
         });
     }
     
-    private void forEachPartInternal(String name, ModelPart part, org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer, Matrix4dStack offset) {
+    private void forEachPartInternal(String name, ModelPart part, ModelPartConsumer consumer, MatrixStack offset, boolean isRoot) {
         var localOffset = new Matrix4d();
+        offset.push();
 
-        localOffset.rotate(Math.PI, 1, 0, 0);
-        localOffset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
+        ModelUtils.getPartTransform(part, localOffset);
+        ModelUtils.getPartTransform(part, offset);
 
-        if (part.yaw != 0)
-            localOffset.rotateY(part.yaw);
-        if (part.pitch != 0)
-            localOffset.rotateX(part.pitch);
-        if (part.roll != 0)
-            localOffset.rotateZ(part.roll);
+        // if (isRoot) localOffset.rotate(Math.PI, 1, 0, 0);
+        // localOffset.translate(part.pivotX / 16f, part.pivotY / 16f, part.pivotZ / 16f);
 
-        offset.pushMatrix();
-        offset.mulLocal(localOffset);
+        // if (part.yaw != 0)
+        //     localOffset.rotateY(part.yaw);
+        // if (part.pitch != 0)
+        //     localOffset.rotateX(part.pitch);
+        // if (part.roll != 0)
+        //     localOffset.rotateZ(part.roll);
+
+        // offset.pushMatrix();
+        // offset.mulLocal(localOffset);
         consumer.accept(name, part, offset, localOffset);
         ((ModelPartAccessor) (Object) part).getChildren().forEach((key, child) -> {
-            forEachPartInternal(key, child, consumer, offset);
+            forEachPartInternal(key, child, consumer, offset, false);
         });
-        offset.popMatrix();
+        offset.pop();
     }
 
-    protected void forRootParts(org.scaffoldeditor.worldexport.replay.model_adapters.AnimalModelAdapter.ModelPartConsumer consumer) {
-
+    protected void forRootParts(ModelPartConsumer consumer) {
+        final MatrixStack offset = new MatrixStack();
         Consumer<ModelPart> handlePart = (part) -> {
-            Matrix4d offset = new Matrix4d();
-            if (part.yaw != 0)
-                offset.rotateY(part.yaw);
-            if (part.pitch != 0)
-                offset.rotateX(part.pitch);
-            if (part.roll != 0)
-                offset.rotateZ(part.roll);
+            Matrix4d localOffset = new Matrix4d();
+            offset.push();
 
-            String name;
-            if (boneMapping.containsKey(part)) {
-                name = boneMapping.get(part).getName();
-            } else {
-                name = UtilFunctions.validateName("unknown",
-                        str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
-            }
-            offset.translate(0, -yOffset, 0);
+            ModelUtils.getPartTransform(part, localOffset);
+            ModelUtils.getPartTransform(part, offset);
 
-            consumer.accept(name, part, offset, offset);
+            // For some dumb reason, animal models are built exactly this far into the
+            // ground, and fixing it is hardcoded into LivingEntityRenderer. Seriously
+            // Mojang, clean up your rendering code.
+            offset.translate(0, 1.501, 0);
+            localOffset.translate(0, 1.501, 0);
+
+            ReplayModelPart modelPart = boneMapping.get(part);
+            String name = UtilFunctions.validateName(modelPart != null ? modelPart.getName() : "unknown",
+                    str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
+            
+            
+            consumer.accept(name, part, offset, localOffset);
+            // Matrix4d offset = new Matrix4d();
+            // if (part.yaw != 0)
+            //     offset.rotateY(part.yaw);
+            // if (part.pitch != 0)
+            //     offset.rotateX(part.pitch);
+            // if (part.roll != 0)
+            //     offset.rotateZ(part.roll);
+
+            // String name;
+            // if (boneMapping.containsKey(part)) {
+            //     name = boneMapping.get(part).getName();
+            // } else {
+            //     name = UtilFunctions.validateName("unknown",
+            //             str -> boneMapping.values().stream().anyMatch(bone -> bone.getName().equals(str)));
+            // }
+            // offset.translate(0, -yOffset, 0);
+
+            // consumer.accept(name, part, offset, offset);
         };
 
         ((AnimalModelAccessor) model).retrieveHeadParts().forEach(handlePart);
