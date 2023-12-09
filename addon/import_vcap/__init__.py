@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Igrium",
     "description" : "The Blender component of Igrium's Replay Exporter",
     "blender" : (3, 6, 0),
-    "version" : (0, 9, 0),
+    "version" : (0, 0, 0), # Updated by gradle
     "location" : "",
     "warning" : "This addon is still in development.",
     "category" : "Import-Export"

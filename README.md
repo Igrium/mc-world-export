@@ -58,3 +58,11 @@ Everything else can be left as default.
 Once you're ready, click "Import Minecraft Replay" at the bottom. Blender will appear to hang for a few minutes. Don't worry; this is because the data-set of a Minecraft world is quite large, and Blender provides no way to update the UI while it is processing.
 
 Once it is finished importing, you should have a Minecraft world and most of its entities in your scene! If something goes wrong, make sure to submit a bug report!
+
+# Building
+
+Like most mods, the mod can be built by running `gradlew build` in the root directory. This will download the Replay Mod as a dependency and output a compiled jar to `build/libs`. This jar does not contain the Replay Mod itself; it must be downloaded and installed separately by the player.
+
+If you run the mod in a development environment, you'll notice a "Debug Replays" button in the top-right corner of the title screen. Clicking this will open an AWT window containing a really janky UI I developed to debug entity animation. This feature isn't being supported so you can, like, try to use it, but it likely won't work great.
+
+In addition to the standard build tasks, the build script for this repo contains an additional task: `gradlew addon`. This will package and prepare the Blender addon for distribution. You likely won't need it unless you're distributing your own fork, so this task is not automatically called during the primary build process. Once you invoke it manually, you will find a zip file alongside the jars in `build/libs`. This is the packaged addon archive, ready to be imported directly into Blender.
