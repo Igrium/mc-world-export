@@ -15,6 +15,7 @@ import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
 import net.minecraft.client.render.entity.model.BipedEntityModel.ArmPose;
+import net.minecraft.client.util.SkinTextures.Model;
 import net.minecraft.item.CrossbowItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -33,7 +34,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
 
     
     public static PlayerModelAdapter newInstance(AbstractClientPlayerEntity player) {
-        return new PlayerModelAdapter(player, player.getSkinTexture());
+        return new PlayerModelAdapter(player, player.getSkinTextures().texture());
     }
 
     @Override
@@ -61,7 +62,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
 
     @Override
     public boolean isSlim() {
-        return getEntity().getModel().equals("slim");
+        return getEntity().getSkinTextures().model().equals(Model.SLIM);
     }
 
     private void setModelPose() {

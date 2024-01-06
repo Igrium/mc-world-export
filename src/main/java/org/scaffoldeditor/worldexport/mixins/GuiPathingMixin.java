@@ -40,7 +40,7 @@ public class GuiPathingMixin {
 
     public GuiButton exportButton;
     
-    @Inject(method = "<init>", at = @At("RETURN"))
+    @Inject(method = "<init>", at = @At("RETURN"), remap = false)
     public void constructorHead(ReplayMod core, ReplayModSimplePathing mod, ReplayHandler replayHandler, CallbackInfo ci) {
 
     }
