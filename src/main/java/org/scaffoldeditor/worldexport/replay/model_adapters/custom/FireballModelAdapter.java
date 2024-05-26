@@ -22,7 +22,7 @@ import net.minecraft.entity.projectile.SmallFireballEntity;
 
 public class FireballModelAdapter implements ReplayModelAdapter<MultipartReplayModel> {
 
-    private AbstractFireballEntity entity;
+    private final AbstractFireballEntity entity;
     private MultipartReplayModel model;
 
     private ReplayModelPart root;

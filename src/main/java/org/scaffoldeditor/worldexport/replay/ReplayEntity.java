@@ -80,15 +80,15 @@ public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
 
     /**
      * Generate this entity's model adapter.
+     *
      * @throws ModelNotFoundException If the entity type does not have a model adapter factory.
      */
-    public ReplayModelAdapter<?> genAdapter() throws ModelNotFoundException {
+    public void genAdapter() throws ModelNotFoundException {
         if (modelAdapter != null) {
             throw new IllegalStateException("Model adapter has already been generated!");
         }
 
         this.modelAdapter = ReplayModelAdapter.getModelAdapter(entity);
-        return modelAdapter;
     }
 
     public void generateMaterials(MaterialConsumer file) {
@@ -248,7 +248,7 @@ public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
                 if (frame == null) {
                     writer.write(";");
                 } else {
-                    writer.write(frame.toString()+";");
+                    writer.write(frame +";");
                 }
             }
 

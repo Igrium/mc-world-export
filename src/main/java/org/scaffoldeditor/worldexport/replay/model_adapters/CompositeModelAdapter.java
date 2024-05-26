@@ -27,10 +27,9 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 
 public class CompositeModelAdapter<T extends LivingEntity> extends LivingModelAdapter<T, MultipartReplayModel> {
-    private MinecraftClient client = MinecraftClient.getInstance();
 
-    private CompositeEntityModel<T> model;
-    private MultipartReplayModel replayModel;
+    private final CompositeEntityModel<T> model;
+    private final MultipartReplayModel replayModel;
 
     protected Identifier texture;
 
@@ -47,6 +46,7 @@ public class CompositeModelAdapter<T extends LivingEntity> extends LivingModelAd
 
         LivingEntityRenderer<T, ?> renderer;
         try {
+            MinecraftClient client = MinecraftClient.getInstance();
             renderer = (LivingEntityRenderer<T, ?>) client.getEntityRenderDispatcher().getRenderer(entity);
             model = (CompositeEntityModel<T>) renderer.getModel();
         } catch (ClassCastException e) {

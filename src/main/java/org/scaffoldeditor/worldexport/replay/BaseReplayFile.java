@@ -8,8 +8,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -117,24 +115,12 @@ public abstract class BaseReplayFile<T extends BaseReplayEntity> {
         out.finish();
     }
 
-    private boolean checkForTexture(Field field, String matName) {
+    private void checkForTexture(Field field, String matName) {
         if (field != null && field.mode == FieldType.TEXTURE) {
             if (!field.getTexture().equals("world") && !this.getTextures().containsKey(field.getTexture())) {
                 LogManager.getLogger().warn("Material: '{}' references missing texture: {}", matName, field.getTexture());
-                return false;
             }
         }
-        return true;
-    }
-
-    public CompletableFuture<Void> saveAsync(OutputStream os) {
-        return CompletableFuture.runAsync(() -> {
-            try {
-                save(os);
-            } catch (IOException e) {
-                throw new CompletionException(e);
-            }
-        });
     }
 
     public void save(File file) throws IOException {

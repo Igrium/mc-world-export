@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import net.minecraft.client.resource.metadata.AnimationResourceMetadata;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.Sprite;
-import net.minecraft.util.Identifier;
 
 /**
  * A replay texture containing a sprite animation.
@@ -25,10 +24,10 @@ import net.minecraft.util.Identifier;
 public class AnimatedReplayTexture implements ReplayTexture {
 
     private final Sprite sprite;
-    private NativeImage spritesheet;
+    private final NativeImage spriteSheet;
 
-    private ReplayTexture spritesheetTexture;
-    private AnimationResourceMetadata animData;
+    private final ReplayTexture spriteSheetTexture;
+    private final AnimationResourceMetadata animData;
 
 
     private CompletableFuture<?> prepareFuture;
@@ -39,8 +38,8 @@ public class AnimatedReplayTexture implements ReplayTexture {
      */
     public AnimatedReplayTexture(Sprite sprite) {
         this.sprite = sprite;
-        this.spritesheet = ((SpriteAccessor) sprite.getContents()).getImages()[0];
-        spritesheetTexture = new NativeImageReplayTexture(spritesheet);
+        this.spriteSheet = ((SpriteAccessor) sprite.getContents()).getImages()[0];
+        spriteSheetTexture = new NativeImageReplayTexture(spriteSheet);
         animData = ((SpriteAnimMetaProvider) sprite.getContents()).getAnimData();
     }
 
@@ -57,7 +56,7 @@ public class AnimatedReplayTexture implements ReplayTexture {
 
     @Override
     public Map<String, Supplier<ReplayTexture>> getTextureDependencies() {
-        return ImmutableMap.of(getTexName(sprite.getContents().getId()) + "_spritesheet", () -> spritesheetTexture);
+        return ImmutableMap.of(MaterialUtils.getTexName(sprite.getContents().getId()) + "_spritesheet", () -> spriteSheetTexture);
     }
 
     private void assertPrepared() throws IOException {
@@ -75,13 +74,13 @@ public class AnimatedReplayTexture implements ReplayTexture {
     @Override
     public CompletableFuture<?> prepare() {
         if (prepareFuture != null) return prepareFuture;
-        prepareFuture = spritesheetTexture.prepare();
+        prepareFuture = spriteSheetTexture.prepare();
         return prepareFuture;
     }
 
     private int countFrames() {
         // TODO: Properly read animation meta
-        return spritesheet.getHeight() / spritesheet.getWidth();
+        return spriteSheet.getHeight() / spriteSheet.getWidth();
     }
 
     public AnimatedTextureMeta getMetadata() {
@@ -90,24 +89,4 @@ public class AnimatedReplayTexture implements ReplayTexture {
         meta.setFramerate(20f / animData.getDefaultFrameTime());
         return meta;
     }
-    
-    public Sprite getSprite() {
-        return sprite;
-    }
-
-    /**
-     * Get the filename of a texture, excluding the extension.
-     * @param texture Texture identifier.
-     * @return Filename, without extension. Compatible with material fields.
-     */
-    private String getTexName(Identifier texture) {
-        String name = texture.toString().replace(':', '/');
-        int index = name.lastIndexOf('.');
-        if (index > 0) {
-            return name.substring(0, index);
-        } else {
-            return name;
-        }
-    }
-    
 }

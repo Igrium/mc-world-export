@@ -28,5 +28,4 @@ public class HorseModelAdapter extends AnimalModelAdapter<HorseEntity> {
         super(entity, TEXTURES.get(entity.getVariant()));
         
     }
-    
 }

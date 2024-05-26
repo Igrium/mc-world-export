@@ -14,12 +14,7 @@ import net.minecraft.util.Pair;
 
 public class SinglePartModelAdapter<T extends LivingEntity> extends LivingEntityModelAdapter<T, SinglePartEntityModel<T>> {
 
-    private Identifier texture;
-
-    public SinglePartModelAdapter(T entity, Identifier texture) throws IllegalArgumentException {
-        super(entity);
-        this.texture = texture;
-    }
+    private final Identifier texture;
 
     public SinglePartModelAdapter(T entity) {
         super(entity);

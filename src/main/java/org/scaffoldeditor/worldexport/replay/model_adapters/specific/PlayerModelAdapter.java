@@ -11,7 +11,6 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
@@ -25,8 +24,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
 
 public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEntity> {
-
-    static MinecraftClient client = MinecraftClient.getInstance();
 
     protected PlayerModelAdapter(AbstractClientPlayerEntity player, Identifier texture) {
         super(player, texture);

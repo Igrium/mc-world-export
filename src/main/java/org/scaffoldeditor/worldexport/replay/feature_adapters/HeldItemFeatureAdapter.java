@@ -28,13 +28,13 @@ public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelP
 
     LivingEntity entity;
 
-    private Matrix4dc leftItemOffset;
-    private Matrix4dc rightItemOffset;
+    private final Matrix4dc leftItemOffset;
+    private final Matrix4dc rightItemOffset;
 
     protected Map<Item, ReplayModelPart> leftHandModels = new HashMap<>();
     protected Map<Item, ReplayModelPart> rightHandModels = new HashMap<>();
 
-    private Map<ReplayModelPart, Transform> prevTransforms = new HashMap<>();
+    private final Map<ReplayModelPart, Transform> prevTransforms = new HashMap<>();
 
     private ReplayModelPart lastLeftHand = null;
     private ReplayModelPart lastRightHand = null;
@@ -60,18 +60,6 @@ public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelP
 
         leftItemOffset = left;
         rightItemOffset = right;
-    }
-
-    public HeldItemFeatureAdapter(LivingEntity entity, MultipartReplayModel model, String leftParent,
-            Matrix4dc leftItemOffset, String rightParent, Matrix4dc rightItemOffset) {
-        this.entity = entity;
-        this.model = model;
-
-        this.leftParent = leftParent;
-        this.rightParent = rightParent;
-
-        this.leftItemOffset = leftItemOffset;
-        this.rightItemOffset = rightItemOffset;
     }
 
     public void writePose(Pose<ReplayModelPart> pose, float tickDelta) {
@@ -118,7 +106,7 @@ public class HeldItemFeatureAdapter implements ReplayFeatureAdapter<ReplayModelP
     }
 
     public void generateMaterials(MaterialConsumer consumer) {
-        if (rightHandModels.size() > 0 || leftHandModels.size() > 0) {
+        if (!rightHandModels.isEmpty() || !leftHandModels.isEmpty()) {
             ReplayItemRenderer.addMaterials(consumer);
         }
     }

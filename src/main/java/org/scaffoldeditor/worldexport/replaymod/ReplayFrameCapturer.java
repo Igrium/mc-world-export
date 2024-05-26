@@ -169,7 +169,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
         renderInfo.updateForNextFrame();
 
         double time = framesDone / (double) fps;
-        if (blockUpdateCache.size() > 0) {
+        if (!blockUpdateCache.isEmpty()) {
             exporter.getWorldExporter().capturePFrame(time, blockUpdateCache.keySet(), client.world);
             blockUpdateCache.clear();
         }

@@ -16,12 +16,11 @@ public class SheepModelAdapter extends AnimalModelAdapter<SheepEntity> {
 
     public SheepModelAdapter(SheepEntity entity) throws IllegalArgumentException {
         super(entity, TEXTURE);
-        
+
     }
     
     @Override
     protected MultipartReplayModel captureBaseModel(AnimalModel<SheepEntity> model) {
-        MultipartReplayModel replayModel = super.captureBaseModel(model);
-        return replayModel;
+        return super.captureBaseModel(model);
     }
 }

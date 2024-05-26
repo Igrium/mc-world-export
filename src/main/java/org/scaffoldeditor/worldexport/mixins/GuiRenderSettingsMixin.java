@@ -3,6 +3,7 @@ package org.scaffoldeditor.worldexport.mixins;
 import org.scaffoldeditor.worldexport.gui.GuiExportSettings;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -17,12 +18,8 @@ import com.replaymod.replaystudio.pathing.path.Timeline;
 
 @Mixin(value = GuiRenderSettings.class, remap = false)
 public abstract class GuiRenderSettingsMixin {
-    @Shadow
-    private ReplayHandler replayHandler;
 
-    @Shadow
-    private Timeline timeline;
-
+    @Unique
     public GuiButton exportButton;
 
     @Shadow
@@ -41,5 +38,4 @@ public abstract class GuiRenderSettingsMixin {
 
         })).setSize(100, 20).setLabel("Export replay file");
     }
-
 }
