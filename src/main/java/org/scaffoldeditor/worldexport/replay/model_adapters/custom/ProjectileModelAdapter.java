@@ -29,7 +29,7 @@ import net.minecraft.util.math.MathHelper;
  */
 public class ProjectileModelAdapter implements ReplayModelAdapter<MultipartReplayModel> {
 
-    private PersistentProjectileEntity entity;
+    private final PersistentProjectileEntity entity;
     private MultipartReplayModel model;
 
     private ReplayModelPart root;

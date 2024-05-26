@@ -133,8 +133,7 @@ public class CameraAnimationModule extends EventRegistrations {
         // Create the entity if it doesn't exist.
         AnimatedCameraEntity camera = ReplayExportMod.ANIMATED_CAMERA.create(world);
         camera.setId(entId);
-        world.addEntity(entId, camera);
-
+        world.addEntity(camera);
         return camera;
     }
 

@@ -49,7 +49,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         void accept(String name, ModelPart part, Matrix4dc transform);
     }
 
-    private T entity;
+    private final T entity;
     
     protected float handSwingProgress = 0;
     protected boolean riding = false;
@@ -82,8 +82,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
      * Extract the pose from the underlying model. Note: Root transform data gets
      * applied in the calling function. The Pose's root transform should be in local
      * space.
-     * 
-     * @param model     The model to use to generate pose transforms.
+     *
      * @param tickDelta Tick delta.
      * @return The generated pose.
      */
@@ -237,20 +236,13 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     }
 
     private static float getYaw(Direction direction) {
-        switch(direction) {
-        case SOUTH:
-            return 90.0F;
-        case WEST:
-            return 0.0F;
-        case NORTH:
-            return 270.0F;
-        case EAST:
-            return 180.0F;
-        default:
-            return 0.0F;
-        }
+        return switch (direction) {
+            case SOUTH -> 90.0F;
+            case NORTH -> 270.0F;
+            case EAST -> 180.0F;
+            default -> 0.0F;
+        };
     }
-    
 
     /**
      * Prepare root transformations. Takes three optional vector (and quat) values.
@@ -283,7 +275,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         }
 
         if (isShaking()) {
-            bodyYaw += Math.cos(entity.age * 3.25d) * Math.PI * 0.4;
+            bodyYaw += (float) (Math.cos(entity.age * 3.25d) * Math.PI * 0.4);
         }
 
         if (pose != EntityPose.SLEEPING) {

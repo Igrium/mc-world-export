@@ -10,8 +10,8 @@ import net.minecraft.client.render.entity.model.AnimalModel;
 public interface AnimalModelAccessor {
 
     @Invoker("getHeadParts")
-    public Iterable<ModelPart> retrieveHeadParts();
+    Iterable<ModelPart> retrieveHeadParts();
     
     @Invoker("getBodyParts")
-    public Iterable<ModelPart> retrieveBodyParts();
+    Iterable<ModelPart> retrieveBodyParts();
 }

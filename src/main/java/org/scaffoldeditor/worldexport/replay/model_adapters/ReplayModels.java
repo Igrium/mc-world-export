@@ -9,7 +9,6 @@ import org.scaffoldeditor.worldexport.replay.model_adapters.specific.HorseModelA
 import org.scaffoldeditor.worldexport.replay.model_adapters.specific.ItemModelAdapter;
 import org.scaffoldeditor.worldexport.replay.model_adapters.specific.PlayerModelAdapter;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.LivingEntity;
@@ -25,9 +24,6 @@ public final class ReplayModels {
     };
 
     public static final float BIPED_Y_OFFSET = 1.5f;
-    public static final float QUADRUPED_Y_OFFSET = 1.5f;
-    static MinecraftClient client = MinecraftClient.getInstance();
-
 
     public static class AnimalModelFactory<T extends LivingEntity> implements ReplayModelAdapterFactory<T> {
 
@@ -47,7 +43,7 @@ public final class ReplayModels {
 
         @Override
         public ReplayModelAdapter<?> create(LivingEntity entity) {
-            return new SinglePartModelAdapter<LivingEntity>(entity);
+            return new SinglePartModelAdapter<>(entity);
         }
           
     }
@@ -56,7 +52,7 @@ public final class ReplayModels {
 
         @Override
         public ReplayModelAdapter<?> create(LivingEntity entity) {
-                return new CompositeModelAdapter<LivingEntity>(entity);
+                return new CompositeModelAdapter<>(entity);
         }
         
     }

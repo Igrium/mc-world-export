@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
 import javax.annotation.Nullable;
 
+import net.minecraft.client.util.SkinTextures;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter;
@@ -10,7 +11,6 @@ import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
 
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.entity.model.AnimalModel;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
@@ -25,15 +25,13 @@ import net.minecraft.util.UseAction;
 
 public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEntity> {
 
-    static MinecraftClient client = MinecraftClient.getInstance();
-
     protected PlayerModelAdapter(AbstractClientPlayerEntity player, Identifier texture) {
         super(player, texture);
     }
 
     
     public static PlayerModelAdapter newInstance(AbstractClientPlayerEntity player) {
-        return new PlayerModelAdapter(player, player.getSkinTexture());
+        return new PlayerModelAdapter(player, player.getSkinTextures().texture());
     }
 
     @Override
@@ -61,7 +59,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
 
     @Override
     public boolean isSlim() {
-        return getEntity().getModel().equals("slim");
+        return getEntity().getSkinTextures().model().equals(SkinTextures.Model.SLIM);
     }
 
     private void setModelPose() {

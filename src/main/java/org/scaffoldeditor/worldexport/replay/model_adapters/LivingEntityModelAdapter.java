@@ -36,8 +36,6 @@ import net.minecraft.util.Pair;
  */
 public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends EntityModel<? super T>> extends LivingModelAdapter<T, MultipartReplayModel> {
 
-    private final MinecraftClient client = MinecraftClient.getInstance();
-
     protected interface ModelPartConsumer {
 
         /**
@@ -70,6 +68,7 @@ public abstract class LivingEntityModelAdapter<T extends LivingEntity, M extends
         super(entity);
 
         try {
+            MinecraftClient client = MinecraftClient.getInstance();
             LivingEntityRenderer<? super T, ?> renderer = (LivingEntityRenderer<? super T, ?>) client.getEntityRenderDispatcher().getRenderer(entity);
             model = extractModel(renderer);
         } catch (ClassCastException e) {

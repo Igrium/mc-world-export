@@ -35,7 +35,7 @@ public class ArmorFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart
     protected Map<ArmorItem, ArmorModelEntry> armorModels = new HashMap<>();
     protected Set<Identifier> armorTextures = new HashSet<>();
 
-    private Map<EquipmentSlot, Iterable<ReplayModelPart>> lastModels = new HashMap<>();
+    private final Map<EquipmentSlot, Iterable<ReplayModelPart>> lastModels = new HashMap<>();
 
     public ArmorFeatureAdapter(BipedModelAdapter<?> baseModel, BipedEntityModel<?> leggingsModel, BipedEntityModel<?> armorModel) {
         this.baseModel = baseModel;
@@ -60,9 +60,7 @@ public class ArmorFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart
         }
 
         ItemStack itemStack = getEntity().getEquippedStack(slot);
-        if (!(itemStack.getItem() instanceof ArmorItem)) return;
-
-        ArmorItem item = (ArmorItem) itemStack.getItem();
+        if (!(itemStack.getItem() instanceof ArmorItem item)) return;
         if (item.getSlotType() != slot) return;
 
         ArmorModelEntry entry = armorModels.get(item);

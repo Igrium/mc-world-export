@@ -24,8 +24,8 @@ public class ItemModelAdapter implements ReplayModelAdapter<MultipartReplayModel
     MultipartReplayModel model;
     ReplayModelPart base;
 
-    private ItemEntity entity;
-    private ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
+    private final ItemEntity entity;
+    private final ItemRenderer itemRenderer = MinecraftClient.getInstance().getItemRenderer();
     private BakedModel itemModel;
 
     public ItemModelAdapter(ItemEntity entity) {
