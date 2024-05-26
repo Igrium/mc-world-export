@@ -189,7 +189,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
             try {
                 rEnt.genAdapter();
             } catch (ModelNotFoundException e) {
-                LogManager.getLogger().error("Entity " + ent.getEntityName() + " (" + EntityType.getId(ent.getType())
+                LogManager.getLogger().error("Entity " + ent.getName() + " (" + EntityType.getId(ent.getType())
                         + ") does not have a model adapter. Will be missing from export!");
                 skippedEnts.add(ent);
                 return;

@@ -50,7 +50,7 @@ public class ReplayEntity<T extends Entity> implements BaseReplayEntity {
      * @param file The replay file this entity belongs to.
      */
     public ReplayEntity(T entity, ReplayFile file) {
-        String name = entity.getEntityName();
+        String name = entity.getName().getString();
         if (name.equals(entity.getUuidAsString())) {
             if (entity.hasCustomName()) {
                 name = entity.getCustomName().getString();
