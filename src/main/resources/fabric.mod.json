@@ -34,7 +34,7 @@
     "fabric": "*",
     "minecraft": "1.20.x",
     "java": ">=17",
-    "replaymod": ">=1.20.1-2.6.13"
+    "replaymod": ">=1.20.4-2.6.15"
   },
   "breaks": {
     "sodium": "*",
