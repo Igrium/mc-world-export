@@ -79,3 +79,21 @@ jar {
 test {
     useJUnitPlatform()
 }
+
+// Thanks to Modmuss for helping with this task!
+tasks.register('addon', Zip) {
+    from "addon"
+    archiveBaseName = "import_vcap"
+    destinationDirectory = project.layout.buildDirectory.dir("libs")
+    
+    filesMatching("**/__init__.py") {
+        filter {
+            it.replace("(0, 0, 0)", "(${version.replaceAll("[^\\d.]", "").split("\\.").join(", ")})")
+            
+        }
+    }
+
+    exclude "**/__pycache__*"
+    exclude "*.py[cod]"
+    exclude "*.py.class"
+}
