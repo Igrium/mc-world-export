@@ -37,7 +37,6 @@
     "replaymod": ">=1.20.4-2.6.15"
   },
   "breaks": {
-    "sodium": "*",
     "dashloader": "*"
   },
   "suggests": {
