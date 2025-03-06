@@ -10,13 +10,13 @@ from .context import VCAPContext
 from . import util
 from . import node_groups
 
-COLOR = 0
-ALPHA = 21
-ROUGHNESS = 9
-METALLIC = 6
-EMISSION = 19
-EMISSION_STRENGTH = 20
-NORMAL = 22
+COLOR = 'Base Color'
+ALPHA = 'Alpha'
+ROUGHNESS = 'Roughness'
+METALLIC = 'Metallic'
+EMISSION = 'Emission Color'
+EMISSION_STRENGTH = 'Emission Strength'
+NORMAL = 'Normal'
 
 VERTEX_COLOR = "$VERTEX_COLOR"
 
@@ -111,7 +111,7 @@ def parse(obj, name: str, context: VCAPContext):
     group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
     group_inputs = group.nodes.new('NodeGroupInput')
     group_inputs.location = (-800, 0)
-    group.inputs.new(name='UV', type='NodeSocketVector')
+    group.interface.new_socket(name="UV", in_out='INPUT', socket_type='NodeSocketVector')
 
     def get_image(tex_id: str, is_data: bool):
         return load_texture(tex_id, context, is_data)
@@ -121,10 +121,10 @@ def parse(obj, name: str, context: VCAPContext):
     group_outputs = group.nodes.new('NodeGroupOutput')
     group_outputs.location = (300, 0)
 
-    group.outputs.new(name='Shader', type='NodeSocketShader')
+    group.interface.new_socket(name="Shader", in_out='OUTPUT', socket_type='NodeSocketShader')
     group.links.new(node.outputs[0], group_outputs.inputs.get('Shader'))
 
-    group.outputs.new(name='Alpha', type='NodeSocketFloat')
+    group.interface.new_socket(name="Alpha", in_out='OUTPUT', socket_type='NodeSocketFloat')
 
     if (alpha != None):
         group.links.new(alpha, group_outputs.inputs['Alpha'])
@@ -331,12 +331,14 @@ def create_composite_material(name: str, context: VCAPContext, mat1: str, mat2: 
     group = bpy.data.node_groups.new(name, 'ShaderNodeTree')
     group_inputs = group.nodes.new('NodeGroupInput')
     group_inputs.location = (-800, 0)
-    group.inputs.new(name='UV', type='NodeSocketVector')
+    # group.inputs.new(name='UV', type='NodeSocketVector')
+    group.interface.new_socket("UV", in_out='INPUT', socket_type='NodeSocketVector')
 
     group_outputs = group.nodes.new('NodeGroupOutput')
     group_outputs.location = (300, 0)
 
-    group.outputs.new(name='Shader', type='NodeSocketShader')
+    # group.outputs.new(name='Shader', type='NodeSocketShader')
+    group.interface.new_socket("Shader", in_out='OUTPUT', socket_type='NodeSocketShader')
 
     mix = group.nodes.new('ShaderNodeMixShader')
     mix.location = Vector((-150, 0))

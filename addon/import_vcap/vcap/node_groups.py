@@ -3,7 +3,7 @@
 
 import bpy
 from bpy.types import NodeTree, Node
-from bpy.types import NodeSocketInterfaceFloat, NodeSocketInterfaceVector, ShaderNodeMath
+from bpy.types import NodeSocketFloat, NodeSocketVector, ShaderNodeMath
 
 SPRITESHEET_MAPPING = "Spritesheet Mapping"
 
@@ -14,16 +14,16 @@ def spritesheet_mapping():
     node_tree: NodeTree = bpy.data.node_groups.new(SPRITESHEET_MAPPING, 'ShaderNodeTree')
     
     # IO
-    input_vector: NodeSocketInterfaceVector = node_tree.inputs.new('NodeSocketVector', "Vector")
+    input_vector = node_tree.interface.new_socket('Vector', in_out='INPUT', socket_type='NodeSocketVector')
     input_vector.hide_value = True
     
-    input_frame_count: NodeSocketInterfaceFloat = node_tree.inputs.new('NodeSocketFloat', "Frame Count")
+    input_frame_count: NodeSocketFloat = node_tree.interface.new_socket("Frame Count", in_out='INPUT', socket_type='NodeSocketFloat')
     input_frame_count.default_value = 1
     input_frame_count.min_value = 1
     
-    input_frame: NodeSocketInterfaceFloat = node_tree.inputs.new('NodeSocketFloat', "Frame")
+    input_frame: NodeSocketFloat = node_tree.interface.new_socket("Frame", in_out='INPUT', socket_type='NodeSocketFloat')
     
-    output_uv: NodeSocketInterfaceVector = node_tree.outputs.new('NodeSocketVector', "Sprite UV")
+    output_uv: NodeSocketVector = node_tree.interface.new_socket("Sprite UV", in_out='OUTPUT', socket_type='NodeSocketVector')
     output_uv.hide_value = True
     
     # NODE TREE
