@@ -3,7 +3,12 @@ package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 import javax.annotation.Nullable;
 
 import net.minecraft.client.util.SkinTextures;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RotationAxis;
+import net.minecraft.util.math.Vec3d;
+import org.joml.Matrix4d;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
@@ -54,7 +59,52 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
     protected Transform prepareTransform(float animationProgress, float bodyYaw, float tickDelta,
             @Nullable Vector3d translation, @Nullable Quaterniond rotation, @Nullable Vector3d scale) {
         if (scale == null) scale = new Vector3d(1);
-        return super.prepareTransform(animationProgress, bodyYaw, tickDelta, translation, rotation, scale.mul(0.9375f));
+
+        Transform transform = super.prepareTransform(animationProgress, bodyYaw, tickDelta, translation, rotation, scale.mul(0.9375f));
+
+        translation = new Vector3d(transform.translation);
+        rotation = new Quaterniond(transform.rotation);
+
+        float leaningPitch = getEntity().getLeaningPitch(tickDelta);
+        float pitch = getEntity().getPitch(tickDelta);
+
+        if (getEntity().isFallFlying()) {
+            Matrix4d matrix = transform.toMatrix(new Matrix4d()); // Are we gonna have floating point issues turning this into a matrix?
+
+            float roll = getEntity().getRoll() + tickDelta;
+            float rollClamped = MathHelper.clamp(roll * roll / 100f, 0, 1);
+            if (!getEntity().isUsingRiptide()) {
+//                matrix.rotate(RotationAxis.POSITIVE_X.rotationDegrees(rollClamped * (-90 - pitch)));
+                Quaternionf delta = RotationAxis.NEGATIVE_X.rotationDegrees(rollClamped * (-90 - pitch));
+                rotation.mul(delta.x, delta.y, delta.z, delta.w);
+            }
+            Vec3d rotationVec = getEntity().getRotationVec(tickDelta);
+            Vec3d velocityVec = getEntity().lerpVelocity(tickDelta);
+            double rotationLengthSquared = rotationVec.horizontalLengthSquared();
+            double velocityLengthSquared = velocityVec.horizontalLengthSquared();
+
+            if (velocityLengthSquared > 0 && rotationLengthSquared > 0) {
+                double dot = (velocityVec.x * rotationVec.x + velocityVec.z * rotationVec.z) / Math.sqrt(velocityLengthSquared * rotationLengthSquared);
+                double cross = velocityVec.x * rotationVec.z - velocityVec.z * rotationVec.x;
+                Quaternionf delta = RotationAxis.POSITIVE_Y.rotation((float)(Math.signum(cross) * Math.acos(dot)));
+                rotation.mul(delta.x, delta.y, delta.z, delta.w);
+            }
+            transform = new Transform(translation, rotation, transform.scale, transform.visible);
+        } else if (leaningPitch > 0) {
+            Matrix4d matrix = transform.toMatrix(new Matrix4d());
+            float swimAngle = getEntity().isTouchingWater() ? -90f - pitch : -90f;
+            float lerpedSwimAngle = MathHelper.lerp(leaningPitch, 0, swimAngle);
+            Quaternionf delta = RotationAxis.POSITIVE_X.rotationDegrees(lerpedSwimAngle);
+            rotation.mul(delta.x, delta.y, delta.z, delta.w);
+//            matrix.rotate(RotationAxis.POSITIVE_X.rotationDegrees(lerpedSwimAngle));
+            if (getEntity().isInSwimmingPose()) {
+//                matrix.translate(0, -1, 0.3);
+                translation.add(0, -1, 0.3);
+            }
+            transform = new Transform(translation, rotation, transform.scale, transform.visible);
+        }
+
+        return transform;
     }
 
     @Override

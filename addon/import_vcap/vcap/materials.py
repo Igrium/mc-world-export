@@ -20,13 +20,6 @@ NORMAL = 'Normal'
 
 VERTEX_COLOR = "$VERTEX_COLOR"
 
-# They shifted the input IDs in 3.0
-if bpy.app.version[0] < 3:
-    ALPHA = 19
-    ROUGHNESS = 7
-    METALLIC = 4
-    NORMAL = 20
-
 def load_texture(tex_id: str, context: VCAPContext, is_data=False):
     if tex_id in context.textures:
         return context.textures[tex_id]

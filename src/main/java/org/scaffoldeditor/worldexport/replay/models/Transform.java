@@ -37,6 +37,22 @@ public class Transform {
         }
     };
 
+    public Transform withTranslation(Vector3dc translation) {
+        return new Transform(translation, rotation, scale, visible);
+    }
+
+    public Transform withRotation(Quaterniondc rotation) {
+        return new Transform(translation, rotation, scale, visible);
+    }
+
+    public Transform withScale(Vector3dc scale) {
+        return new Transform(translation, rotation, scale, visible);
+    }
+
+    public Transform withVisible(boolean visible) {
+        return new Transform(translation, rotation, scale, visible);
+    }
+
     public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale) {
         this(translation, rotation, scale, true);
     }
