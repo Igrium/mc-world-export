@@ -1,26 +1,34 @@
 package org.scaffoldeditor.worldexport.replay.feature_adapters;
 
+import com.replaymod.replaystudio.rar.state.Replay;
 import de.javagl.obj.ObjReader;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.model.*;
+import net.minecraft.client.render.entity.feature.ElytraFeatureRenderer;
 import net.minecraft.client.render.entity.model.ElytraEntityModel;
+import net.minecraft.client.render.entity.model.EntityModelPartNames;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4d;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.MaterialUtils;
 import org.scaffoldeditor.worldexport.mat.PromisedReplayTexture;
+import org.scaffoldeditor.worldexport.mixins.ElytraEntityModelAccessor;
 import org.scaffoldeditor.worldexport.replay.model_adapters.BipedModelAdapter;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModelPart;
 import org.scaffoldeditor.worldexport.replay.models.Transform;
+import org.scaffoldeditor.worldexport.util.MeshUtils;
+import org.scaffoldeditor.worldexport.util.ModelUtils;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -29,19 +37,27 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
 
     private static final Identifier SKIN = new Identifier("textures/entity/elytra.png");
 
-    private final BipedModelAdapter<?> baseAdapter;
+    private final BipedModelAdapter<? extends LivingEntity> baseAdapter;
 
     private boolean wasElytraVisible;
 
-    private ElytraEntityModel<PlayerEntity> elytra;
+    private ElytraEntityModel<LivingEntity> elytra;
+    private ModelPart leftModelPart;
+    private ModelPart rightModelPart;
 
-    @Nullable
-    private ReplayModelPart root;
     private ReplayModelPart leftWing;
     private ReplayModelPart rightWing;
 
-    public ElytraFeatureAdapter(BipedModelAdapter<?> baseAdapter) {
+    public ElytraFeatureAdapter(BipedModelAdapter<? extends LivingEntity> baseAdapter) {
         this.baseAdapter = baseAdapter;
+        TexturedModelData elytraModelData = ElytraEntityModel.getTexturedModelData();
+        elytra = new ElytraEntityModel<>(elytraModelData.createModel());
+        leftModelPart = ((ElytraEntityModelAccessor) elytra).getLeftWing();
+        rightModelPart = ((ElytraEntityModelAccessor) elytra).getRightWing();
+    }
+
+    public void setAngles(float limbAngle, float limbDistance, float age, float headYaw, float headPitch) {
+        elytra.setAngles(baseAdapter.getEntity(), limbAngle, limbDistance, age, headYaw, headPitch);
     }
 
     @Override
@@ -49,7 +65,7 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
         LivingEntity entity = baseAdapter.getEntity();
         boolean isElytraVisible = entity.getEquippedStack(EquipmentSlot.CHEST).isOf(Items.ELYTRA);
 
-        if (root == null && isElytraVisible) {
+        if (leftWing == null && isElytraVisible) {
             try {
                 loadModel();
             } catch (IOException e) {
@@ -57,43 +73,53 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
                 throw new RuntimeException("Error loading resources for elytra feature adapter!", e);
             }
 
-            baseAdapter.getBody().children.add(root);
+            baseAdapter.getBody().children.add(leftWing);
+            baseAdapter.getBody().children.add(rightWing);
         }
 
         if (!isElytraVisible) {
             if (wasElytraVisible) {
-                pose.bones.put(root, Transform.INVISIBLE);
+                pose.bones.put(leftWing, Transform.INVISIBLE);
+                pose.bones.put(rightWing, Transform.INVISIBLE);
             }
             wasElytraVisible = false;
             return;
         }
 
-        // Values taken from assetsrc/elytra.blend
-        Vector3d rootPos = new Vector3d(0, 1.264, 0.308);
-        Vector3d leftPos = new Vector3d(-0.248, 1.265, 0.308).sub(rootPos);
-        Vector3d rightPos = new Vector3d(0.248, 1.265, 0.308).sub(rootPos);
+        var leftTransform = ModelUtils.getPartTransform(leftModelPart, new Matrix4d());
+        var rightTransform = ModelUtils.getPartTransform(rightModelPart, new Matrix4d());
 
-        pose.bones.put(root, new Transform(rootPos, new Quaterniond(), new Vector3d()));
-//        pose.bones.put(leftWing, new Transform(leftPos))
+        pose.bones.put(leftWing, new Transform(leftTransform));
+        pose.bones.put(rightWing, new Transform(rightTransform));
+
+        wasElytraVisible = true;
     }
 
     protected void loadModel() throws IOException {
-        root = new ReplayModelPart("root");
-        root.setMesh(Objs.create());
-        leftWing = loadModelPart(new Identifier("worldexport:obj/elytra_left.obj"), "left-wing");
-        root.children.add(leftWing);
-        rightWing = loadModelPart(new Identifier("worldexport:obj/elytra_right.obj"), "right-wing");
-        root.children.add(rightWing);
+
+        String matName = MaterialUtils.getTexName(SKIN);
+//        Matrix4d matrix = new Matrix4d().translate(0.0f, 0.0f, -0.125);
+
+        leftWing = new ReplayModelPart("left-wing");
+        leftWing.getMesh().setActiveMaterialGroupName(matName);
+        MeshUtils.appendModelPart(leftModelPart, leftWing.getMesh(), false, null);
+
+        rightWing = new ReplayModelPart("right-wing");
+        rightWing.getMesh().setActiveMaterialGroupName(matName);
+        MeshUtils.appendModelPart(rightModelPart, rightWing.getMesh(), false, null);
+//        leftWing = loadModelPart(new Identifier("worldexport:obj/elytra_left.obj"), "left-wing");
+//        rightWing = loadModelPart(new Identifier("worldexport:obj/elytra_right.obj"), "right-wing");
     }
 
     protected ReplayModelPart loadModelPart(Identifier location, String name) throws  IOException {
         var resource = MinecraftClient.getInstance().getResourceManager().getResource(location);
         if (resource.isEmpty())
             throw new FileNotFoundException(location.toString());
-
         try (var in = resource.get().getInputStream()) {
             ReplayModelPart part = new ReplayModelPart(name);
-            Obj obj = ObjReader.read(in);
+            Obj obj = Objs.create();
+            obj.setActiveMaterialGroupName(MaterialUtils.getTexName(SKIN));
+            ObjReader.read(in, obj);
             part.setMesh(obj);
             return part;
         }
@@ -101,7 +127,7 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
 
     @Override
     public void generateMaterials(MaterialConsumer file) {
-        if (root != null) {
+        if (leftWing != null) {
             PromisedReplayTexture texture = new PromisedReplayTexture(SKIN);
             String texName = MaterialUtils.getTexName(SKIN);
 

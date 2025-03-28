@@ -6,16 +6,17 @@
   "mixins": [
   ],
   "client": [
-    "ClientWorldMixin",
     "AnimalModelAccessor",
-    "ModelPartAccessor",
+    "ClientWorldMixin",
+    "ElytraEntityModelAccessor",
+    "GameRendererMixin",
     "GuiRenderSettingsMixin",
+    "ModelPartAccessor",
     "QuadrupedModelAccessor",
+    "ReplayModMixin",
     "SpriteAccessor",
     "SpriteMixin",
-    "TimelineMixin",
-    "ReplayModMixin",
-    "GameRendererMixin"
+    "TimelineMixin"
   ],
   "injectors": {
     "defaultRequire": 1

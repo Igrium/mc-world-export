@@ -59,6 +59,10 @@ public class Transform {
         this(translation, rotation, scale, true);
     }
 
+    public Transform(Vector3dc translation, Quaterniondc rotation) {
+        this(translation, rotation, new Vector3d(1d));
+    }
+
     public Transform(Vector3dc translation, Quaterniondc rotation, Vector3dc scale, boolean visible) {
         this.translation = translation;
         this.rotation = rotation;
