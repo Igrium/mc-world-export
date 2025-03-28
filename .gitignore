@@ -33,3 +33,5 @@ bin/
 run/
 
 logo/
+dev/
+*.blend1
