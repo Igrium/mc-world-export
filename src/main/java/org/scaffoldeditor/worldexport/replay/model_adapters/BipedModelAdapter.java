@@ -63,6 +63,12 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
     }
 
     @Override
+    public void animateModel(float limbAngle, float limbDistance, float tickDelta) {
+        super.animateModel(limbAngle, limbDistance, tickDelta);
+        elytraAdapter.animateModel(limbAngle, limbDistance, tickDelta);
+    }
+
+    @Override
     public void setAngles(float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch) {
         super.setAngles(limbAngle, limbDistance, animationProgress, headYaw, headPitch);
         elytraAdapter.setAngles(limbAngle, limbDistance, animationProgress, headYaw, headPitch);

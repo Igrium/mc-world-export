@@ -1,23 +1,13 @@
 package org.scaffoldeditor.worldexport.replay.feature_adapters;
 
-import com.replaymod.replaystudio.rar.state.Replay;
-import de.javagl.obj.ObjReader;
-import de.javagl.obj.Obj;
-import de.javagl.obj.Objs;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.model.*;
-import net.minecraft.client.render.entity.feature.ElytraFeatureRenderer;
+import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.TexturedModelData;
 import net.minecraft.client.render.entity.model.ElytraEntityModel;
-import net.minecraft.client.render.entity.model.EntityModelPartNames;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4d;
-import org.joml.Quaterniond;
-import org.joml.Vector3d;
 import org.scaffoldeditor.worldexport.mat.Material;
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.mat.MaterialUtils;
@@ -30,11 +20,11 @@ import org.scaffoldeditor.worldexport.replay.models.Transform;
 import org.scaffoldeditor.worldexport.util.MeshUtils;
 import org.scaffoldeditor.worldexport.util.ModelUtils;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPart> {
 
+    public static final int ELYTRA_TICK_MULTIPLIER = 3; // Emulate 60 fps
     private static final Identifier SKIN = new Identifier("textures/entity/elytra.png");
 
     private final BipedModelAdapter<? extends LivingEntity> baseAdapter;
@@ -56,8 +46,16 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
         rightModelPart = ((ElytraEntityModelAccessor) elytra).getRightWing();
     }
 
+    public void animateModel(float limbAngle, float limbDistance, float tickDelta) {
+        elytra.animateModel(baseAdapter.getEntity(), limbAngle, limbDistance, tickDelta);
+    }
+
     public void setAngles(float limbAngle, float limbDistance, float age, float headYaw, float headPitch) {
-        elytra.setAngles(baseAdapter.getEntity(), limbAngle, limbDistance, age, headYaw, headPitch);
+        // For some REALLY DUMB reason, elytra animation is based on your client's FRAME RATE!?!?!?!?!?
+        // Run the animation tick multiple times to account for 20fps export
+        for (int i = 0; i < ELYTRA_TICK_MULTIPLIER; i++) {
+            elytra.setAngles(baseAdapter.getEntity(), limbAngle, limbDistance, age, headYaw, headPitch);
+        }
     }
 
     @Override
@@ -98,7 +96,6 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
     protected void loadModel() throws IOException {
 
         String matName = MaterialUtils.getTexName(SKIN);
-//        Matrix4d matrix = new Matrix4d().translate(0.0f, 0.0f, -0.125);
 
         leftWing = new ReplayModelPart("left-wing");
         leftWing.getMesh().setActiveMaterialGroupName(matName);
@@ -107,22 +104,7 @@ public class ElytraFeatureAdapter implements ReplayFeatureAdapter<ReplayModelPar
         rightWing = new ReplayModelPart("right-wing");
         rightWing.getMesh().setActiveMaterialGroupName(matName);
         MeshUtils.appendModelPart(rightModelPart, rightWing.getMesh(), false, null);
-//        leftWing = loadModelPart(new Identifier("worldexport:obj/elytra_left.obj"), "left-wing");
-//        rightWing = loadModelPart(new Identifier("worldexport:obj/elytra_right.obj"), "right-wing");
-    }
 
-    protected ReplayModelPart loadModelPart(Identifier location, String name) throws  IOException {
-        var resource = MinecraftClient.getInstance().getResourceManager().getResource(location);
-        if (resource.isEmpty())
-            throw new FileNotFoundException(location.toString());
-        try (var in = resource.get().getInputStream()) {
-            ReplayModelPart part = new ReplayModelPart(name);
-            Obj obj = Objs.create();
-            obj.setActiveMaterialGroupName(MaterialUtils.getTexName(SKIN));
-            ObjReader.read(in, obj);
-            part.setMesh(obj);
-            return part;
-        }
     }
 
     @Override
