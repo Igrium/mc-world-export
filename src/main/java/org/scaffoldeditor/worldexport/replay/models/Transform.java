@@ -37,6 +37,8 @@ public class Transform {
         }
     };
 
+    public static final Transform INVISIBLE = new Transform(false);
+
     public Transform withTranslation(Vector3dc translation) {
         return new Transform(translation, rotation, scale, visible);
     }

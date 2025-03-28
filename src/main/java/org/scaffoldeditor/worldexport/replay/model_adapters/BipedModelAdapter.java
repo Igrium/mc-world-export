@@ -2,6 +2,7 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import org.scaffoldeditor.worldexport.mat.MaterialConsumer;
 import org.scaffoldeditor.worldexport.replay.feature_adapters.ArmorFeatureAdapter;
+import org.scaffoldeditor.worldexport.replay.feature_adapters.ElytraFeatureAdapter;
 import org.scaffoldeditor.worldexport.replay.feature_adapters.HeldItemFeatureAdapter;
 import org.scaffoldeditor.worldexport.replay.models.MultipartReplayModel;
 import org.scaffoldeditor.worldexport.replay.models.ReplayModel.Pose;
@@ -45,7 +46,7 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
 
     protected HeldItemFeatureAdapter heldItemAdapter;
     protected ArmorFeatureAdapter armorAdapter;
-
+    protected ElytraFeatureAdapter elytraAdapter;
 
     @Override
     protected MultipartReplayModel captureBaseModel(AnimalModel<T> model) {
@@ -57,6 +58,8 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
         armorAdapter = new ArmorFeatureAdapter(this,
                 new BipedEntityModel<>(leggingsModel), new BipedEntityModel<>(armorModel));
 
+        elytraAdapter = new ElytraFeatureAdapter(this);
+
         return rModel;
     }
     
@@ -65,6 +68,7 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
         Pose<ReplayModelPart> pose = super.writePose(tickDelta);
         heldItemAdapter.writePose(pose, tickDelta);
         armorAdapter.writePose(pose, tickDelta);
+        elytraAdapter.writePose(pose, tickDelta);
 
         return pose;
     }
@@ -74,6 +78,7 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
         super.generateMaterials(file);
         heldItemAdapter.generateMaterials(file);
         armorAdapter.generateMaterials(file);
+        elytraAdapter.generateMaterials(file);
     }
 
     public boolean isSlim() {
