@@ -23,6 +23,7 @@ import com.replaymod.render.rendering.Channel;
 import com.replaymod.render.rendering.FrameCapturer;
 import com.replaymod.render.utils.ByteBufferPool;
 
+import com.replaymod.replay.camera.CameraEntity;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.joml.Vector3i;
@@ -179,7 +180,7 @@ public class ReplayFrameCapturer implements FrameCapturer<BitmapFrame> {
     }
 
     protected void captureEntity(Entity ent) {
-        if (skippedEnts.contains(ent)) {
+        if (skippedEnts.contains(ent) || ent instanceof CameraEntity) {
             return;
         }
 
