@@ -129,10 +129,21 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
     protected float getAnimationProgress(float tickDelta) {
         return entity.age + tickDelta;
     }
-    
+
+    /**
+     * Some model adapters (the player) need a frame to process before they can begin export.
+     * If this method returns false, don't attempt to get the pose yet.
+     * @return If the model is ready.
+     */
+    protected boolean isReady() {
+        return true;
+    }
 
     @Override
     public Pose<?> getPose(float tickDelta) {
+
+        if (!isReady())
+            return new Pose<>();
 
         // Add override channel.
         boolean hasTint = false;

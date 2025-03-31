@@ -2,6 +2,10 @@ package org.scaffoldeditor.worldexport.replay.model_adapters.specific;
 
 import javax.annotation.Nullable;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.PlayerSkinProvider;
+import net.minecraft.client.texture.TextureManager;
+import net.minecraft.client.util.DefaultSkinHelper;
 import net.minecraft.client.util.SkinTextures;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
@@ -27,16 +31,47 @@ import net.minecraft.util.Arm;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.UseAction;
+import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CompletableFuture;
 
 public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEntity> {
 
-    protected PlayerModelAdapter(AbstractClientPlayerEntity player, Identifier texture) {
-        super(player, texture);
+    protected PlayerModelAdapter(AbstractClientPlayerEntity player, CompletableFuture<SkinTextures> texture) {
+        super(player, TextureManager.MISSING_IDENTIFIER);
+        skinTextureFuture = texture;
     }
-
     
     public static PlayerModelAdapter newInstance(AbstractClientPlayerEntity player) {
-        return new PlayerModelAdapter(player, player.getSkinTextures().texture());
+        PlayerSkinProvider skinProvider = MinecraftClient.getInstance().getSkinProvider();
+        CompletableFuture<SkinTextures> skin = skinProvider.fetchSkinTextures(player.getGameProfile())
+                .exceptionally(e -> {
+                    LoggerFactory.getLogger(PlayerModelAdapter.class).error("Error getting skin for {}", player.getName().getString(), e);
+                    return DefaultSkinHelper.getSkinTextures(player.getGameProfile());
+                });
+
+
+        return new PlayerModelAdapter(player, skin);
+    }
+
+    private final CompletableFuture<SkinTextures> skinTextureFuture;
+
+    public CompletableFuture<SkinTextures> getSkinTextureFuture() {
+        return skinTextureFuture;
+    }
+
+    @Override
+    protected boolean isReady() {
+        return skinTextureFuture.isDone();
+    }
+
+    public SkinTextures getSkinTexture() {
+        return skinTextureFuture.getNow(DefaultSkinHelper.getSkinTextures(getEntity().getGameProfile()));
+    }
+
+    @Override
+    public Identifier getTexture() {
+        return getSkinTexture().texture();
     }
 
     @Override
@@ -109,7 +144,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
 
     @Override
     public boolean isSlim() {
-        return getEntity().getSkinTextures().model().equals(SkinTextures.Model.SLIM);
+        return getSkinTexture().model().equals(SkinTextures.Model.SLIM);
     }
 
     private void setModelPose() {
