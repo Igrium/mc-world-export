@@ -2,6 +2,8 @@ package org.scaffoldeditor.worldexport.replay.model_adapters;
 
 import javax.annotation.Nullable;
 
+import com.replaymod.core.versions.MCVer;
+import net.minecraft.client.MinecraftClient;
 import org.joml.Matrix4dc;
 import org.joml.Quaterniond;
 import org.joml.Quaterniondc;
@@ -30,6 +32,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base replay model generator for living entities (with living entity renderers).
@@ -130,6 +133,8 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         return entity.age + tickDelta;
     }
 
+    protected boolean waitForReady;
+
     /**
      * Some model adapters (the player) need a frame to process before they can begin export.
      * If this method returns false, don't attempt to get the pose yet.
@@ -139,11 +144,28 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         return true;
     }
 
+    private int unreadyTicks = 0;
+
     @Override
     public Pose<?> getPose(float tickDelta) {
 
-        if (!isReady())
-            return new Pose<>();
+        if (!isReady()) {
+            if (waitForReady) {
+                // This codebase is getting dumber and dumber
+                while (!isReady()) {
+                    ((MCVer.MinecraftMethodAccessor) MinecraftClient.getInstance()).replayModExecuteTaskQueue();
+                }
+            }
+            else {
+                unreadyTicks++;
+                if (unreadyTicks % 20 == 0) {
+                    LoggerFactory.getLogger(getClass()).warn("{} went {} ticks without being ready!",
+                            entity.getName().getString(), unreadyTicks);
+                }
+
+                return new Pose<>();
+            }
+        }
 
         // Add override channel.
         boolean hasTint = false;
@@ -169,8 +191,7 @@ public abstract class LivingModelAdapter<T extends LivingEntity, M extends Repla
         float headYaw = MathHelper.lerpAngleDegrees(tickDelta, entity.prevHeadYaw, entity.headYaw);
         float headYawFinal = headYaw - bodyYaw;
 
-        if (entity.hasVehicle() && entity.getVehicle() instanceof LivingEntity) {
-            LivingEntity parent = (LivingEntity) entity.getVehicle();
+        if (entity.hasVehicle() && entity.getVehicle() instanceof LivingEntity parent) {
             bodyYaw = MathHelper.lerpAngleDegrees(tickDelta, parent.prevBodyYaw, parent.bodyYaw);
             headYawFinal = headYaw - bodyYaw;
 

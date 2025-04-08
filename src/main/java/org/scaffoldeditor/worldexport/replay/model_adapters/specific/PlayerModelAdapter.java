@@ -40,6 +40,7 @@ public class PlayerModelAdapter extends BipedModelAdapter<AbstractClientPlayerEn
     protected PlayerModelAdapter(AbstractClientPlayerEntity player, CompletableFuture<SkinTextures> texture) {
         super(player, TextureManager.MISSING_IDENTIFIER);
         skinTextureFuture = texture;
+        waitForReady = true;
     }
     
     public static PlayerModelAdapter newInstance(AbstractClientPlayerEntity player) {

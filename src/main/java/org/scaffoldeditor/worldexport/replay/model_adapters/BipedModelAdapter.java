@@ -40,7 +40,7 @@ public class BipedModelAdapter<T extends LivingEntity> extends AnimalModelAdapte
 
         @Override
         public BipedModelAdapter<U> create(U entity) {
-            return new BipedModelAdapter<U>(entity, texture);
+            return new BipedModelAdapter<>(entity, texture);
         }
 
     }
