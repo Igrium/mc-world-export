@@ -3,13 +3,16 @@ package com.igrium.worldexport.world;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.block.BlockState;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.World;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.PalettedContainer;
+import net.minecraft.world.chunk.ReadableContainer;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -91,12 +94,15 @@ public class WorldRecorder {
             LOGGER.warn("Attempted to load null section at {}", pos);
             return;
         }
-        PalettedContainer<BlockState> copy = section.getBlockStateContainer().copy();
+        PalettedContainer<BlockState> blocks = section.getBlockStateContainer().copy();
+        // No need to copy because biomes don't change.
+        ReadableContainer<RegistryEntry<Biome>> biomes = section.getBiomeContainer();
 
-        if (worldCapture.getBaseSections().putIfAbsent(pos, copy) != null) {
+        if (worldCapture.getBaseSections().putIfAbsent(pos, blocks) != null) {
             // There's already a section in the base.
-            worldCapture.addSectionKeyframe(pos, currentTick, copy);
+            worldCapture.addSectionKeyframe(pos, currentTick, blocks);
         }
+        worldCapture.getBiomeSections().put(pos, biomes);
     }
 
     /**

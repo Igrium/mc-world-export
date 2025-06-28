@@ -4,10 +4,13 @@ import com.igrium.worldexport.collectionutils.WriteSynchronizedList;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.PalettedContainer;
+import net.minecraft.world.chunk.ReadableContainer;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +56,11 @@ public class WorldCapture {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldCapture.class);
 
     @Getter
-    private final Map<ChunkSectionPos, PalettedContainer<BlockState>> baseSections = new ConcurrentHashMap<>();
+    private final Map<ChunkSectionPos, ReadableContainer<BlockState>> baseSections = new ConcurrentHashMap<>();
+
+    // We'll never have to update this because biomes don't change.
+    @Getter
+    private final Map<ChunkSectionPos, ReadableContainer<RegistryEntry<Biome>>> biomeSections = new ConcurrentHashMap<>();
 
     /**
      * The minimum exported chunk section pos, inclusive.
@@ -79,6 +86,7 @@ public class WorldCapture {
      */
     @Getter
     private final Map<ChunkSectionPos, List<SectionKeyframe>> sectionKeyframes = new ConcurrentHashMap<>();
+
 
     public WorldCapture(ChunkSectionPos minPos, ChunkSectionPos maxPos) {
 
@@ -143,7 +151,7 @@ public class WorldCapture {
         ChunkSectionPos cPos = ChunkSectionPos.from(pos);
         List<BlockKeyframe> blockKeyframes = getBlockKeyframes().get(pos);
         List<SectionKeyframe> sectionKeyframes = getSectionKeyframes().get(cPos);
-        PalettedContainer<BlockState> base = baseSections.get(cPos);
+        ReadableContainer<BlockState> base = baseSections.get(cPos);
 
         if (blockKeyframes == null && sectionKeyframes == null && base == null) {
             return Blocks.AIR.getDefaultState();

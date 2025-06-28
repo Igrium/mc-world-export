@@ -1,10 +1,8 @@
 package com.igrium.worldexport;
 
-import com.igrium.worldexport.command.test.WorldCaptureCommand;
 import com.igrium.worldexport.event.BeforeSetBlockCallback;
 import com.igrium.worldexport.event.ClientBlockPlaceCallback;
 import com.igrium.worldexport.world.WorldCapture;
-import com.igrium.worldexport.world.world_snapshot.WorldSnapshotManager;
 import lombok.Getter;
 import lombok.Setter;
 import net.fabricmc.api.ClientModInitializer;
@@ -28,26 +26,14 @@ public class IgriumsReplayExporter implements ModInitializer, ClientModInitializ
     @Nullable
     private WorldCapture currentWorldCapture;
 
-    @Getter
-    private WorldSnapshotManager worldSnapshotManager;
-
     @Override
     public void onInitialize() {
         instance = this;
 
-
-
-        BeforeSetBlockCallback.EVENT.register((pos, block, world) -> {
-            if (currentWorldCapture != null)
-                currentWorldCapture.beforeSetBlock(pos, block);
-        });
     }
 
     @Override
     public void onInitializeClient() {
-        worldSnapshotManager = new WorldSnapshotManager();
-        ClientBlockPlaceCallback.EVENT.register(worldSnapshotManager);
 
-        ClientCommandRegistrationCallback.EVENT.register(WorldCaptureCommand::register);
     }
 }
