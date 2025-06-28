@@ -3,15 +3,15 @@
 	"id": "worldexport",
 	"version": "${version}",
 	"name": "Igrium's Replay Exporter",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Export Minecraft gameplay as animations",
 	"authors": [
-		"Me!"
+		"Igrium"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/Sam54123/mc-world-export",
+		"sources": "https://github.com/Sam54123/mc-world-export"
 	},
-	"license": "CC0-1.0",
+	"license": "GPL-3.0-or-later",
 	"icon": "assets/worldexport/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -23,12 +23,11 @@
 		"worldexport.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.16.14",
+		"fabricloader": ">=0.14.6",
 		"minecraft": "~1.20.4",
 		"java": ">=17",
 		"fabric-api": "*"
 	},
 	"suggests": {
-		"another-mod": "*"
 	}
 }
