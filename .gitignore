@@ -32,6 +32,9 @@ bin/
 
 run/
 
-logo/
-dev/
-*.blend1
+# java
+
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
