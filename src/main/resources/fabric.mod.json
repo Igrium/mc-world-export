@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"com.igrium.worldexport.IgriumsReplayExporter"
+		],
+		"client": [
+			"com.igrium.worldexport.IgriumsReplayExporter"
 		]
 	},
 	"mixins": [
