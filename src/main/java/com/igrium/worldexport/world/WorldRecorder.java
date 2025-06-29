@@ -1,18 +1,16 @@
 package com.igrium.worldexport.world;
 
+import com.igrium.worldexport.world.mesh.WorldTessellator;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.block.BlockState;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.PalettedContainer;
-import net.minecraft.world.chunk.ReadableContainer;
 import net.minecraft.world.chunk.WorldChunk;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -35,16 +33,34 @@ public class WorldRecorder {
     private final WorldCapture worldCapture;
 
     @Getter
+    private final WorldTessellator worldTessellator;
+
+    @Getter
     @Setter
     int currentTick;
+
+    @Getter
+    private boolean recording;
 
     public WorldRecorder(World world, WorldCapture worldCapture) {
         this.world = world;
         this.worldCapture = worldCapture;
+        this.worldTessellator = new WorldTessellator(worldCapture, world);
     }
 
     public WorldRecorder(World world, ChunkSectionPos minPos, ChunkSectionPos maxPos) {
         this(world, new WorldCapture(minPos, maxPos));
+    }
+
+    public void startRecording() {
+        if (recording) {
+            LOGGER.error("WorldRecorder is already recording!");
+            return;
+        }
+        recording = true;
+
+        captureInitialWorld();
+        worldTessellator.buildAllBaseMeshes(null);
     }
 
     public void nextTick() {
@@ -94,15 +110,18 @@ public class WorldRecorder {
             LOGGER.warn("Attempted to load null section at {}", pos);
             return;
         }
-        PalettedContainer<BlockState> blocks = section.getBlockStateContainer().copy();
-        // No need to copy because biomes don't change.
-        ReadableContainer<RegistryEntry<Biome>> biomes = section.getBiomeContainer();
+        if (!worldCapture.isInBounds(pos))
+            return;
 
-        if (worldCapture.getBaseSections().putIfAbsent(pos, blocks) != null) {
-            // There's already a section in the base.
+        PalettedContainer<BlockState> blocks = section.getBlockStateContainer().copy();
+
+        if (worldCapture.getBaseSections().putIfAbsent(pos, blocks) == null) {
+            // Section is unseen; need to tessellate it.
+            worldTessellator.buildSectionBaseMesh(pos);
+        } else {
+            // There's already a section in the base. Make a keyframe instead.
             worldCapture.addSectionKeyframe(pos, currentTick, blocks);
         }
-        worldCapture.getBiomeSections().put(pos, biomes);
     }
 
     /**
@@ -127,7 +146,9 @@ public class WorldRecorder {
      * @param newBlock New block.
      */
     public void onUpdateBlock(BlockPos pos, @Nullable BlockState oldBlock, BlockState newBlock) {
-        worldCapture.addBlockKeyframe(pos, currentTick, oldBlock, newBlock);
+        if (worldCapture.isInBounds(pos)) {
+            worldCapture.addBlockKeyframe(pos, currentTick, oldBlock, newBlock);
+        }
     }
 
     /**
@@ -162,7 +183,6 @@ public class WorldRecorder {
                 }
             }
         }
-
     }
 
     /**

@@ -4,21 +4,16 @@ import com.igrium.worldexport.collectionutils.WriteSynchronizedList;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.PalettedContainer;
 import net.minecraft.world.chunk.ReadableContainer;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -58,10 +53,6 @@ public class WorldCapture {
     @Getter
     private final Map<ChunkSectionPos, ReadableContainer<BlockState>> baseSections = new ConcurrentHashMap<>();
 
-    // We'll never have to update this because biomes don't change.
-    @Getter
-    private final Map<ChunkSectionPos, ReadableContainer<RegistryEntry<Biome>>> biomeSections = new ConcurrentHashMap<>();
-
     /**
      * The minimum exported chunk section pos, inclusive.
      */
@@ -87,6 +78,15 @@ public class WorldCapture {
     @Getter
     private final Map<ChunkSectionPos, List<SectionKeyframe>> sectionKeyframes = new ConcurrentHashMap<>();
 
+    private final Set<ChunkSectionPos> keyframedSections = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /**
+     * Get a set of all sections that have a keyframe in them.
+     * @return Unmodifiable set.
+     */
+    public Set<ChunkSectionPos> getKeyframedSections() {
+        return Collections.unmodifiableSet(keyframedSections);
+    }
 
     public WorldCapture(ChunkSectionPos minPos, ChunkSectionPos maxPos) {
 
@@ -121,6 +121,7 @@ public class WorldCapture {
     public void addBlockKeyframe(BlockPos pos, BlockKeyframe keyframe) {
         var list = blockKeyframes.computeIfAbsent(pos, p -> WriteSynchronizedList.of(new ArrayList<>()));
         list.add(keyframe);
+        keyframedSections.add(ChunkSectionPos.from(pos));
     }
 
     public void addBlockKeyframe(BlockPos pos, int tick, @Nullable BlockState oldBlock, BlockState newBlock) {
@@ -130,6 +131,7 @@ public class WorldCapture {
     public void addSectionKeyframe(ChunkSectionPos pos, SectionKeyframe keyframe) {
         var list = sectionKeyframes.computeIfAbsent(pos, p -> WriteSynchronizedList.of(new ArrayList<>()));
         list.add(keyframe);
+        keyframedSections.add(pos);
     }
 
     public void addSectionKeyframe(ChunkSectionPos pos, int tick, PalettedContainer<BlockState> section) {
@@ -143,7 +145,7 @@ public class WorldCapture {
      * @param tick Tick to query.
      * @return The block. Air if the position is out-of-bounds.
      */
-    public BlockState blockAt(BlockPos pos, int tick) {
+    public BlockState getBlock(BlockPos pos, int tick) {
         if (!isInBounds(pos)) {
             return Blocks.AIR.getDefaultState();
         }
