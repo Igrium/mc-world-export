@@ -20,6 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Tracks updates to blocks over time in a world.
+ * @implNote Thread safety note: Once populated, all internal data structures are treated as immutable
+ * and are only accessed concurrently for reading. No modifications must occur after entering
+ * the concurrent context.
  */
 public class WorldCapture {
 
@@ -30,7 +33,7 @@ public class WorldCapture {
     }
 
     /**
-     * Marks that a block has been during in the capture.
+     * Marks that a block has been updated during in the capture.
      *
      * @param tick     The tick number this update happened on.
      * @param oldBlock The block that was replaced.

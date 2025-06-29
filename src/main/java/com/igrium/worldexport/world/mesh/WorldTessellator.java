@@ -2,26 +2,30 @@ package com.igrium.worldexport.world.mesh;
 
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.world.SectionSetBlockRenderView;
+import com.igrium.worldexport.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.world.WorldCapture;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
+import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 
 /**
  * Converts the blocks in a WorldCapture into actual meshes.
@@ -118,6 +122,85 @@ public class WorldTessellator {
             }
             return o;
         });
+
+    }
+
+    /**
+     * Tessellate all the blocks within a given section.
+     * @param cPos Section to tessellate.
+     * @param frames Compiled frame cache.
+     * @param random Thread-local random to use during meshing.
+     * @return A list of all the different meshes generated for various keyframes.
+     * @implNote If the base mesh hasn't finished building, could have unexpected results.
+     */
+    public Collection<WorldMesh> tessellateSectionMeshes(ChunkSectionPos cPos, CompiledBlockFrameSet frames, Random random) {
+        // TODO: Implement section keyframes.
+        // TODO: (is that actually important?)
+        Int2ObjectSortedMap<Set<BlockPos>> keyframes = frames.getSectionBlockKeyframes(cPos);
+
+
+        if (!keyframes.isEmpty()) {
+            // Re-usable map to store a given keyframe's overrides
+            // (blocks which need to be split 'cause they're replaced later)
+            Int2ObjectMap<Set<BlockPos>> overrideMap = new Int2ObjectAVLTreeMap<>();
+            Set<BlockPos> blocksWithoutOverrides = new HashSet<>();
+
+            // All the blocks that have a keyframe at some point in the file.
+            Set<BlockPos> keyframedBlocks = new HashSet<>();
+            List<WorldMesh> list = new ArrayList<>();
+
+            // For each keyframe
+            for (var keyEntry : keyframes.int2ObjectEntrySet()) {
+                overrideMap.clear();
+                blocksWithoutOverrides.clear();
+
+                SnapshotBlockRenderView renderView = new SnapshotBlockRenderView(worldCapture, baseWorld, keyEntry.getIntKey());
+
+                // Find which blocks are updated again at some point in the future and split them so they can be toggled off.
+                for (var bPos : keyEntry.getValue()) {
+                    Integer nextKeyframe = frames.getNextBlockUpdate(bPos, keyEntry.getIntKey());
+                    if (nextKeyframe != null) {
+                        overrideMap.computeIfAbsent((int)nextKeyframe, i -> new HashSet<>()).add(bPos);
+                    } else {
+                        blocksWithoutOverrides.add(bPos);
+                    }
+                }
+
+                for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
+                    Obj mesh = Objs.create();
+                    BlockMeshBuilder.buildBlocks(mesh, overrideEntry.getValue(), renderView,
+                            splitBlocks, materialFactory, random);
+
+                    list.add(new WorldMesh(mesh, keyEntry.getIntKey(), overrideEntry.getIntKey() - 1));
+                }
+                Obj noOverrideMesh = Objs.create();
+                BlockMeshBuilder.buildBlocks(noOverrideMesh, blocksWithoutOverrides, renderView,
+                        splitBlocks, materialFactory, random);
+                list.add(new WorldMesh(noOverrideMesh, keyEntry.getIntKey(), null));
+
+                keyframedBlocks.addAll(keyEntry.getValue());
+            }
+
+            // Tessellate base mesh
+            List<BlockPos> nonKeyframedBlocks = new ArrayList<>(16 * 16 * 16);
+            for (BlockPos bPos : BlockPos.iterate(cPos.getMinPos(), cPos.getMinPos().add(15, 15, 15))) {
+                if (!keyframedBlocks.contains(bPos))
+                    nonKeyframedBlocks.add(bPos);
+            }
+
+            Obj baseMesh = Objs.create();
+            BlockRenderView baseRenderView = new SectionSetBlockRenderView(worldCapture.getBaseSections(), baseWorld);
+
+            BlockMeshBuilder.buildBlocks(baseMesh, nonKeyframedBlocks, baseRenderView,
+                    splitBlocks, materialFactory, random);
+
+            list.add(new WorldMesh(baseMesh));
+            return list;
+
+        } else {
+            Obj base = baseSectionMeshes.get(cPos);
+            return base != null ? List.of(new WorldMesh(base)) : List.of();
+        }
 
     }
 

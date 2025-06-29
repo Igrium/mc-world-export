@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Records a world block updates.
@@ -39,9 +40,6 @@ public class WorldRecorder {
     @Setter
     int currentTick;
 
-    @Getter
-    private boolean recording;
-
     public WorldRecorder(World world, WorldCapture worldCapture) {
         this.world = world;
         this.worldCapture = worldCapture;
@@ -52,12 +50,21 @@ public class WorldRecorder {
         this(world, new WorldCapture(minPos, maxPos));
     }
 
-    public void startRecording() {
-        if (recording) {
-            LOGGER.error("WorldRecorder is already recording!");
+    /**
+     * Whether this recorder has ever started recording (captured its base chunks)
+     */
+    @Getter
+    private boolean startedRecording;
+
+    /**
+     * Start recording for the first time. Should be called from the main thread for world access.
+     * @apiNote Called automatically by {@link WorldRecorderManager}
+     */
+    public void onStartRecording() {
+        if (startedRecording) {
+            LOGGER.warn("World is already recording.");
             return;
         }
-        recording = true;
 
         captureInitialWorld();
         worldTessellator.buildAllBaseMeshes(null);

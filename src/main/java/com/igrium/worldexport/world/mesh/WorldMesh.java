@@ -29,5 +29,11 @@ public class WorldMesh {
         this.mesh = mesh;
     }
 
+    public WorldMesh(Obj mesh, @Nullable Integer startTick, @Nullable Integer endTick) {
+        this.mesh = mesh;
+        this.startTick = startTick;
+        this.endTick = endTick;
+    }
+
 
 }

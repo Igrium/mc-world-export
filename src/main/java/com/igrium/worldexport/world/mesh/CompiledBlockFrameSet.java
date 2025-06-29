@@ -1,16 +1,14 @@
 package com.igrium.worldexport.world.mesh;
 
 import com.igrium.worldexport.world.WorldCapture;
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
-import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
-import it.unimi.dsi.fastutil.ints.IntSortedSet;
+import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Direction;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.IntStream;
 
 /**
  * Keeps track of block update frames in a format ideal for tessellation.
@@ -178,6 +176,103 @@ public class CompiledBlockFrameSet {
         return nullableMax(prevBlock, prevSection);
     }
 
+    /**
+     * Get all block keyframe ticks.
+     * @return All ticks that have a block keyframe.
+     */
+    public IntSortedSet getBlockKeyframes() {
+        return IntSortedSets.unmodifiable(blockKeyframes.keySet());
+    }
+
+    /**
+     * Get all the keyframes on which a given block is updated.
+     * @param pos The block's position.
+     * @return An unmodifiable set of all update ticks.
+     */
+    public IntSortedSet getBlockUpdates(BlockPos pos) {
+        var set = blockUpdates.get(pos);
+        return set != null ? IntSortedSets.unmodifiable(set) : IntSortedSets.EMPTY_SET;
+    }
+
+    /**
+     * Assemble a collection of all keyframes that update a block within a section.
+     *
+     * @param cPos Section pos to search for.
+     * @return A map of keyframe ticks and all the blocks in the section that were updated that tick.
+     * @implNote Doesn't take into account section keyframes.
+     */
+    public Int2ObjectSortedMap<Set<BlockPos>> getSectionBlockKeyframes(ChunkSectionPos cPos) {
+        Int2ObjectSortedMap<Set<BlockPos>> map = new Int2ObjectAVLTreeMap<>();
+
+        for (var entry : blockKeyframes.int2ObjectEntrySet()) {
+            Set<BlockPos> set = null;
+            for (var bPos : entry.getValue()) {
+                if (isBlockInSection(bPos, cPos)) {
+                    if (set == null) set = new HashSet<>();
+                    set.add(bPos);
+                }
+            }
+
+            if (set != null) {
+                map.put(entry.getIntKey(), set);
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * Assemble a set of all keyframes on which any block within a section is updated.
+     * @param cPos Section to search.
+     * @return All update ticks.
+     * @apiNote Doesn't account for section keyframes
+     */
+    public IntSortedSet getSectionBlockUpdates(ChunkSectionPos cPos) {
+        IntSortedSet set = new IntAVLTreeSet();
+        for (var entry : blockKeyframes.int2ObjectEntrySet()) {
+
+            if (entry.getValue().stream().anyMatch(bPos -> isBlockInSection(bPos, cPos))) {
+                set.add(entry.getIntKey());
+            }
+
+        }
+
+        return set;
+    }
+
+    /**
+     * Get a set of all section keyframe ticks.
+     * @return All ticks that have a section keyframe.
+     */
+    public IntSortedSet getSectionKeyframes() {
+        return IntSortedSets.unmodifiable(sectionKeyframes.keySet());
+    }
+
+    public IntStream streamKeyframes() {
+        return IntStream.concat(blockKeyframes.keySet().intStream(), sectionKeyframes.keySet().intStream())
+                .distinct();
+    }
+
+    /**
+     * Get a set of all blocks that will be updated by a block keyframe.
+     * @param tick Keyframe tick.
+     * @return The updated blocks; an empty set if there is no keyframe on that tick.
+     */
+    public Set<BlockPos> getBlockKeyframeMask(int tick) {
+        Set<BlockPos> set = blockKeyframes.get(tick);
+        return set != null ? Collections.unmodifiableSet(set) : Collections.emptySet();
+    }
+
+    /**
+     * Get a set of all sections that will be updated by a section keyframe.
+     * @param tick Keyframe tick.
+     * @return The updated sections; an empty set if there are no keyframes on that tick.
+     */
+    public Set<ChunkSectionPos> getSectionKeyframeMask(int tick) {
+        Set<ChunkSectionPos> set = sectionKeyframes.get(tick);
+        return set != null ? Collections.unmodifiableSet(set) : Collections.emptySet();
+    }
+
     private static List<ChunkSectionPos> getAdjacentSections(BlockPos pos) {
         List<ChunkSectionPos> list = new ArrayList<>(3);
 
@@ -265,5 +360,11 @@ public class CompiledBlockFrameSet {
         } else {
             return Math.max(a, b);
         }
+    }
+
+    private static boolean isBlockInSection(BlockPos bPos, ChunkSectionPos cPos) {
+        return ChunkSectionPos.getSectionCoord(bPos.getX()) == cPos.getX()
+                && ChunkSectionPos.getSectionCoord(bPos.getY()) == cPos.getY()
+                && ChunkSectionPos.getSectionCoord(bPos.getZ()) == cPos.getZ();
     }
 }
