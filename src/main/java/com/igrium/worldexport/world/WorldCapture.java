@@ -136,6 +136,27 @@ public class WorldCapture {
         addSectionKeyframe(pos, new SectionKeyframe(tick, section));
     }
 
+    /**
+     * Find the keyframe value for a given block pos on a certain tick.
+     * @param pos The block pos.
+     * @param tick The tick.
+     * @return The keyframe; null if the block didn't have a keyframe on that tick.
+     */
+    public @Nullable BlockKeyframe getBlockKeyframe(BlockPos pos, int tick) {
+        var map = blockKeyframes.get(pos);
+        return map != null ? map.get(tick) : null;
+    }
+
+    /**
+     * Find the keyframe value for a given section pos on a certain tick.
+     * @param pos The section pos.
+     * @param tick The tick.
+     * @return The keyframe; null if the section didn't have a keyframe on that tick.
+     */
+    public @Nullable SectionKeyframe getSectionKeyframe(ChunkSectionPos pos, int tick) {
+        var map = sectionKeyframes.get(pos);
+        return map != null ? map.get(tick) : null;
+    }
 
     /**
      * Return the block at a given position during a specific tick.
