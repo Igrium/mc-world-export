@@ -1,6 +1,8 @@
 package com.igrium.worldexport.world;
 
 import com.igrium.worldexport.collectionutils.WriteSynchronizedList;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -17,15 +19,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Captures block updates within a Minecraft world.
+ * Tracks updates to blocks over time in a world.
  */
 public class WorldCapture {
 
     public sealed interface Keyframe {
         int tick();
 
-        public static final Comparator<Keyframe> COMPARATOR =
-                (o1, o2) -> o1.tick() - o2.tick();
+        Comparator<Keyframe> COMPARATOR = Comparator.comparingInt(Keyframe::tick);
     }
 
     /**
@@ -69,23 +70,22 @@ public class WorldCapture {
      * All the block keyframes in the recording. DO NOT MODIFY DIRECTLY!
      */
     @Getter
-    private final Map<BlockPos, List<BlockKeyframe>> blockKeyframes = new ConcurrentHashMap<>();
+    private final Map<BlockPos, Int2ObjectSortedMap<BlockKeyframe>> blockKeyframes = new ConcurrentHashMap<>();
 
     /**
      * All the section keyframes in the recording. Initial-capture sections are not included.
      * DO NOT MODIFY DIRECTLY!
      */
     @Getter
-    private final Map<ChunkSectionPos, List<SectionKeyframe>> sectionKeyframes = new ConcurrentHashMap<>();
-
-    private final Set<ChunkSectionPos> keyframedSections = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<ChunkSectionPos, Int2ObjectSortedMap<SectionKeyframe>> sectionKeyframes = new ConcurrentHashMap<>();
 
     /**
-     * Get a set of all sections that have a keyframe in them.
-     * @return Unmodifiable set.
+     * Check if a given section has any keyframes in it (so far).
+     * @param pos Section to check.
+     * @return If there are any keyframes.
      */
-    public Set<ChunkSectionPos> getKeyframedSections() {
-        return Collections.unmodifiableSet(keyframedSections);
+    public boolean isSectionKeyframed(ChunkSectionPos pos) {
+        return sectionKeyframes.containsKey(pos);
     }
 
     public WorldCapture(ChunkSectionPos minPos, ChunkSectionPos maxPos) {
@@ -119,9 +119,8 @@ public class WorldCapture {
 
 
     public void addBlockKeyframe(BlockPos pos, BlockKeyframe keyframe) {
-        var list = blockKeyframes.computeIfAbsent(pos, p -> WriteSynchronizedList.of(new ArrayList<>()));
-        list.add(keyframe);
-        keyframedSections.add(ChunkSectionPos.from(pos));
+        var map = blockKeyframes.computeIfAbsent(pos, p -> new Int2ObjectAVLTreeMap<>());
+        map.put(keyframe.tick, keyframe);
     }
 
     public void addBlockKeyframe(BlockPos pos, int tick, @Nullable BlockState oldBlock, BlockState newBlock) {
@@ -129,9 +128,8 @@ public class WorldCapture {
     }
 
     public void addSectionKeyframe(ChunkSectionPos pos, SectionKeyframe keyframe) {
-        var list = sectionKeyframes.computeIfAbsent(pos, p -> WriteSynchronizedList.of(new ArrayList<>()));
-        list.add(keyframe);
-        keyframedSections.add(pos);
+        var map = sectionKeyframes.computeIfAbsent(pos, p -> new Int2ObjectAVLTreeMap<>());
+        map.put(keyframe.tick, keyframe);
     }
 
     public void addSectionKeyframe(ChunkSectionPos pos, int tick, PalettedContainer<BlockState> section) {
@@ -151,11 +149,17 @@ public class WorldCapture {
         }
 
         ChunkSectionPos cPos = ChunkSectionPos.from(pos);
-        List<BlockKeyframe> blockKeyframes = getBlockKeyframes().get(pos);
-        List<SectionKeyframe> sectionKeyframes = getSectionKeyframes().get(cPos);
+
+        // I really wish Java had an elvis operator...
+        Int2ObjectSortedMap<BlockKeyframe> blockKeyframes = getBlockKeyframes().get(pos);
+        if (blockKeyframes != null) blockKeyframes = blockKeyframes.headMap(tick + 1);
+
+        Int2ObjectSortedMap<SectionKeyframe> sectionKeyframes = getSectionKeyframes().get(cPos);
+        if (sectionKeyframes != null) sectionKeyframes = sectionKeyframes.headMap(tick + 1);
+
         ReadableContainer<BlockState> base = baseSections.get(cPos);
 
-        if (blockKeyframes == null && sectionKeyframes == null && base == null) {
+        if (isNullOrEmpty(blockKeyframes) && isNullOrEmpty(sectionKeyframes) && base == null) {
             return Blocks.AIR.getDefaultState();
         }
 
@@ -163,25 +167,18 @@ public class WorldCapture {
         int localY = ChunkSectionPos.getLocalCoord(pos.getY());
         int localZ = ChunkSectionPos.getLocalCoord(pos.getZ());
 
-        // Identify the last (timeline-wise) keyframe that can affect this block.
-        Keyframe lastKeyframe = null;
-        int lastKeyTick = 0;
-        if (sectionKeyframes != null) {
-            for (var k : sectionKeyframes) {
-                if (k.tick() <= tick && k.tick() >= lastKeyTick) {
-                    lastKeyframe = k;
-                    lastKeyTick = k.tick();
-                }
-            }
+        // Identify the last (timeline-wise) keyframe that can affect this block
+        BlockKeyframe lastBlockKeyframe = null;
+        if (!isNullOrEmpty(blockKeyframes)) {
+            lastBlockKeyframe = blockKeyframes.get(blockKeyframes.lastIntKey());
         }
-        if (blockKeyframes != null) {
-            for (var k : blockKeyframes) {
-                if (k.tick() <= tick && k.tick() >= lastKeyTick) {
-                    lastKeyframe = k;
-                    lastKeyTick = k.tick();
-                }
-            }
+
+        SectionKeyframe lastSectionKeyframe = null;
+        if (!isNullOrEmpty(sectionKeyframes)) {
+            lastSectionKeyframe = sectionKeyframes.get(sectionKeyframes.lastIntKey());
         }
+
+        Keyframe lastKeyframe = getLastKeyframeNullable(lastBlockKeyframe, lastSectionKeyframe);
 
         if (lastKeyframe != null) {
             if (lastKeyframe instanceof BlockKeyframe bk) {
@@ -196,5 +193,21 @@ public class WorldCapture {
         }
 
         return Blocks.AIR.getDefaultState();
+    }
+
+    private static boolean isNullOrEmpty(@Nullable Map<?, ?> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    private static @Nullable Keyframe getLastKeyframeNullable(@Nullable Keyframe k1, @Nullable Keyframe k2) {
+        if (k1 == null && k2 == null) {
+            return null;
+        } else if (k1 == null) {
+            return k2;
+        } else if (k2 == null) {
+            return k1;
+        } else {
+            return k2.tick() > k1.tick() ? k2 : k1;
+        }
     }
 }
