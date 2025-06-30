@@ -9,9 +9,9 @@ import net.minecraft.world.World;
 /**
  * Called on the client when a block has been updated.
  */
-public interface ClientBlockPlaceCallback {
+public interface ClientBlockUpdated {
 
-    Event<ClientBlockPlaceCallback> EVENT = EventFactory.createArrayBacked(ClientBlockPlaceCallback.class,
+    Event<ClientBlockUpdated> EVENT = EventFactory.createArrayBacked(ClientBlockUpdated.class,
             listeners -> (pos, oldState, newState, world) -> {
                 for (var listener : listeners) {
                     listener.place(pos, oldState, newState, world);

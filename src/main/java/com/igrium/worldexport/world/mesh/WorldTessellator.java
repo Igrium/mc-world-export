@@ -125,6 +125,27 @@ public class WorldTessellator {
 
     }
 
+    public CompletableFuture<Map<ChunkSectionPos, Collection<WorldMesh>>> tessellateAllMeshes(Executor executor) {
+        CompiledBlockFrameSet frames = CompiledBlockFrameSet.compile(worldCapture);
+
+        ThreadLocal<Random> random = ThreadLocal.withInitial(Random::createLocal);
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+
+        Map<ChunkSectionPos, Collection<WorldMesh>> result = new ConcurrentHashMap<>();
+
+        for (var cPos : worldCapture.getBaseSections().keySet()) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                Collection<WorldMesh> tessellated = tessellateSectionMeshes(cPos, frames, random.get());
+                if (!tessellated.isEmpty()) {
+                    result.put(cPos, tessellated);
+                }
+            }));
+        }
+
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                .thenApply(v -> result);
+    }
+
     /**
      * Tessellate all the blocks within a given section.
      * @param cPos Section to tessellate.

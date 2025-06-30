@@ -8,32 +8,31 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A mesh that can optionally have an in point and out point.
  */
-@Setter @Getter
-public class WorldMesh {
+public record WorldMesh(Obj obj, Meta meta) {
 
-    private final Obj mesh;
+    @Getter @Setter
+    public static class Meta {
+        /**
+         * The first tick where the mesh will be visible.
+         */
+        @Nullable
+        private Integer startTick;
 
-    /**
-     * The first tick where the mesh will be visible.
-     */
-    @Nullable
-    private Integer startTick;
-
-    /**
-     * The last tick where the mesh will be visible.
-     */
-    @Nullable
-    private Integer endTick;
-
-    public WorldMesh(Obj mesh) {
-        this.mesh = mesh;
+        /**
+         * The last tick where the mesh will be visible.
+         */
+        @Nullable
+        private Integer endTick;
     }
 
-    public WorldMesh(Obj mesh, @Nullable Integer startTick, @Nullable Integer endTick) {
-        this.mesh = mesh;
-        this.startTick = startTick;
-        this.endTick = endTick;
+    public WorldMesh(Obj obj) {
+        this(obj, new Meta());
     }
 
+    public WorldMesh(Obj obj, @Nullable Integer startTick, @Nullable Integer endTick) {
+        this(obj);
+        meta.startTick = startTick;
+        meta.endTick = endTick;
+    }
 
 }

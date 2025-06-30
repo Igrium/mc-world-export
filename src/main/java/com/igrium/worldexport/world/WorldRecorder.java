@@ -1,5 +1,6 @@
 package com.igrium.worldexport.world;
 
+import com.igrium.worldexport.world.mesh.WorldMesh;
 import com.igrium.worldexport.world.mesh.WorldTessellator;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,12 +17,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Records a world block updates.
+ * Record and tessellates world block updates.
  */
 public class WorldRecorder {
 
@@ -44,6 +46,7 @@ public class WorldRecorder {
         this.world = world;
         this.worldCapture = worldCapture;
         this.worldTessellator = new WorldTessellator(worldCapture, world);
+        this.worldTessellator.setMaterialFactory(this::getMaterialName);
     }
 
     public WorldRecorder(World world, ChunkSectionPos minPos, ChunkSectionPos maxPos) {
@@ -56,11 +59,7 @@ public class WorldRecorder {
     @Getter
     private boolean startedRecording;
 
-    /**
-     * Start recording for the first time. Should be called from the main thread for world access.
-     * @apiNote Called automatically by {@link WorldRecorderManager}
-     */
-    public void onStartRecording() {
+    public void startRecording() {
         if (startedRecording) {
             LOGGER.warn("World is already recording.");
             return;
@@ -72,6 +71,11 @@ public class WorldRecorder {
 
     public void nextTick() {
         currentTick++;
+    }
+
+    private String getMaterialName(BlockState state) {
+        // TODO: figure out if the block is actually transparent
+        return "world";
     }
 
     /**
@@ -88,6 +92,10 @@ public class WorldRecorder {
             return null;
 
         return chunk.getSection(pos.getSectionY());
+    }
+
+    public CompletableFuture<Map<ChunkSectionPos, Collection<WorldMesh>>> onCompleteRecording() {
+        return worldTessellator.tessellateAllMeshes(Util.getMainWorkerExecutor());
     }
 
     /**
