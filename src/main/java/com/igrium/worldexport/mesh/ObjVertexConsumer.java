@@ -24,7 +24,7 @@ public class ObjVertexConsumer implements VertexConsumer {
     float[][] vertCache = new float[4][];
     float[][] normalCache = new float[4][];
     float[][] texCache = new float[4][];
-    private int head = 0;
+    private int head = -1;
 
     public ObjVertexConsumer(Obj baseObj, Vec3d offset) {
         this.baseObj = baseObj;
@@ -36,9 +36,10 @@ public class ObjVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public ObjVertexConsumer vertex(double x, double y, double z) {
+    public ObjVertexConsumer vertex(float x, float y, float z) {
+        endVertex();
         posCache.set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
-        vertCache[head] = new float[] { (float) posCache.x(), (float) posCache.y(), (float) posCache.z() };
+        vertCache[head] = new float[] { posCache.x(), posCache.y(), posCache.z() };
         return this;
     }
 
@@ -71,8 +72,7 @@ public class ObjVertexConsumer implements VertexConsumer {
         return this;
     }
 
-    @Override
-    public void next() {
+    public void endVertex() {
         if (head >= 3) {
             int objHead = baseObj.getNumVertices();
             int[] indices = new int[4];
@@ -91,16 +91,6 @@ public class ObjVertexConsumer implements VertexConsumer {
         } else {
             head++;
         }
-
-    }
-
-    @Override
-    public void fixedColor(int red, int green, int blue, int alpha) {
-
-    }
-
-    @Override
-    public void unfixColor() {
 
     }
 

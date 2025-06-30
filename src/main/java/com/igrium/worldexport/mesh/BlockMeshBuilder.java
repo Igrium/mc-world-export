@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -110,11 +109,7 @@ public class BlockMeshBuilder {
                                                                  boolean splitBlocks, Function<BlockState, String> materialFactory, int maxThreads, @Nullable MeshBuildCallback callback) {
         List<Runnable> operations = new ArrayList<>(sections.size());
 
-        ThreadLocal<Random> randoms = new ThreadLocal<>() {
-            protected Random initialValue() {
-                return Random.createLocal();
-            };
-        };
+        ThreadLocal<Random> randoms = ThreadLocal.withInitial(Random::createLocal);
 
         ConcurrentHashMap<ChunkSectionPos, Obj> results = new ConcurrentHashMap<>();
 
