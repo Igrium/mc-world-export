@@ -1,5 +1,6 @@
 package com.igrium.worldexport;
 
+import com.igrium.worldexport.command.WorldCaptureCommand;
 import com.igrium.worldexport.event.ClientBlockUpdated;
 import com.igrium.worldexport.event.ClientWorldEvents;
 import com.igrium.worldexport.replay.ReplayRecorder;
@@ -7,6 +8,7 @@ import com.igrium.worldexport.replay.ReplayRecordingSettings;
 import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.world.World;
@@ -33,6 +35,8 @@ public class IgriumsReplayExporter implements ModInitializer, ClientModInitializ
 
     @Override
     public void onInitializeClient() {
+        ClientCommandRegistrationCallback.EVENT.register(WorldCaptureCommand::register);
+
         ClientTickEvents.END_CLIENT_TICK.register((client) -> {
             if (activeRecorder != null) {
                 activeRecorder.onClientTick();
@@ -81,5 +85,12 @@ public class IgriumsReplayExporter implements ModInitializer, ClientModInitializ
             throw new IllegalStateException("Client must be connected to a world to record.");
         }
         return startRecording(new ReplayRecorder(settings, world));
+    }
+
+    @Nullable
+    public ReplayRecorder stopRecording() {
+        var recorder = activeRecorder;
+        activeRecorder = null;
+        return recorder;
     }
 }

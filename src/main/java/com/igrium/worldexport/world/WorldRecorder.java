@@ -66,7 +66,7 @@ public class WorldRecorder {
         }
 
         captureInitialWorld();
-        worldTessellator.buildAllBaseMeshes(null);
+        worldTessellator.buildAllBaseMeshes(null, 0);
     }
 
     public void nextTick() {
@@ -92,10 +92,6 @@ public class WorldRecorder {
             return null;
 
         return chunk.getSection(pos.getSectionY());
-    }
-
-    public CompletableFuture<Map<ChunkSectionPos, Collection<WorldMesh>>> onCompleteRecording() {
-        return worldTessellator.tessellateAllMeshes(Util.getMainWorkerExecutor());
     }
 
     /**

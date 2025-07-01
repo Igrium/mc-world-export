@@ -2,6 +2,7 @@ package com.igrium.worldexport.replay;
 
 import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.world.WorldRecorder;
+import com.igrium.worldexport.world.mesh.WorldTessellator;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
@@ -13,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 public class ReplayRecorder {
 
@@ -82,6 +85,24 @@ public class ReplayRecorder {
     public void onLoadChunk(ChunkPos pos, WorldChunk chunk) {
         if (recording && worldRecorder != null) {
             worldRecorder.onLoadChunk(pos, chunk);
+        }
+    }
+
+    /**
+     * Tessellate all world meshes and bake entities in preparation to save on disk.
+     * @param executor Executor to use.
+     * @param maxThreads Max concurrent threads.
+     * @return A future that completes with the captured replay, and fails if something goes wrong.
+     */
+    public CompletableFuture<CapturedReplay> compile(Executor executor, int maxThreads) {
+        CapturedReplay replay = new CapturedReplay();
+        if (worldRecorder != null) {
+            return worldRecorder.getWorldTessellator().tessellateAllMeshes(executor, maxThreads).thenApply(r -> {
+                replay.getWorldMeshes().putAll(r);
+                return replay;
+            });
+        } else {
+            return CompletableFuture.completedFuture(replay);
         }
     }
 }

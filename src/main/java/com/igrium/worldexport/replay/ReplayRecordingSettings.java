@@ -14,7 +14,7 @@ import java.util.Objects;
 public class ReplayRecordingSettings {
 
     @Setter
-    private boolean recordWorld;
+    private boolean recordWorld = true;
 
     @Setter @NonNull
     private String name = "recording";

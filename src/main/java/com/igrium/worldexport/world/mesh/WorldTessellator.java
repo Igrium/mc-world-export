@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world.mesh;
 
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
+import com.igrium.worldexport.util.FutureUtils;
 import com.igrium.worldexport.world.SectionSetBlockRenderView;
 import com.igrium.worldexport.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.world.WorldCapture;
@@ -73,7 +74,10 @@ public class WorldTessellator {
      * @param progressCallback Called when a section has finished building.
      * @return A future that completes once all sections have finished building.
      */
-    public CompletableFuture<?> buildAllBaseMeshes(@Nullable BiIntConsumer progressCallback) {
+    public CompletableFuture<?> buildAllBaseMeshes(@Nullable BiIntConsumer progressCallback, int maxThreads) {
+        if (maxThreads <= 0)
+            maxThreads = NUM_THREADS;
+
         var baseSections = worldCapture.getBaseSections();
         if (baseSections.isEmpty()) {
             LOGGER.warn("WorldCapture has no base sections. Make sure to call captureInitialWorld().");
@@ -125,25 +129,27 @@ public class WorldTessellator {
 
     }
 
-    public CompletableFuture<Map<ChunkSectionPos, Collection<WorldMesh>>> tessellateAllMeshes(Executor executor) {
+    public CompletableFuture<Map<ChunkSectionPos, List<WorldMesh>>> tessellateAllMeshes(Executor executor, int maxThreads) {
+        if (maxThreads <= 0)
+            maxThreads = NUM_THREADS;
+
         CompiledBlockFrameSet frames = CompiledBlockFrameSet.compile(worldCapture);
-
         ThreadLocal<Random> random = ThreadLocal.withInitial(Random::createLocal);
-        List<CompletableFuture<?>> futures = new ArrayList<>();
 
-        Map<ChunkSectionPos, Collection<WorldMesh>> result = new ConcurrentHashMap<>();
+        Map<ChunkSectionPos, List<WorldMesh>> result = new ConcurrentHashMap<>();
+        List<Runnable> runnables = new ArrayList<>(worldCapture.getBaseSections().size());
 
         for (var cPos : worldCapture.getBaseSections().keySet()) {
-            futures.add(CompletableFuture.runAsync(() -> {
-                Collection<WorldMesh> tessellated = tessellateSectionMeshes(cPos, frames, random.get());
-                if (!tessellated.isEmpty()) {
-                    result.put(cPos, tessellated);
-                }
-            }));
+            runnables.add(() -> {
+                List<WorldMesh> tessellated = tessellateSectionMeshes(cPos, frames, random.get());
+               if (!tessellated.isEmpty()) {
+                   result.put(cPos, tessellated);
+               }
+            });
         }
 
-        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .thenApply(v -> result);
+        return CompletableFuture.allOf(FutureUtils.runAllAsync(runnables, executor, maxThreads))
+                .thenApply(r -> result);
     }
 
     /**
@@ -154,7 +160,7 @@ public class WorldTessellator {
      * @return A list of all the different meshes generated for various keyframes.
      * @implNote If the base mesh hasn't finished building, could have unexpected results.
      */
-    public Collection<WorldMesh> tessellateSectionMeshes(ChunkSectionPos cPos, CompiledBlockFrameSet frames, Random random) {
+    public List<WorldMesh> tessellateSectionMeshes(ChunkSectionPos cPos, CompiledBlockFrameSet frames, Random random) {
         // TODO: Implement section keyframes.
         // TODO: (is that actually important?)
         Int2ObjectSortedMap<Set<BlockPos>> keyframes = frames.getSectionBlockKeyframes(cPos);
