@@ -10,7 +10,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.PalettedContainer;
 import net.minecraft.world.chunk.WorldChunk;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
@@ -102,7 +101,7 @@ public class WorldRecorder {
         Map<ChunkSectionPos, ChunkSection> sections = findChunkSections();
 
         for (var entry : sections.entrySet()) {
-            worldCapture.getBaseWorldCopy().putSection(entry.getKey(), entry.getValue().getBlockStateContainer().copy());
+            worldCapture.getCopiedWorld().putSection(entry.getKey(), entry.getValue().getBlockStateContainer().copy());
         }
 
         long elapsed = Util.getMeasuringTimeMs() - startTime;
@@ -124,7 +123,7 @@ public class WorldRecorder {
 
         MutableBoolean createdNew = new MutableBoolean(false);
 
-        var blocks = worldCapture.getBaseWorldCopy().getOrCreateSection(pos, () -> {
+        var blocks = worldCapture.getCopiedWorld().getOrCreateSection(pos, () -> {
             createdNew.setTrue();
             return section.getBlockStateContainer().copy();
         });

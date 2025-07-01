@@ -12,6 +12,7 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
@@ -105,6 +106,7 @@ public class BlockMeshBuilder {
      * @param callback        Called whenever a section mesh has finished building.
      * @return A future that completes with all compiled objs once the operation is complete.
      */
+    @Deprecated
     public static CompletableFuture<Map<ChunkSectionPos, Obj>> buildSectionsThreaded(Executor executor, Collection<? extends ChunkSectionPos> sections, BlockRenderView world,
                                                                  boolean splitBlocks, Function<BlockState, String> materialFactory, int maxThreads, @Nullable MeshBuildCallback callback) {
         List<Runnable> operations = new ArrayList<>(sections.size());
@@ -123,6 +125,47 @@ public class BlockMeshBuilder {
                if (callback != null) {
                    callback.accept(sectionPos, obj, currentIndex.getAndIncrement());
                }
+            });
+        }
+
+        return CompletableFuture.allOf(FutureUtils.runAllAsync(operations, executor, maxThreads))
+                .thenApply(n -> results);
+    }
+
+    public record PositionedObj(ChunkSectionPos pos, Obj obj) {};
+
+    @FunctionalInterface
+    public interface ChunkBuildCallback {
+        void accept(ChunkPos pos, List<PositionedObj> meshes, int index);
+    }
+
+    public static CompletableFuture<Map<ChunkPos, List<PositionedObj>>> buildChunksThreaded(Executor executor, Collection<? extends ChunkPos> chunks,
+                                                                                  BlockRenderView world, boolean splitBlocks, Function<BlockState, String> materialFactory,
+                                                                                  int maxThreads, @Nullable ChunkBuildCallback callback) {
+        List<Runnable> operations = new ArrayList<>(chunks.size());
+        ThreadLocal<Random> randoms = ThreadLocal.withInitial(Random::createLocal);
+        Map<ChunkPos, List<PositionedObj>> results = new ConcurrentHashMap<>();
+        AtomicInteger currentIndex = new AtomicInteger();
+
+        int min = world.getBottomSectionCoord();
+        int max = world.getTopSectionCoord();
+
+        for (var chunk : chunks) {
+            operations.add(() -> {
+                int index = currentIndex.getAndIncrement();
+                List<PositionedObj> list = new ArrayList<>(max - min);
+
+                for (int y = min; y < max; y++) {
+                    Obj obj = Objs.create();
+                    ChunkSectionPos pos = ChunkSectionPos.from(chunk, y);
+                    buildSection(obj, pos, world, splitBlocks, materialFactory, randoms.get());
+
+                    var positioned = new PositionedObj(pos, obj);
+                    list.add(positioned);
+                }
+                results.put(chunk, list);
+                if (callback != null)
+                    callback.accept(chunk, list, index);
             });
         }
 

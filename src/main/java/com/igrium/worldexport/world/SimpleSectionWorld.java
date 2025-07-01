@@ -118,4 +118,8 @@ public class SimpleSectionWorld<T> implements HeightLimitView {
             }
         }
     }
+
+    public int countChunks() {
+        return chunks.size();
+    }
 }

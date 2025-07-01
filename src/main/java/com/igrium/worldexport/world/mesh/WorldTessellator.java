@@ -2,7 +2,6 @@ package com.igrium.worldexport.world.mesh;
 
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.util.FutureUtils;
-import com.igrium.worldexport.world.SectionSetBlockRenderView;
 import com.igrium.worldexport.world.SimpleSectionBlockRenderView;
 import com.igrium.worldexport.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.world.WorldCapture;
@@ -19,7 +18,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.PalettedContainer;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,34 +78,27 @@ public class WorldTessellator {
         if (maxThreads <= 0)
             maxThreads = NUM_THREADS;
 
-        Map<ChunkSectionPos, PalettedContainer<BlockState>> baseSections = new HashMap<>();
-        worldCapture.getBaseWorldCopy().forEachSection(baseSections::put);
-
-        if (baseSections.isEmpty()) {
-            LOGGER.warn("WorldCapture has no base sections. Make sure to call captureInitialWorld().");
+        int count = worldCapture.getCopiedWorld().countChunks();
+        if (count == 0) {
+            LOGGER.warn("WorldCapture has no base sections. Be sure to call captureInitialWorld().");
             return CompletableFuture.completedFuture(null);
         }
 
-        SectionSetBlockRenderView renderView = new SectionSetBlockRenderView(baseSections, baseWorld);
+        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
 
-        int count = baseSections.size();
-        BlockMeshBuilder.MeshBuildCallback callback = (pos, mesh, index) -> {
+        BlockMeshBuilder.ChunkBuildCallback callback = (pos, meshes, index) -> {
             if (progressCallback != null) {
                 progressCallback.accept(index, count);
             }
-            baseSectionMeshes.put(pos, mesh);
+            for (var mesh : meshes) {
+                baseSectionMeshes.put(mesh.pos(), mesh.obj());
+            }
         };
 
         long startTime = Util.getMeasuringTimeMs();
-        return BlockMeshBuilder.buildSectionsThreaded(executor, baseSections.keySet(), renderView, splitBlocks, materialFactory, maxThreads, callback)
-                .handle((o, e) -> {
-                    if (e != null) {
-                        LOGGER.error("World tessellation failed!", e);
-                    } else {
-                        LOGGER.info("Initial world tessellation completed in {}ms", Util.getMeasuringTimeMs() - startTime);
-                    }
-                    return o;
-                });
+
+        var chunks = worldCapture.getCopiedWorld().getChunks().keySet();
+        return BlockMeshBuilder.buildChunksThreaded(executor, chunks, renderView, splitBlocks, materialFactory, maxThreads, callback);
     }
 
     /**
@@ -118,7 +109,7 @@ public class WorldTessellator {
      * @apiNote Only meant to be used for sections that have never been seen before; it lumps them with the base sections.
      */
     public CompletableFuture<Obj> buildSectionBaseMesh(ChunkSectionPos pos) {
-        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getBaseWorldCopy(), baseWorld);
+        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
         return CompletableFuture.supplyAsync(() -> {
             Obj obj = Objs.create();
             BlockMeshBuilder.buildSection(obj, pos, renderView, splitBlocks, materialFactory, Random.createLocal());
@@ -144,7 +135,7 @@ public class WorldTessellator {
 
         List<Runnable> runnables = new ArrayList<>();
 
-        worldCapture.getBaseWorldCopy().forEachSection((cPos, section) -> {
+        worldCapture.getCopiedWorld().forEachSection((cPos, section) -> {
             runnables.add(() -> {
                 List<WorldMesh> tessellated = tessellateSectionMeshes(cPos, frames, random.get());
                 if (!tessellated.isEmpty()) {
@@ -223,7 +214,7 @@ public class WorldTessellator {
 
             Obj baseMesh = Objs.create();
 //            BlockRenderView baseRenderView = new SectionSetBlockRenderView(worldCapture.getBaseChunks(), baseWorld);
-            BlockRenderView baseRenderView = new SimpleSectionBlockRenderView(worldCapture.getBaseWorldCopy(), baseWorld);
+            BlockRenderView baseRenderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
 
             BlockMeshBuilder.buildBlocks(baseMesh, nonKeyframedBlocks, baseRenderView,
                     splitBlocks, materialFactory, random);

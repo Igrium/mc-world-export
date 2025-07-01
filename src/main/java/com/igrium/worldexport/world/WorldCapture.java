@@ -54,7 +54,7 @@ public class WorldCapture {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldCapture.class);
 
     @Getter
-    private final SimpleSectionWorld<PalettedContainer<BlockState>> baseWorldCopy;
+    private final SimpleSectionWorld<PalettedContainer<BlockState>> copiedWorld;
 
     /**
      * The minimum exported chunk section pos, inclusive.
@@ -102,7 +102,7 @@ public class WorldCapture {
 
         boundsMin = ChunkSectionPos.from(xMin, yMin, zMin);
         boundsMax = ChunkSectionPos.from(xMax, yMax, zMax);
-        baseWorldCopy = new SimpleSectionWorld<>(yMin, yMax + 1 - yMin);
+        copiedWorld = new SimpleSectionWorld<>(yMin, yMax + 1 - yMin);
     }
 
     public boolean isInBounds(ChunkPos pos) {
@@ -182,7 +182,7 @@ public class WorldCapture {
         if (sectionKeyframes != null) sectionKeyframes = sectionKeyframes.headMap(tick + 1);
 
 //        ReadableContainer<BlockState> base = baseChunks.get(cPos);
-        ReadableContainer<BlockState> base = baseWorldCopy.getSection(cPos);
+        ReadableContainer<BlockState> base = copiedWorld.getSection(cPos);
 
         if (isNullOrEmpty(blockKeyframes) && isNullOrEmpty(sectionKeyframes) && base == null) {
             return Blocks.AIR.getDefaultState();
