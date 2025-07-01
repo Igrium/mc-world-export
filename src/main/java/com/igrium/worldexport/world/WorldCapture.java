@@ -1,6 +1,5 @@
 package com.igrium.worldexport.world;
 
-import com.igrium.worldexport.collectionutils.WriteSynchronizedList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
@@ -55,7 +54,7 @@ public class WorldCapture {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldCapture.class);
 
     @Getter
-    private final Map<ChunkSectionPos, ReadableContainer<BlockState>> baseSections = new ConcurrentHashMap<>();
+    private final SimpleSectionWorld<PalettedContainer<BlockState>> baseWorldCopy;
 
     /**
      * The minimum exported chunk section pos, inclusive.
@@ -103,6 +102,7 @@ public class WorldCapture {
 
         boundsMin = ChunkSectionPos.from(xMin, yMin, zMin);
         boundsMax = ChunkSectionPos.from(xMax, yMax, zMax);
+        baseWorldCopy = new SimpleSectionWorld<>(yMin, yMax + 1 - yMin);
     }
 
     public boolean isInBounds(ChunkPos pos) {
@@ -181,7 +181,8 @@ public class WorldCapture {
         Int2ObjectSortedMap<SectionKeyframe> sectionKeyframes = getSectionKeyframes().get(cPos);
         if (sectionKeyframes != null) sectionKeyframes = sectionKeyframes.headMap(tick + 1);
 
-        ReadableContainer<BlockState> base = baseSections.get(cPos);
+//        ReadableContainer<BlockState> base = baseChunks.get(cPos);
+        ReadableContainer<BlockState> base = baseWorldCopy.getSection(cPos);
 
         if (isNullOrEmpty(blockKeyframes) && isNullOrEmpty(sectionKeyframes) && base == null) {
             return Blocks.AIR.getDefaultState();

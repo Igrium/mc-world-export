@@ -13,21 +13,12 @@ import net.minecraft.world.chunk.ReadableContainer;
 import net.minecraft.world.chunk.light.LightingProvider;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
-
-/**
- * A block render view that directly references sets of containers.
- * This simplified version only affects blocks. Other stuff like lighting and biome colors are forwarded to a base world.
- */
-@Deprecated
-public class SectionSetBlockRenderView implements BlockRenderView {
-
-
-    private final Map<ChunkSectionPos, ? extends ReadableContainer<BlockState>> blockStateContainer;
+public class SimpleSectionBlockRenderView implements BlockRenderView {
+    private final SimpleSectionWorld<? extends ReadableContainer<BlockState>> world;
     private final BlockRenderView base;
 
-    public SectionSetBlockRenderView(Map<ChunkSectionPos, ? extends ReadableContainer<BlockState>> blockStateContainer, BlockRenderView base) {
-        this.blockStateContainer = blockStateContainer;
+    public SimpleSectionBlockRenderView(SimpleSectionWorld<? extends ReadableContainer<BlockState>> world, BlockRenderView base) {
+        this.world = world;
         this.base = base;
     }
 
@@ -55,7 +46,7 @@ public class SectionSetBlockRenderView implements BlockRenderView {
     public BlockState getBlockState(BlockPos pos) {
         ChunkSectionPos cPos = ChunkSectionPos.from(pos);
 
-        ReadableContainer<BlockState> container = blockStateContainer.get(cPos);
+        ReadableContainer<BlockState> container = world.getSection(cPos);
         if (container == null) {
             return Blocks.AIR.getDefaultState();
         }
@@ -74,14 +65,11 @@ public class SectionSetBlockRenderView implements BlockRenderView {
 
     @Override
     public int getHeight() {
-        return base.getHeight();
+        return world.getHeight();
     }
 
     @Override
     public int getBottomY() {
-        return base.getBottomY();
+        return world.getBottomY();
     }
-
-
-
 }

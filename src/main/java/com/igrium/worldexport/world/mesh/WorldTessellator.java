@@ -3,6 +3,7 @@ package com.igrium.worldexport.world.mesh;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.util.FutureUtils;
 import com.igrium.worldexport.world.SectionSetBlockRenderView;
+import com.igrium.worldexport.world.SimpleSectionBlockRenderView;
 import com.igrium.worldexport.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.world.WorldCapture;
 import de.javagl.obj.Obj;
@@ -18,6 +19,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.PalettedContainer;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
-import java.util.stream.StreamSupport;
 
 /**
  * Converts the blocks in a WorldCapture into actual meshes.
@@ -79,13 +80,15 @@ public class WorldTessellator {
         if (maxThreads <= 0)
             maxThreads = NUM_THREADS;
 
-        var baseSections = worldCapture.getBaseSections();
+        Map<ChunkSectionPos, PalettedContainer<BlockState>> baseSections = new HashMap<>();
+        worldCapture.getBaseWorldCopy().forEachSection(baseSections::put);
+
         if (baseSections.isEmpty()) {
             LOGGER.warn("WorldCapture has no base sections. Make sure to call captureInitialWorld().");
             return CompletableFuture.completedFuture(null);
         }
 
-        SectionSetBlockRenderView renderView = new SectionSetBlockRenderView(worldCapture.getBaseSections(), baseWorld);
+        SectionSetBlockRenderView renderView = new SectionSetBlockRenderView(baseSections, baseWorld);
 
         int count = baseSections.size();
         BlockMeshBuilder.MeshBuildCallback callback = (pos, mesh, index) -> {
@@ -115,7 +118,7 @@ public class WorldTessellator {
      * @apiNote Only meant to be used for sections that have never been seen before; it lumps them with the base sections.
      */
     public CompletableFuture<Obj> buildSectionBaseMesh(ChunkSectionPos pos) {
-        SectionSetBlockRenderView renderView = new SectionSetBlockRenderView(worldCapture.getBaseSections(), baseWorld);
+        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getBaseWorldCopy(), baseWorld);
         return CompletableFuture.supplyAsync(() -> {
             Obj obj = Objs.create();
             BlockMeshBuilder.buildSection(obj, pos, renderView, splitBlocks, materialFactory, Random.createLocal());
@@ -138,16 +141,17 @@ public class WorldTessellator {
         ThreadLocal<Random> random = ThreadLocal.withInitial(Random::createLocal);
 
         Map<ChunkSectionPos, List<WorldMesh>> result = new ConcurrentHashMap<>();
-        List<Runnable> runnables = new ArrayList<>(worldCapture.getBaseSections().size());
 
-        for (var cPos : worldCapture.getBaseSections().keySet()) {
+        List<Runnable> runnables = new ArrayList<>();
+
+        worldCapture.getBaseWorldCopy().forEachSection((cPos, section) -> {
             runnables.add(() -> {
                 List<WorldMesh> tessellated = tessellateSectionMeshes(cPos, frames, random.get());
-               if (!tessellated.isEmpty()) {
-                   result.put(cPos, tessellated);
-               }
+                if (!tessellated.isEmpty()) {
+                    result.put(cPos, tessellated);
+                }
             });
-        }
+        });
 
         return CompletableFuture.allOf(FutureUtils.runAllAsync(runnables, executor, maxThreads))
                 .thenApply(r -> result);
@@ -218,7 +222,8 @@ public class WorldTessellator {
             }
 
             Obj baseMesh = Objs.create();
-            BlockRenderView baseRenderView = new SectionSetBlockRenderView(worldCapture.getBaseSections(), baseWorld);
+//            BlockRenderView baseRenderView = new SectionSetBlockRenderView(worldCapture.getBaseChunks(), baseWorld);
+            BlockRenderView baseRenderView = new SimpleSectionBlockRenderView(worldCapture.getBaseWorldCopy(), baseWorld);
 
             BlockMeshBuilder.buildBlocks(baseMesh, nonKeyframedBlocks, baseRenderView,
                     splitBlocks, materialFactory, random);

@@ -1,6 +1,5 @@
 package com.igrium.worldexport.world;
 
-import com.igrium.worldexport.world.mesh.WorldMesh;
 import com.igrium.worldexport.world.mesh.WorldTessellator;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,14 +12,13 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.PalettedContainer;
 import net.minecraft.world.chunk.WorldChunk;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Record and tessellates world block updates.
@@ -104,7 +102,7 @@ public class WorldRecorder {
         Map<ChunkSectionPos, ChunkSection> sections = findChunkSections();
 
         for (var entry : sections.entrySet()) {
-            worldCapture.getBaseSections().put(entry.getKey(), entry.getValue().getBlockStateContainer().copy());
+            worldCapture.getBaseWorldCopy().putSection(entry.getKey(), entry.getValue().getBlockStateContainer().copy());
         }
 
         long elapsed = Util.getMeasuringTimeMs() - startTime;
@@ -124,9 +122,14 @@ public class WorldRecorder {
         if (!worldCapture.isInBounds(pos))
             return;
 
-        PalettedContainer<BlockState> blocks = section.getBlockStateContainer().copy();
+        MutableBoolean createdNew = new MutableBoolean(false);
 
-        if (worldCapture.getBaseSections().putIfAbsent(pos, blocks) == null) {
+        var blocks = worldCapture.getBaseWorldCopy().getOrCreateSection(pos, () -> {
+            createdNew.setTrue();
+            return section.getBlockStateContainer().copy();
+        });
+
+        if (createdNew.isTrue()) {
             // Section is unseen; need to tessellate it.
             worldTessellator.buildSectionBaseMesh(pos);
         } else {
