@@ -2,6 +2,7 @@ package com.igrium.worldexport.world.mesh;
 
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.util.FutureUtils;
+import com.igrium.worldexport.world.SimpleColumnRendererRegion;
 import com.igrium.worldexport.world.SimpleSectionBlockRenderView;
 import com.igrium.worldexport.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.world.WorldCapture;
@@ -84,21 +85,32 @@ public class WorldTessellator {
             return CompletableFuture.completedFuture(null);
         }
 
-        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
+        var copiedWorld = worldCapture.getCopiedWorld();
 
-        BlockMeshBuilder.ChunkBuildCallback callback = (pos, meshes, index) -> {
+//        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
+
+        BlockMeshBuilder.MeshBuildCallback callback = (pos, meshes, index) -> {
             if (progressCallback != null) {
                 progressCallback.accept(index, count);
             }
-            for (var mesh : meshes) {
-                baseSectionMeshes.put(mesh.pos(), mesh.obj());
+
+            for (int i = 0; i < meshes.length; i++) {
+                ChunkSectionPos sPos = ChunkSectionPos.from(pos, copiedWorld.sectionIndexToCoord(i));
+                baseSectionMeshes.put(sPos, meshes[i]);
             }
+
+//            if (progressCallback != null) {
+//                progressCallback.accept(index, count);
+//            }
+//            for (var mesh : meshes) {
+//                baseSectionMeshes.put(mesh.pos(), mesh.obj());
+//            }
         };
 
         long startTime = Util.getMeasuringTimeMs();
 
         var chunks = worldCapture.getCopiedWorld().getChunks().keySet();
-        return BlockMeshBuilder.buildChunksThreaded(executor, chunks, renderView, splitBlocks, materialFactory, maxThreads, callback);
+        return BlockMeshBuilder.buildChunksThreaded(executor, copiedWorld, baseWorld, splitBlocks, materialFactory, maxThreads, callback);
     }
 
     /**
@@ -109,7 +121,10 @@ public class WorldTessellator {
      * @apiNote Only meant to be used for sections that have never been seen before; it lumps them with the base sections.
      */
     public CompletableFuture<Obj> buildSectionBaseMesh(ChunkSectionPos pos) {
-        SimpleSectionBlockRenderView renderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
+
+        SimpleColumnRendererRegion renderView = SimpleColumnRendererRegion.create(
+                baseWorld, pos.toChunkPos(), worldCapture.getCopiedWorld());
+
         return CompletableFuture.supplyAsync(() -> {
             Obj obj = Objs.create();
             BlockMeshBuilder.buildSection(obj, pos, renderView, splitBlocks, materialFactory, Random.createLocal());
@@ -214,7 +229,8 @@ public class WorldTessellator {
 
             Obj baseMesh = Objs.create();
 //            BlockRenderView baseRenderView = new SectionSetBlockRenderView(worldCapture.getBaseChunks(), baseWorld);
-            BlockRenderView baseRenderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
+            BlockRenderView baseRenderView = SimpleColumnRendererRegion.create(baseWorld, cPos.toChunkPos(), worldCapture.getCopiedWorld());
+//            BlockRenderView baseRenderView = new SimpleSectionBlockRenderView(worldCapture.getCopiedWorld(), baseWorld);
 
             BlockMeshBuilder.buildBlocks(baseMesh, nonKeyframedBlocks, baseRenderView,
                     splitBlocks, materialFactory, random);

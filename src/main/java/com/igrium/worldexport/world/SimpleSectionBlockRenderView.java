@@ -13,6 +13,7 @@ import net.minecraft.world.chunk.ReadableContainer;
 import net.minecraft.world.chunk.light.LightingProvider;
 import org.jetbrains.annotations.Nullable;
 
+@Deprecated
 public class SimpleSectionBlockRenderView implements BlockRenderView {
     private final SimpleSectionWorld<? extends ReadableContainer<BlockState>> world;
     private final BlockRenderView base;
