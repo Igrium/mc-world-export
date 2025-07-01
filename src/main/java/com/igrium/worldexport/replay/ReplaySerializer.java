@@ -67,7 +67,7 @@ public class ReplaySerializer {
     }
 
     public void saveSectionMesh(ChunkSectionPos cPos, List<WorldMesh> objs, Path worldPath) throws IOException {
-        String prefix = "world_%d-%d-%d.frame".formatted(cPos.getX(), cPos.getY(), cPos.getZ());
+        String prefix = "world_%d_%d_%d.frame".formatted(cPos.getX(), cPos.getY(), cPos.getZ());
 
         int frameIndex = 0;
         for (var frame : objs) {
@@ -80,6 +80,10 @@ public class ReplaySerializer {
             try (BufferedWriter writer = Files.newBufferedWriter(metaPath)) {
                 GSON.toJson(frame.meta(), writer);
             }
+
+            LOGGER.info("wrote {}", prefix + frameIndex);
+
+            frameIndex++;
         }
     }
 }

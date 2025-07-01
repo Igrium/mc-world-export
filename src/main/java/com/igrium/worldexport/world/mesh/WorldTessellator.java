@@ -14,6 +14,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 import net.minecraft.world.World;
@@ -165,6 +166,7 @@ public class WorldTessellator {
         // TODO: (is that actually important?)
         Int2ObjectSortedMap<Set<BlockPos>> keyframes = frames.getSectionBlockKeyframes(cPos);
 
+        Vec3d offset = new Vec3d(cPos.getMinPos());
 
         if (!keyframes.isEmpty()) {
             // Re-usable map to store a given keyframe's overrides
@@ -203,7 +205,7 @@ public class WorldTessellator {
                 Obj noOverrideMesh = Objs.create();
                 BlockMeshBuilder.buildBlocks(noOverrideMesh, blocksWithoutOverrides, renderView,
                         splitBlocks, materialFactory, random);
-                list.add(new WorldMesh(noOverrideMesh, keyEntry.getIntKey(), null));
+                list.add(new WorldMesh(noOverrideMesh, offset, keyEntry.getIntKey(), null));
 
                 keyframedBlocks.addAll(keyEntry.getValue());
             }
@@ -221,12 +223,13 @@ public class WorldTessellator {
             BlockMeshBuilder.buildBlocks(baseMesh, nonKeyframedBlocks, baseRenderView,
                     splitBlocks, materialFactory, random);
 
-            list.add(new WorldMesh(baseMesh));
+            if (baseMesh.getNumFaces() > 0)
+                list.add(new WorldMesh(baseMesh, offset));
             return list;
 
         } else {
             Obj base = baseSectionMeshes.get(cPos);
-            return base != null ? List.of(new WorldMesh(base)) : List.of();
+            return base != null && base.getNumFaces() > 0 ? List.of(new WorldMesh(base, offset)) : List.of();
         }
 
     }
