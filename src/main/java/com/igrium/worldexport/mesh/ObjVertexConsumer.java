@@ -76,7 +76,6 @@ public class ObjVertexConsumer implements VertexConsumer {
         if (head >= 3) {
             int objHead = baseObj.getNumVertices();
             int[] indices = new int[4];
-            // baseObj.setActiveGroupNames(Arrays.asList(MeshWriter.genGroupName(0)));
 
             for (int i = 0; i < 4; i++) {
                 indices[i] = objHead + i;

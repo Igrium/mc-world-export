@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.worldexport.util.FutureUtils;
 import com.igrium.worldexport.world.mesh.WorldMesh;
+import de.javagl.obj.ObjSplitting;
 import de.javagl.obj.ObjWriter;
+import de.javagl.obj.Objs;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -30,7 +32,7 @@ public class ReplaySerializer {
     private final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     @Getter @Setter @NonNull
-    private Executor executor = Util.getIoWorkerExecutor();
+    private Executor executor = Util.getMainWorkerExecutor();
 
     @Getter @Setter
     private int maxThreads = 0;
@@ -82,7 +84,6 @@ public class ReplaySerializer {
             }
 
             LOGGER.info("wrote {}", prefix + frameIndex);
-
             frameIndex++;
         }
     }

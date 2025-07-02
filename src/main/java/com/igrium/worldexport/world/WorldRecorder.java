@@ -96,16 +96,11 @@ public class WorldRecorder {
      * @implNote Expensive operation. Don't call every frame.
      */
     public void captureInitialWorld() {
-        long startTime = Util.getMeasuringTimeMs();
-
         Map<ChunkSectionPos, ChunkSection> sections = findChunkSections();
 
         for (var entry : sections.entrySet()) {
             worldCapture.getCopiedWorld().putSection(entry.getKey(), entry.getValue().getBlockStateContainer().copy());
         }
-
-        long elapsed = Util.getMeasuringTimeMs() - startTime;
-        LOGGER.info("Initial world capture took {}ms", elapsed);
     }
 
     /**
@@ -177,7 +172,6 @@ public class WorldRecorder {
                 * (boundsMax.getY() + 1 - boundsMin.getY())
                 * (boundsMax.getY() + 1 - boundsMin.getZ());
 
-        Map<ChunkSectionPos, ChunkSection> sections = new HashMap<>(maxSections);
 
         for (int x = boundsMin.getX(); x <= boundsMax.getX(); x++) {
             for (int z = boundsMin.getZ(); z <= boundsMax.getZ(); z++) {
@@ -210,7 +204,7 @@ public class WorldRecorder {
                 * boundsMax.getY() + 1 - boundsMin.getY()
                 * boundsMax.getY() + 1 - boundsMin.getZ();
 
-        Map<ChunkSectionPos, ChunkSection> sections = new HashMap<>(maxSections);
+        Map<ChunkSectionPos, ChunkSection> sections = new HashMap<>();
         findChunkSections(sections);
         return sections;
     }

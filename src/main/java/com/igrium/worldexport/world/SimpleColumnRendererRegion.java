@@ -1,5 +1,6 @@
 package com.igrium.worldexport.world;
 
+import com.igrium.worldexport.IgriumsReplayExporter;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
@@ -101,11 +102,16 @@ public class SimpleColumnRendererRegion implements BlockRenderView {
     }
 
     private SimpleSectionColumn<PalettedContainer<BlockState>> getColumn(int globalX, int globalZ) {
+        int index = getArrayIndex(centerX, centerZ, globalX, globalZ);
+        if (index < 0 || index >= 9) {
+            IgriumsReplayExporter.LOGGER.warn("Invalid local chunk pos: {}, {}", globalX - centerX, globalZ - centerZ);
+            return null;
+        }
         return chunks[getArrayIndex(centerX, centerZ, globalX, globalZ)];
     }
 
-    public static int getArrayIndex(int centerX, int centerZ, int chunkX, int chunkZ) {
-        return chunkX - centerX + (chunkZ - centerZ) * 3;
+    public static int getArrayIndex(int centerX, int centerZ, int globalX, int globalZ) {
+        return (globalX + 1 - centerX) + (globalZ + 1 - centerZ) * 3;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

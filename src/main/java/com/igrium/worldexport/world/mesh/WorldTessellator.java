@@ -96,21 +96,21 @@ public class WorldTessellator {
 
             for (int i = 0; i < meshes.length; i++) {
                 ChunkSectionPos sPos = ChunkSectionPos.from(pos, copiedWorld.sectionIndexToCoord(i));
-                baseSectionMeshes.put(sPos, meshes[i]);
+                if (meshes[i] != null)
+                    baseSectionMeshes.put(sPos, meshes[i]);
             }
-
-//            if (progressCallback != null) {
-//                progressCallback.accept(index, count);
-//            }
-//            for (var mesh : meshes) {
-//                baseSectionMeshes.put(mesh.pos(), mesh.obj());
-//            }
         };
 
         long startTime = Util.getMeasuringTimeMs();
 
-        var chunks = worldCapture.getCopiedWorld().getChunks().keySet();
-        return BlockMeshBuilder.buildChunksThreaded(executor, copiedWorld, baseWorld, splitBlocks, materialFactory, maxThreads, callback);
+        return BlockMeshBuilder.buildChunksThreaded(executor, copiedWorld, baseWorld, splitBlocks, materialFactory, maxThreads, callback)
+                .handle((v, e) -> {
+                    if (e != null) {
+                        LOGGER.error("Error tessellating base meshes", e);
+                    }
+                    LOGGER.info("Base mesh tessellation took {}ms", Util.getMeasuringTimeMs() - startTime);
+                    return null;
+                });
     }
 
     /**
