@@ -1,6 +1,6 @@
-package com.igrium.worldexport.world.mesh;
+package com.igrium.worldexport.v1.world.mesh;
 
-import com.igrium.worldexport.world.WorldCapture;
+import com.igrium.worldexport.v1.world.WorldCapture;
 import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkSectionPos;

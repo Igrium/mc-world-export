@@ -1,4 +1,4 @@
-package com.igrium.worldexport.world;
+package com.igrium.worldexport.v1.world;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;

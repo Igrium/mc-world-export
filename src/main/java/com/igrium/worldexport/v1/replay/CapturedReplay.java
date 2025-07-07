@@ -1,6 +1,6 @@
-package com.igrium.worldexport.replay;
+package com.igrium.worldexport.v1.replay;
 
-import com.igrium.worldexport.world.mesh.WorldMesh;
+import com.igrium.worldexport.v1.world.mesh.WorldMesh;
 import lombok.Getter;
 import net.minecraft.util.math.ChunkSectionPos;
 

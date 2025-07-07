@@ -1,4 +1,4 @@
-package com.igrium.worldexport.replay;
+package com.igrium.worldexport.v1.replay;
 
 import lombok.Getter;
 import lombok.NonNull;

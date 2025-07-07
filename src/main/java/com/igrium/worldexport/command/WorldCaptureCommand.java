@@ -1,13 +1,12 @@
 package com.igrium.worldexport.command;
 
-import com.igrium.worldexport.IgriumsReplayExporter;
-import com.igrium.worldexport.replay.ReplayRecorder;
-import com.igrium.worldexport.replay.ReplayRecordingSettings;
-import com.igrium.worldexport.replay.ReplaySerializer;
+import com.igrium.worldexport.v1.IgriumsReplayExporter;
+import com.igrium.worldexport.v1.replay.ReplayRecorder;
+import com.igrium.worldexport.v1.replay.ReplayRecordingSettings;
+import com.igrium.worldexport.v1.replay.ReplaySerializer;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandExceptionType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;

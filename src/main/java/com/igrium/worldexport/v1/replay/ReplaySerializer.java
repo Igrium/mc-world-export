@@ -1,12 +1,10 @@
-package com.igrium.worldexport.replay;
+package com.igrium.worldexport.v1.replay;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.worldexport.util.FutureUtils;
-import com.igrium.worldexport.world.mesh.WorldMesh;
-import de.javagl.obj.ObjSplitting;
+import com.igrium.worldexport.v1.world.mesh.WorldMesh;
 import de.javagl.obj.ObjWriter;
-import de.javagl.obj.Objs;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;

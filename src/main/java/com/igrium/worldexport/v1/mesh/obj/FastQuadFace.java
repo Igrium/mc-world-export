@@ -1,9 +1,6 @@
-package com.igrium.worldexport.mesh.obj;
+package com.igrium.worldexport.v1.mesh.obj;
 
 import de.javagl.obj.ObjFace;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Arrays;
 
 public class FastQuadFace implements ObjFace {
     private static final int VERTEX_STRIDE = 3;

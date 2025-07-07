@@ -1,4 +1,4 @@
-package com.igrium.worldexport.world;
+package com.igrium.worldexport.v1.world;
 
 import lombok.Getter;
 import net.minecraft.util.math.ChunkPos;
@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**

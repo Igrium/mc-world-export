@@ -15,11 +15,8 @@
 	"icon": "assets/worldexport/icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": [
-			"com.igrium.worldexport.IgriumsReplayExporter"
-		],
 		"client": [
-			"com.igrium.worldexport.IgriumsReplayExporter"
+          "com.igrium.worldexport.IgriumsReplayExporter"
 		]
 	},
 	"mixins": [

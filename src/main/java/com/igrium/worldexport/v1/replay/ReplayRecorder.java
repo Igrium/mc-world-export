@@ -1,8 +1,7 @@
-package com.igrium.worldexport.replay;
+package com.igrium.worldexport.v1.replay;
 
-import com.igrium.worldexport.IgriumsReplayExporter;
-import com.igrium.worldexport.world.WorldRecorder;
-import com.igrium.worldexport.world.mesh.WorldTessellator;
+import com.igrium.worldexport.v1.IgriumsReplayExporter;
+import com.igrium.worldexport.v1.world.WorldRecorder;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;

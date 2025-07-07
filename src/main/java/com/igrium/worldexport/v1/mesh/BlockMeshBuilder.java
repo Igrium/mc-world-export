@@ -1,9 +1,8 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.v1.mesh;
 
 import com.igrium.worldexport.util.FutureUtils;
-import com.igrium.worldexport.world.SimpleColumnRendererRegion;
-import com.igrium.worldexport.world.SimpleSectionColumn;
-import com.igrium.worldexport.world.SimpleSectionWorld;
+import com.igrium.worldexport.v1.world.SimpleColumnRendererRegion;
+import com.igrium.worldexport.v1.world.SimpleSectionWorld;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.block.BlockRenderType;
@@ -19,7 +18,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
-import net.minecraft.world.chunk.PalettedContainer;
 import net.minecraft.world.chunk.ReadableContainer;
 import org.jetbrains.annotations.Nullable;
 

@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh.obj;
+package com.igrium.worldexport.v1.mesh.obj;
 
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
@@ -6,11 +6,8 @@ import de.javagl.obj.ObjFace;
 import de.javagl.obj.ObjGroup;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.floats.FloatList;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 

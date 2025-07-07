@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh.obj;
+package com.igrium.worldexport.v1.mesh.obj;
 
 import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;

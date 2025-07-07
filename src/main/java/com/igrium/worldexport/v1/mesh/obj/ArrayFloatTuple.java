@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh.obj;
+package com.igrium.worldexport.v1.mesh.obj;
 
 import de.javagl.obj.FloatTuple;
 

@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.v1.mesh;
 
 import de.javagl.obj.ObjWriter;
 import de.javagl.obj.ReadableObj;
