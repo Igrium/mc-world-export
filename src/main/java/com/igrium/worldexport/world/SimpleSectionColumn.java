@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.ChunkSectionPos;
@@ -58,13 +59,17 @@ public class SimpleSectionColumn implements HeightLimitView {
      */
     public BlockState getBlockState(int x, int y, int z) throws IndexOutOfBoundsException {
         if (x < 0 || x >= 16) {
-            throw new IndexOutOfBoundsException("X position " + x + " out of bounds for chunk.");
+            return Blocks.AIR.getDefaultState();
         }
         if (z < 0 || z >= 16) {
-            throw new IndexOutOfBoundsException("Z position " + z + " out of bounds for chunk.");
+            return Blocks.AIR.getDefaultState();
         }
+        int yIndex = sectionCoordToIndex(ChunkSectionPos.getSectionCoord(y));
+        if (yIndex < 0 || yIndex >= sections.length)
+            return Blocks.AIR.getDefaultState();
+
         int localY = ChunkSectionPos.getLocalCoord(y);
-        return getSection(getSectionIndex(ChunkSectionPos.getSectionCoord(y))).getBlockState(x, localY, z);
+        return sections[yIndex].getBlockState(x, localY, z);
     }
 
     /**
@@ -83,7 +88,7 @@ public class SimpleSectionColumn implements HeightLimitView {
             throw new IndexOutOfBoundsException("Z position " + z + " out of bounds for chunk.");
         }
         int localY = ChunkSectionPos.getLocalCoord(y);
-        return getSection(getSectionIndex(ChunkSectionPos.getSectionCoord(y))).getBiome(x, localY, z);
+        return getSection(getSectionIndex(y)).getBiome(x, localY, z);
     }
 
     @Override

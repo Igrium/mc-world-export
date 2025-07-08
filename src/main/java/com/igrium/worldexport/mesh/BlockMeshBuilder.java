@@ -43,6 +43,7 @@ public class BlockMeshBuilder {
 
 
         ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
+        vertexConsumer.setEnableNormals(false);
 
         if (offset != null) {
             vertexConsumer.matrices.translate(-offset.getX(), -offset.getY(), -offset.getZ());

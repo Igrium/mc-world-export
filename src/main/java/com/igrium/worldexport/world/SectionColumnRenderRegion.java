@@ -104,7 +104,7 @@ public class SectionColumnRenderRegion implements BlockRenderView {
         SimpleSectionColumn[] colArray = new SimpleSectionColumn[9];
 
         for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-            for (int chunkX = minChunkX; chunkX < maxChunkX; chunkX++) {
+            for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
                 int index = getIndex(minChunkX, minChunkZ, chunkX, chunkZ);
                 colArray[index] = columns.get(new ChunkPos(chunkX, chunkZ));
             }

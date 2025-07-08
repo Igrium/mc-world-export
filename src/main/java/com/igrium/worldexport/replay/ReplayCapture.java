@@ -94,7 +94,7 @@ public class ReplayCapture {
         return worldTessellator.tessellateAllMeshes(null).thenApply(meshes -> {
             CapturedReplay replay = new CapturedReplay();
             replay.getWorldMeshes().addAll(Arrays.asList(meshes));
-            LOGGER.info("Saved replay in {}ms", Util.getMeasuringTimeMs() - startTime);
+            LOGGER.info("Compiled replay in {}ms", Util.getMeasuringTimeMs() - startTime);
             return replay;
         });
     }
