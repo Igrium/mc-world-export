@@ -134,7 +134,7 @@ public class WorldTessellator {
                     onChunkTessellated.accept(cPos);
                 }
             }, executor).exceptionally(e -> {
-                LOGGER.error("Error tessellating base chunk {}: {}", cPos, e);
+                LOGGER.error("Error tessellating base chunk {}: ", cPos, e);
                 return null;
             });
         });
@@ -260,7 +260,8 @@ public class WorldTessellator {
             try {
                 list.addAll(tessellateSectionMeshes(sPos, cache, random));
             } catch (Exception e) {
-                LOGGER.error("Error tessellating chunk section {}: ", sPos, e);
+//                LOGGER.error("Error tessellating chunk section" + sPos, e);
+                e.printStackTrace();
             }
         }
         return list;
@@ -311,7 +312,7 @@ public class WorldTessellator {
                 }
                 result.addAll(list);
             }).exceptionally(e -> {
-                LOGGER.error("Error tessellating chunk {}: ", cPos, e);
+                LOGGER.error("Error tessellating chunk " + cPos, e.getCause());
                 return null;
             }));
         }

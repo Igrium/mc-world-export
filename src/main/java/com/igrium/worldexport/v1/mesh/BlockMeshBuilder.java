@@ -1,7 +1,8 @@
 package com.igrium.worldexport.v1.mesh;
 
 import com.igrium.worldexport.IgriumsReplayExporter;
-import com.igrium.worldexport.util.FutureUtils;
+import com.igrium.worldexport.concurrent.FutureUtils;
+import com.igrium.worldexport.mesh.ObjVertexConsumer;
 import com.igrium.worldexport.v1.world.SimpleColumnRendererRegion;
 import com.igrium.worldexport.v1.world.SimpleSectionWorld;
 import de.javagl.obj.Obj;
@@ -50,7 +51,7 @@ public class BlockMeshBuilder {
         BlockRenderManager blockRenderManager = MinecraftClient.getInstance().getBlockRenderManager();
         MatrixStack matrixStack = new MatrixStack();
 
-        IgriumsReplayExporter.ObjVertexConsumer vertexConsumer = new IgriumsReplayExporter.ObjVertexConsumer(targetMesh);
+        ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
 
         for (BlockPos pos : blocks) {
             BlockState state = world.getBlockState(pos);

@@ -64,7 +64,7 @@ public class SimpleSectionColumn implements HeightLimitView {
             throw new IndexOutOfBoundsException("Z position " + z + " out of bounds for chunk.");
         }
         int localY = ChunkSectionPos.getLocalCoord(y);
-        return getSection(ChunkSectionPos.getSectionCoord(y)).getBlockState(x, localY, z);
+        return getSection(getSectionIndex(ChunkSectionPos.getSectionCoord(y))).getBlockState(x, localY, z);
     }
 
     /**
@@ -83,7 +83,7 @@ public class SimpleSectionColumn implements HeightLimitView {
             throw new IndexOutOfBoundsException("Z position " + z + " out of bounds for chunk.");
         }
         int localY = ChunkSectionPos.getLocalCoord(y);
-        return getSection(ChunkSectionPos.getSectionCoord(y)).getBiome(x, localY, z);
+        return getSection(getSectionIndex(ChunkSectionPos.getSectionCoord(y))).getBiome(x, localY, z);
     }
 
     @Override
@@ -149,13 +149,14 @@ public class SimpleSectionColumn implements HeightLimitView {
     public static SimpleSectionColumn fromChunk(Chunk chunk, int lowerSectionY, int height, Registry<Biome> biomeRegistry) {
         SimpleSectionColumn col = new SimpleSectionColumn(lowerSectionY, height);
 
-        int chunkIndexOffset = chunk.sectionCoordToIndex(lowerSectionY); // Index 0 in col is this index in chunk.
-        int chunkStartIndex = Math.max(0, chunkIndexOffset); // Col index where chunk data starts
-        int chunkEndIndex = Math.min(height, chunk.countVerticalSections() + chunkIndexOffset); // Col index where chunk data ends
-
         for (int i = 0; i < height; i++) {
-            if (chunkStartIndex <= i && i < chunkEndIndex) {
-                col.sections[i] = chunk.getSection(i + chunkIndexOffset).copy();
+            int sectionY = lowerSectionY + i;
+            int chunkSectionIndex = chunk.sectionCoordToIndex(sectionY);
+
+            if (chunkSectionIndex >= 0 && chunkSectionIndex < chunk.countVerticalSections()) {
+                ChunkSection section = chunk.getSection(chunkSectionIndex);
+                // If chunk.getSection can return null, add a null check here
+                col.sections[i] = section != null ? section.copy() : new ChunkSection(biomeRegistry);
             } else {
                 col.sections[i] = new ChunkSection(biomeRegistry);
             }

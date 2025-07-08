@@ -19,12 +19,12 @@ public class ReplayRecorder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayRecorder.class);
 
-    /**
-     * Shortcut for <code>IgriumsReplayExporter.getInstance().getActiveRecorder()</code>
-     */
-    public static ReplayRecorder getActiveRecorder() {
-        return IgriumsReplayExporter.getInstance().getActiveRecorder();
-    }
+//    /**
+//     * Shortcut for <code>IgriumsReplayExporter.getInstance().getActiveRecorder()</code>
+//     */
+//    public static ReplayRecorder getActiveRecorder() {
+//        return IgriumsReplayExporter.getInstance().getActiveRecorder();
+//    }
 
     @Getter
     private final ReplayRecordingSettings settings;

@@ -10,6 +10,8 @@ import net.minecraft.util.math.ChunkSectionPos;
  */
 public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY, int sizeZ) {
 
+    public static final ChunkSectionBox ZERO = new ChunkSectionBox(0, 0, 0, 0, 0, 0);
+
     /**
      * Constructs a {@code ChunkSectionBox} with the given minimum position and size.
      *
@@ -36,6 +38,14 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      */
     public ChunkSectionPos size() {
         return ChunkSectionPos.from(sizeX, sizeY, sizeZ);
+    }
+
+    /**
+     * Returns the number of sections in the box.
+     * @return Number of sections in the box.
+     */
+    public int count() {
+        return sizeX * sizeY * sizeZ;
     }
 
     /**
@@ -196,5 +206,13 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      */
     public static ChunkSectionBox from(ChunkSectionPos pos1, ChunkSectionPos pos2) {
         return from(pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX(), pos2.getY(), pos2.getZ());
+    }
+
+    public static ChunkSectionBox fromRadius(int centerX, int centerY, int centerZ, int radius) {
+        return new ChunkSectionBox(centerX - radius, centerY - radius, centerZ - radius, radius * 2, radius * 2, radius * 2);
+    }
+
+    public static ChunkSectionBox fromRadius(ChunkSectionPos center, int radius) {
+        return fromRadius(center.getX(), center.getY(), center.getZ(), radius);
     }
 }

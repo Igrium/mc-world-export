@@ -1,5 +1,8 @@
 package com.igrium.worldexport.command;
 
+import com.igrium.worldexport.IgriumsReplayExporter;
+import com.igrium.worldexport.math.ChunkSectionBox;
+import com.igrium.worldexport.replay.ReplaySettings;
 import com.igrium.worldexport.v1.replay.ReplayRecorder;
 import com.igrium.worldexport.v1.replay.ReplayRecordingSettings;
 import com.igrium.worldexport.v1.replay.ReplaySerializer;
@@ -40,54 +43,26 @@ public class WorldCaptureCommand
 
     public static int start(CommandContext<FabricClientCommandSource> context) {
         int radius = IntegerArgumentType.getInteger(context, "radius");
+        ChunkSectionPos center = ChunkSectionPos.from(context.getSource().getPosition());
+        ChunkSectionBox bounds = ChunkSectionBox.fromRadius(center, radius);
+        ReplaySettings settings = ReplaySettings.builder()
+                .bounds(bounds)
+                .build();
 
-        ChunkSectionPos playerChunk = ChunkSectionPos.from(context.getSource().getPlayer());
-        ChunkSectionPos minChunk = playerChunk.add(-radius, -radius, -radius);
-        ChunkSectionPos maxChunk = playerChunk.add(radius, radius, radius);
+        IgriumsReplayExporter.getInstance().startRecording(context.getSource().getWorld(), settings);
 
-        int numChunks = (maxChunk.getX() - minChunk.getX())
-                * (maxChunk.getY() - minChunk.getY())
-                * (maxChunk.getZ() - minChunk.getZ());
-
-        context.getSource().sendFeedback(Text.translatable("command.worldcapture.start", numChunks, minChunk.toShortString(), maxChunk.toShortString()));
-
-        ReplayRecordingSettings settings = new ReplayRecordingSettings();
-        settings.setBounds(minChunk, maxChunk);
-
-        IgriumsReplayExporter.getInstance().startRecording(settings);
-
-        return numChunks;
+        context.getSource().sendFeedback(Text.literal("Capturing " + bounds.count() + " sections..."));
+        return 1;
     }
 
     public static int save(CommandContext<FabricClientCommandSource> context) throws CommandSyntaxException {
-        ReplayRecorder recorder = IgriumsReplayExporter.getInstance().getActiveRecorder();
-        if (recorder == null) {
+        if (IgriumsReplayExporter.getInstance().getActiveRecording() == null) {
             throw NO_RECORDING.create();
         }
 
-        Path savePath = FabricLoader.getInstance().getGameDir().resolve("replaytest");
-
-        long startTime = Util.getMeasuringTimeMs();
-
-        try {
-            Files.createDirectory(savePath);
-        } catch (IOException e) {
-            IgriumsReplayExporter.LOGGER.error("Error allocating folder for replay: ", e);
-            throw SAVE_FAILED.create(e.getMessage());
-        }
-
-        IgriumsReplayExporter.getInstance().stopRecording();
-
-        recorder.compile(Util.getMainWorkerExecutor(), 0).thenCompose(cap -> {
-            ReplaySerializer serializer = new ReplaySerializer();
-            return serializer.saveReplay(cap, savePath);
-        }).exceptionally(e -> {
-            IgriumsReplayExporter.LOGGER.error("Error saving replay: ", e);
-            context.getSource().sendError(Text.translatable("command.worldcapture.save.failed", e.getMessage()));
-            return null;
-        }).thenRun(() -> {
-            context.getSource().sendFeedback(
-                    Text.translatable("command.worldcapture.save.confirmed", savePath, Util.getMeasuringTimeMs() - startTime));
+        context.getSource().sendFeedback(Text.literal("Saving recording..."));
+        IgriumsReplayExporter.getInstance().saveRecording().thenRun(() -> {
+            context.getSource().sendFeedback(Text.literal("Saved recording. Check console for details."));
         });
 
         return 1;

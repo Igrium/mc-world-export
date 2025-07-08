@@ -1,7 +1,7 @@
 package com.igrium.worldexport.v1.world.mesh;
 
 import com.igrium.worldexport.v1.mesh.BlockMeshBuilder;
-import com.igrium.worldexport.util.FutureUtils;
+import com.igrium.worldexport.concurrent.FutureUtils;
 import com.igrium.worldexport.v1.world.SimpleColumnRendererRegion;
 import com.igrium.worldexport.v1.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.v1.world.WorldCapture;

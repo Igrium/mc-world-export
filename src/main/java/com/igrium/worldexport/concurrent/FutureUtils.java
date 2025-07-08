@@ -1,4 +1,4 @@
-package com.igrium.worldexport.util;
+package com.igrium.worldexport.concurrent;
 
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
