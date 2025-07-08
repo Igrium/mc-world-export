@@ -25,8 +25,15 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     private final Vector3f posCache = new Vector3f();
 
-    @Getter @Setter
+    @Getter
     private boolean enableNormals = true;
+
+    public void setEnableNormals(boolean enableNormals) {
+        if (isInitialized) {
+            throw new IllegalStateException("Can't toggle normals after verts have been written");
+        }
+        this.enableNormals = enableNormals;
+    }
 
     @Getter @Setter
     private boolean enableColors = true;
@@ -36,6 +43,8 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     @Getter
     private @Nullable String activeGroup;
+
+    private boolean isInitialized;
 
     public void setActiveGroup(@Nullable String activeGroup) {
         if (Objects.equals(activeGroup, this.activeGroup))
@@ -65,6 +74,7 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     @Override
     public ObjVertexConsumer vertex(float x, float y, float z) {
+        isInitialized = true;
         endVertex();
         posCache.set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
         vertCache[head] = new float[]{posCache.x(), posCache.y(), posCache.z()};
@@ -95,6 +105,8 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     @Override
     public ObjVertexConsumer normal(float x, float y, float z) {
+        if (!enableNormals)
+            return this;
         Vector3f vec = new Vector3f(x, y, z).mulDirection(matrices.peek().getPositionMatrix());
         vec = vec.normalize();
         normalCache[head] = new float[]{vec.x(), vec.y(), vec.z()};
@@ -116,9 +128,9 @@ public class ObjVertexConsumer implements VertexConsumer {
                     baseObj.addVertex(vertCache[i][0], vertCache[i][1], vertCache[i][2]);
                 }
 
-                // We're not tracking a separate normal index,
-                // so we have to add normals anyway, even if we're not using them.
-                baseObj.addNormal(normalCache[i][0], normalCache[i][1], normalCache[i][2]);
+                if (enableNormals) {
+                    baseObj.addNormal(normalCache[i][0], normalCache[i][1], normalCache[i][2]);
+                }
                 baseObj.addTexCoord(texCache[i][0], 1 - texCache[i][1]);
             }
 
@@ -128,7 +140,7 @@ public class ObjVertexConsumer implements VertexConsumer {
             if (enableNormals) {
                 baseObj.addFace(indices, indices, indices);
             } else {
-                baseObj.addFace(indices, null, indices);
+                baseObj.addFace(indices, indices, null);
             }
             head = 0;
         } else {

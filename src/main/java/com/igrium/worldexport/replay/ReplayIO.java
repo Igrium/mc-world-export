@@ -28,8 +28,10 @@ public class ReplayIO {
             return;
 
         // Save meta
-        try(var jsonOut = Files.newBufferedWriter(worldDir.resolve(name + ".json"))) {
-            GSON.toJson(mesh.meta(), jsonOut);
+        if (!mesh.meta().isEmpty()) {
+            try(var jsonOut = Files.newBufferedWriter(worldDir.resolve(name + ".json"))) {
+                GSON.toJson(mesh.meta(), jsonOut);
+            }
         }
 
         try(var objOut = Files.newBufferedWriter(worldDir.resolve(name + ".obj"))) {

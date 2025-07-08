@@ -2,8 +2,10 @@ package com.igrium.worldexport.world;
 
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
+import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.WorldMaterialFactory;
 import de.javagl.obj.Obj;
+import de.javagl.obj.ObjUtils;
 import de.javagl.obj.Objs;
 import de.javagl.obj.ReadableObj;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -50,6 +52,12 @@ public class WorldTessellator {
 
     @Getter @Setter
     private boolean splitBlocks = false;
+
+    @Getter @Setter
+    private boolean mergeBaseMeshes;
+
+    @Getter @Setter
+    private boolean mergeDoubleVertices;
 
     @Getter @Setter @NonNull
     private Executor executor = Util.getMainWorkerExecutor();
@@ -109,6 +117,11 @@ public class WorldTessellator {
 
             Obj obj = Objs.create();
             BlockMeshBuilder.buildSection(obj, sPos, offset, renderRegion, splitBlocks, materialFactory, random, null);
+
+            if (mergeDoubleVertices) {
+                obj = MeshUtils.removeDoubles(obj);
+            }
+
             baseWorldMeshes.put(sPos, obj);
         }
     }
@@ -196,7 +209,7 @@ public class WorldTessellator {
             // If no updates, return pre-tessellated base mesh.
             Obj base = baseWorldMeshes.get(sPos);
             return base != null && base.getNumFaces() > 0 ?
-                    List.of(new WorldMesh(base)) :
+                    List.of(new WorldMesh(base, true)) :
                     List.of();
         }
         // Re-usable map to store a given keyframe's overrides
@@ -230,12 +243,18 @@ public class WorldTessellator {
             for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
                 Obj mesh = Objs.create();
                 BlockMeshBuilder.build(mesh, overrideEntry.getValue(), offset, renderView, splitBlocks, materialFactory, random);
+                if (mergeDoubleVertices) {
+                    mesh = MeshUtils.removeDoubles(mesh);
+                }
                 // Insert mesh with proper in and out points.
                 list.add(new WorldMesh(mesh, updateEntry.getIntKey(), overrideEntry.getIntKey() - 1));
             }
             if (!blocksWithoutOverrides.isEmpty()) {
                 Obj mesh = Objs.create();
                 BlockMeshBuilder.build(mesh, blocksWithoutOverrides, offset, renderView, splitBlocks, materialFactory, random);
+                if (mergeDoubleVertices) {
+                    mesh = MeshUtils.removeDoubles(mesh);
+                }
                 list.add(new WorldMesh(mesh, updateEntry.getIntKey(), null));
             }
         }
@@ -260,8 +279,7 @@ public class WorldTessellator {
             try {
                 list.addAll(tessellateSectionMeshes(sPos, cache, random));
             } catch (Exception e) {
-//                LOGGER.error("Error tessellating chunk section" + sPos, e);
-                e.printStackTrace();
+                LOGGER.error("Error tessellating chunk section {}", sPos, e);
             }
         }
         return list;
@@ -318,6 +336,23 @@ public class WorldTessellator {
         }
 
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .thenApply(v -> result.toArray(WorldMesh[]::new));
+                .thenApply(v -> {
+                    if (mergeBaseMeshes) {
+                        LOGGER.info("Merging base meshes");
+                        WorldMesh base = new WorldMesh(Objs.create(), true);
+                        List<WorldMesh> finalResult = new ArrayList<>(result.size() + 1);
+                        finalResult.add(base);
+                        for (var mesh : result) {
+                            if (mesh.meta().isBaseMesh()) {
+                                ObjUtils.add(mesh.obj(), base.obj());
+                            } else {
+                                finalResult.add(mesh);
+                            }
+                        }
+                        return finalResult.toArray(new WorldMesh[0]);
+                    } else {
+                        return result.toArray(new WorldMesh[0]);
+                    }
+                });
     }
 }

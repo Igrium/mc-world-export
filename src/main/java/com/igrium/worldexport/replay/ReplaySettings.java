@@ -38,4 +38,13 @@ public class ReplaySettings {
      */
     @Builder.Default
     private int tickStride = 1;
+
+    /**
+     * If set, all base meshes (meshes without updates) will be merged into one.
+     */
+    @Builder.Default
+    private boolean mergeBaseMeshes = true;
+
+    @Builder.Default
+    private boolean mergeDoubleVertices = true;
 }

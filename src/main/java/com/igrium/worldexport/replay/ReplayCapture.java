@@ -51,7 +51,8 @@ public class ReplayCapture {
         worldTessellator.setExecutor(executor);
         worldTessellator.setOffset(settings.getOffset());
         worldTessellator.setSplitBlocks(settings.isSplitBlocks());
-
+        worldTessellator.setMergeBaseMeshes(settings.isMergeBaseMeshes());
+        worldTessellator.setMergeDoubleVertices(settings.isMergeDoubleVertices());
     }
 
     public ReplayCapture(World world, ReplaySettings.ReplaySettingsBuilder settings) {
