@@ -5,6 +5,7 @@ import com.igrium.worldexport.util.FutureUtils;
 import com.igrium.worldexport.v1.world.SimpleColumnRendererRegion;
 import com.igrium.worldexport.v1.world.SnapshotBlockRenderView;
 import com.igrium.worldexport.v1.world.WorldCapture;
+import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import it.unimi.dsi.fastutil.ints.*;

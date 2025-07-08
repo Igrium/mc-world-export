@@ -155,6 +155,14 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
     }
 
     /**
+     * Iterate over all the section positions within this box.
+     * @return An iterable
+     */
+    public Iterable<ChunkSectionPos> iterate() {
+        return ChunkSections.iterate(minX, minY, minZ, maxXInclusive(), maxYInclusive(), maxZInclusive());
+    }
+
+    /**
      * Creates a {@code ChunkSectionBox} from two corners (inclusive).
      * The resulting box includes both (x1, y1, z1) and (x2, y2, z2).
      *

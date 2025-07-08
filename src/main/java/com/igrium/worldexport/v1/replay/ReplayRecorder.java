@@ -1,6 +1,5 @@
 package com.igrium.worldexport.v1.replay;
 
-import com.igrium.worldexport.v1.IgriumsReplayExporter;
 import com.igrium.worldexport.v1.world.WorldRecorder;
 import lombok.Getter;
 import net.minecraft.block.BlockState;

@@ -3,7 +3,7 @@ package com.igrium.worldexport.v1.replay;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.igrium.worldexport.util.FutureUtils;
-import com.igrium.worldexport.v1.world.mesh.WorldMesh;
+import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.ObjWriter;
 import lombok.Getter;
 import lombok.NonNull;

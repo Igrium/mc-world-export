@@ -4,6 +4,7 @@ import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.util.ChunkDiffs;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -17,8 +18,10 @@ import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -31,19 +34,22 @@ public class WorldCapture {
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldCapture.class);
 
     @Getter
-    public final ChunkSectionBox bounds;
+    private final ChunkSectionBox bounds;
 
     /**
      * The base world that was copied from the MC world upon capture start.
      */
     @Getter
-    private final Map<ChunkPos, SimpleSectionColumn> copiedWorld = new ConcurrentHashMap<>();
+    private final Map<ChunkPos, SimpleSectionColumn> copiedBaseWorld = new ConcurrentHashMap<>();
 
     /**
      * A map of all the block updates for a given block. DO NOT MODIFY DIRECTLY
      */
     @Getter
     private final Map<BlockPos, Int2ObjectSortedMap<BlockUpdate>> blockUpdates = new ConcurrentHashMap<>();
+
+    private final Set<ChunkSectionPos> sectionsWithUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<ChunkSectionPos> sectionsWithUpdatesUnmodifiable = Collections.unmodifiableSet(sectionsWithUpdates);
 
     public WorldCapture(ChunkSectionBox bounds) {
         this.bounds = bounds;
@@ -52,6 +58,7 @@ public class WorldCapture {
     /**
      * Copy all relevant chunks from a world into this capture. These will be considered "base" chunks,
      * which updates are applied on top of.
+     *
      * @param world World to extract chunks from.
      * @implNote Somewhat expensive operation. Should only be called at the start of capture.
      */
@@ -65,7 +72,7 @@ public class WorldCapture {
                     continue;
 
                 SimpleSectionColumn col = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
-                copiedWorld.put(new ChunkPos(x, z), col);
+                copiedBaseWorld.put(new ChunkPos(x, z), col);
             }
         }
     }
@@ -78,8 +85,7 @@ public class WorldCapture {
     public void onChunkLoaded(WorldChunk chunk, int tick) {
         var biomeRegistry = chunk.getWorld().getRegistryManager().getOrThrow(RegistryKeys.BIOME);
         SimpleSectionColumn newVal = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
-        SimpleSectionColumn oldVal = copiedWorld.putIfAbsent(chunk.getPos(), newVal);
-
+        SimpleSectionColumn oldVal = copiedBaseWorld.putIfAbsent(chunk.getPos(), newVal);
 
         // The chunk had been previously loaded; diff it and add block updates.
         if (oldVal != null) {
@@ -94,29 +100,49 @@ public class WorldCapture {
 
     /**
      * Add a block update keyframe.
-     * @param pos Position of the updated block.
+     *
+     * @param pos    Position of the updated block.
      * @param update The update data.
      */
     public void addBlockUpdate(BlockPos pos, BlockUpdate update) {
-        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(pos, p -> new Int2ObjectAVLTreeMap<>());
-        synchronized (map) {
-            map.put(update.tick, update);
-        }
+        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(pos,
+                p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
+        map.put(update.tick, update);
+        sectionsWithUpdates.add(ChunkSectionPos.from(pos));
     }
 
     /**
      * Add a block update keyframe.
-     * @param pos Position of the updated block.
+     *
+     * @param pos      Position of the updated block.
      * @param newBlock The new block.
-     * @param tick The current tick.
+     * @param tick     The current tick.
      */
-    public void addBlockUpdate(BlockPos pos, BlockState newBlock, int tick) {
+    public final void addBlockUpdate(BlockPos pos, BlockState newBlock, int tick) {
         addBlockUpdate(pos, new BlockUpdate(tick, newBlock));
     }
 
     /**
+     * Find all chunk sections that have an update in them.
+     * @return An unmodifiable set of all sections with an update.
+     */
+    public Set<ChunkSectionPos> getSectionsWithUpdates() {
+        return sectionsWithUpdatesUnmodifiable;
+    }
+
+    /**
+     * Check if a given section has any updates in it.
+     * @param sPos Section to check.
+     * @return <code>true</code> if the section has any updates.
+     */
+    public boolean sectionHasUpdates(ChunkSectionPos sPos) {
+        return sectionsWithUpdates.contains(sPos);
+    }
+
+    /**
      * Return the block at a given position during a specific tick.
-     * @param pos Position to query.
+     *
+     * @param pos  Position to query.
      * @param tick Tick to query.
      * @return The block. Air if the position is out-of-bounds.
      */
@@ -130,17 +156,16 @@ public class WorldCapture {
 
         Int2ObjectSortedMap<BlockUpdate> updateMap = blockUpdates.get(pos);
         if (updateMap != null) {
-            synchronized (updateMap) {
-                var headMap = updateMap.headMap(tick + 1);
-                if (!headMap.isEmpty()) {
-                    return headMap.get(headMap.lastIntKey()).newBlock();
-                }
+            var headMap = updateMap.headMap(tick + 1);
+            if (!headMap.isEmpty()) {
+                return headMap.get(headMap.lastIntKey()).newBlock();
             }
+
         }
 
         // Fallback to base
         ChunkPos cPos = new ChunkPos(pos);
-        SimpleSectionColumn col = copiedWorld.get(cPos);
+        SimpleSectionColumn col = copiedBaseWorld.get(cPos);
         if (col != null) {
             return col.getBlockState(
                     ChunkSectionPos.getLocalCoord(pos.getX()), pos.getY(), ChunkSectionPos.getLocalCoord(pos.getZ()));

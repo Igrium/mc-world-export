@@ -1,6 +1,5 @@
 package com.igrium.worldexport.command;
 
-import com.igrium.worldexport.v1.IgriumsReplayExporter;
 import com.igrium.worldexport.v1.replay.ReplayRecorder;
 import com.igrium.worldexport.v1.replay.ReplayRecordingSettings;
 import com.igrium.worldexport.v1.replay.ReplaySerializer;

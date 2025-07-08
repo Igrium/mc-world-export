@@ -1,5 +1,6 @@
 package com.igrium.worldexport.v1.mesh;
 
+import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.util.FutureUtils;
 import com.igrium.worldexport.v1.world.SimpleColumnRendererRegion;
 import com.igrium.worldexport.v1.world.SimpleSectionWorld;
@@ -31,6 +32,7 @@ import java.util.function.Function;
 /**
  * Renders blocks into obj meshes.
  */
+@Deprecated
 public class BlockMeshBuilder {
 
     /**
@@ -48,7 +50,7 @@ public class BlockMeshBuilder {
         BlockRenderManager blockRenderManager = MinecraftClient.getInstance().getBlockRenderManager();
         MatrixStack matrixStack = new MatrixStack();
 
-        ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
+        IgriumsReplayExporter.ObjVertexConsumer vertexConsumer = new IgriumsReplayExporter.ObjVertexConsumer(targetMesh);
 
         for (BlockPos pos : blocks) {
             BlockState state = world.getBlockState(pos);
@@ -93,6 +95,7 @@ public class BlockMeshBuilder {
 
     }
 
+    @Deprecated
     public static Obj[] buildChunk(
             ChunkPos chunkPos, SimpleSectionWorld<? extends ReadableContainer<BlockState>> world,
             BlockRenderView baseWorld, boolean splitBlocks, Function<BlockState, String> materialFactory, Random random) {
@@ -122,6 +125,7 @@ public class BlockMeshBuilder {
         void accept(ChunkPos pos, Obj[] meshes, int index);
     }
 
+    @Deprecated
     public static CompletableFuture<Map<ChunkPos, Obj[]>> buildChunksThreaded(
             Executor executor, SimpleSectionWorld<? extends ReadableContainer<BlockState>> world, BlockRenderView baseWorld,
             boolean splitBlocks, Function<BlockState, String> materialFactory, int maxThreads, @Nullable MeshBuildCallback callback) {

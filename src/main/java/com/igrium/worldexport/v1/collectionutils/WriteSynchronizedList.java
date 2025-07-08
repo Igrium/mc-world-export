@@ -1,4 +1,4 @@
-package com.igrium.worldexport.collectionutils;
+package com.igrium.worldexport.v1.collectionutils;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
