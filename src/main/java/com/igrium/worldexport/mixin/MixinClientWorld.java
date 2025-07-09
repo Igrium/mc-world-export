@@ -1,6 +1,6 @@
 package com.igrium.worldexport.mixin;
 
-import com.igrium.worldexport.event.ClientBlockUpdated;
+import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
@@ -17,6 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinClientWorld {
     @Inject(method="updateListeners", at = @At("RETURN"))
     public void updateListeners(BlockPos pos, BlockState oldState, BlockState newState, int flags, CallbackInfo ci) {
-        ClientBlockUpdated.EVENT.invoker().place(pos, oldState, newState, (World)(Object) this);
+        ClientBlockUpdatedEvent.EVENT.invoker().onBlockUpdated(pos, oldState, newState, (World)(Object) this);
     }
 }

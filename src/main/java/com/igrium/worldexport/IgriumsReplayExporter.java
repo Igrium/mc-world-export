@@ -2,21 +2,19 @@ package com.igrium.worldexport;
 
 import com.igrium.worldexport.command.ProfileDiffsCommand;
 import com.igrium.worldexport.command.WorldCaptureCommand;
-import com.igrium.worldexport.replay.CapturedReplay;
+import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplaySettings;
-import de.javagl.obj.Obj;
 import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Util;
 import net.minecraft.world.World;
-import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +38,12 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         instance = this;
         ClientCommandRegistrationCallback.EVENT.register(WorldCaptureCommand::register);
         ClientCommandRegistrationCallback.EVENT.register(ProfileDiffsCommand::register);
+
+        ClientTickEvents.END_CLIENT_TICK.register(ReplayCapture::globalEndClientTick);
+        ClientBlockUpdatedEvent.EVENT.register(ReplayCapture::globalClientBlockUpdated);
+        ClientChunkEvents.CHUNK_LOAD.register(ReplayCapture::globalClientChunkLoad);
+
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register(ReplayCapture::globalClientWorldChange);
     }
 
     public ReplayCapture startRecording(World world, ReplaySettings settings) {
@@ -53,13 +57,16 @@ public class IgriumsReplayExporter implements ClientModInitializer {
             throw new IllegalStateException("Not recording");
         }
 
-        return activeRecording.compile().thenAccept(r -> {
-            try {
-                ReplayIO.saveReplay(FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r);
-            } catch (IOException e) {
-                throw new CompletionException(e);
-            }
+        activeRecording.finish();
+        return activeRecording.compile().thenCompose(r -> {
+//            try {
+//                ReplayIO.saveReplay(FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r);
+//            } catch (IOException e) {
+//                throw new CompletionException(e);
+//            }
             activeRecording = null;
+            return ReplayIO.saveReplayAsync(
+                    FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r, Util.getIoWorkerExecutor());
         }).exceptionally(e -> {
             LOGGER.error("Error saving replay: ", e);
             return null;

@@ -9,14 +9,14 @@ import net.minecraft.world.World;
 /**
  * Called on the client when a block has been updated.
  */
-public interface ClientBlockUpdated {
+public interface ClientBlockUpdatedEvent {
 
-    Event<ClientBlockUpdated> EVENT = EventFactory.createArrayBacked(ClientBlockUpdated.class,
+    Event<ClientBlockUpdatedEvent> EVENT = EventFactory.createArrayBacked(ClientBlockUpdatedEvent.class,
             listeners -> (pos, oldState, newState, world) -> {
                 for (var listener : listeners) {
-                    listener.place(pos, oldState, newState, world);
+                    listener.onBlockUpdated(pos, oldState, newState, world);
                 }
             });
 
-    void place(BlockPos pos, BlockState oldState, BlockState newState, World world);
+    void onBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, World world);
 }

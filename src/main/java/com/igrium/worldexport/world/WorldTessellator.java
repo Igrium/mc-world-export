@@ -259,6 +259,13 @@ public class WorldTessellator {
             }
         }
 
+        if (mergeDoubleVertices) {
+            for (int i = 0; i < list.size(); i++) {
+                WorldMesh oldMesh = list.get(i);
+                list.set(i, new WorldMesh(MeshUtils.removeDoubles(oldMesh.obj()), oldMesh.meta()));
+            }
+        }
+
         // Tessellate base mesh.
         Obj baseMesh = Objs.create();
         SectionColumnRenderRegion baseRenderView = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), sPos.toChunkPos(), baseWorld);
@@ -339,9 +346,11 @@ public class WorldTessellator {
                 .thenApply(v -> {
                     if (mergeBaseMeshes) {
                         LOGGER.info("Merging base meshes");
+
                         WorldMesh base = new WorldMesh(Objs.create(), true);
                         List<WorldMesh> finalResult = new ArrayList<>(result.size() + 1);
                         finalResult.add(base);
+
                         for (var mesh : result) {
                             if (mesh.meta().isBaseMesh()) {
                                 ObjUtils.add(mesh.obj(), base.obj());
@@ -349,6 +358,7 @@ public class WorldTessellator {
                                 finalResult.add(mesh);
                             }
                         }
+
                         return finalResult.toArray(new WorldMesh[0]);
                     } else {
                         return result.toArray(new WorldMesh[0]);

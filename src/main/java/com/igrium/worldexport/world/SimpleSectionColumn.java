@@ -10,8 +10,6 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 
-import java.util.function.Supplier;
-
 /**
  * A simplified, vertical column of chunk sections without all the overhead of a world chunk.
  */

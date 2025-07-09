@@ -43,6 +43,7 @@ public record WorldMesh(Obj obj, Meta meta) {
                     && endTick == null
                     && offset.equals(Vec3d.ZERO);
         }
+
     }
 
     public WorldMesh(Obj obj) {
@@ -70,5 +71,4 @@ public record WorldMesh(Obj obj, Meta meta) {
         meta.startTick = startTick;
         meta.endTick = endTick;
     }
-
 }

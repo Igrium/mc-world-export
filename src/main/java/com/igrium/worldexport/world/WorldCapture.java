@@ -83,16 +83,20 @@ public class WorldCapture {
      * @param tick The current tick.
      */
     public void onChunkLoaded(WorldChunk chunk, int tick) {
+        ChunkPos cPos = chunk.getPos();
+        if (!bounds.isInBounds(cPos))
+            return;
+
         var biomeRegistry = chunk.getWorld().getRegistryManager().getOrThrow(RegistryKeys.BIOME);
         SimpleSectionColumn newVal = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
-        SimpleSectionColumn oldVal = copiedBaseWorld.putIfAbsent(chunk.getPos(), newVal);
+        SimpleSectionColumn oldVal = copiedBaseWorld.putIfAbsent(cPos, newVal);
 
         // The chunk had been previously loaded; diff it and add block updates.
         if (oldVal != null) {
             List<ChunkDiffs.Diff<BlockState>> diffs = ChunkDiffs.diff(oldVal, newVal);
 
             for (var diff : diffs) {
-                BlockPos globalPos = chunk.getPos().getBlockPos(diff.x(), diff.y(), diff.z());
+                BlockPos globalPos = cPos.getBlockPos(diff.x(), diff.y(), diff.z());
                 addBlockUpdate(globalPos, diff.secondVal(), tick);
             }
         }
