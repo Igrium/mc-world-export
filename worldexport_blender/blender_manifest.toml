@@ -1,0 +1,24 @@
+schema_version = "1.0.0"
+
+id = "worldexport_blender"
+version = "0.10.0"
+name = "Igrium's Replay Importer"
+tagline = "The Blender side of Igrium's Replay Exporter"
+maintainer = "Igrium"
+
+type = "add-on"
+
+website = "https://github.com/Igrium/mc-world-export"
+
+# https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
+tags = ["Animation", "Import-Export"]
+
+blender_version_min = "4.2.0"
+
+# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+[permissions]
+files = "Import Replay files from disk"
