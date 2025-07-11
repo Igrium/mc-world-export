@@ -1,4 +1,7 @@
 import bpy
+import os
+
+from .. import world_importer
 
 from bpy.types import Context, Operator, Panel, StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -23,7 +26,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 
-class ImportReplay(Operator, ImportHelper):
+class ImportReplay(Operator, ImportHelper): # type: ignore
     """This appears in the tooltip of the operator and in the generated docs"""
     bl_idname = "worldexport.import_replay"
     bl_label = "Import Minecraft Replay"
@@ -55,8 +58,9 @@ class ImportReplay(Operator, ImportHelper):
         default='OPT_A',
     )
 
-    def execute(self, context):
-        return read_some_data(context, self.filepath, self.use_setting)
+    def execute(self, context): # type: ignore
+        world_importer.import_world(os.path.join(self.filepath, 'world')) # type: ignore
+        return {'FINISHED'}
 
 
 # Only needed if you want to add into a dynamic menu.

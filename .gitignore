@@ -19,7 +19,7 @@ classes/
 # vscode
 
 .settings/
-.vscode/
+/.vscode/
 bin/
 .classpath
 .project
