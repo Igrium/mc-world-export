@@ -109,7 +109,7 @@ public class WorldCapture {
      * @param update The update data.
      */
     public void addBlockUpdate(BlockPos pos, BlockUpdate update) {
-        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(pos,
+        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(new BlockPos(pos),
                 p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
         map.put(update.tick, update);
         sectionsWithUpdates.add(ChunkSectionPos.from(pos));
