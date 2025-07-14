@@ -3,9 +3,6 @@ package com.igrium.worldexport.command;
 import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.replay.ReplaySettings;
-import com.igrium.worldexport.v1.replay.ReplayRecorder;
-import com.igrium.worldexport.v1.replay.ReplayRecordingSettings;
-import com.igrium.worldexport.v1.replay.ReplaySerializer;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -13,17 +10,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.ChunkSectionPos;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 public class WorldCaptureCommand
 {
