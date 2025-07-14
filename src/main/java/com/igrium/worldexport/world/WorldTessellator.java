@@ -195,6 +195,34 @@ public class WorldTessellator {
         }
     }
 
+    private void tessellateSectionFrame(int tick, Collection<BlockPos> blocks, BlockRenderView renderView, BlockUpdateCache cache,
+                                        Random random, Consumer<WorldMesh> meshConsumer) {
+        // blocks which need to be split 'cause they're replaced later
+        Int2ObjectMap<Set<BlockPos>> overrideMap = new Int2ObjectAVLTreeMap<>();
+        Set<BlockPos> blocksWithoutOverrides = new HashSet<>();
+
+        // Split into groups based on the next time the block is updated.
+        for (var bPos : blocks) {
+            int nextKeyframe = cache.getNextBlockUpdate(bPos, tick);
+            if (nextKeyframe >= 0) {
+                overrideMap.computeIfAbsent(nextKeyframe, i -> new HashSet<>()).add(bPos);
+            } else {
+                blocksWithoutOverrides.add(bPos);
+            }
+        }
+
+        for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
+            Obj mesh = Objs.create();
+            BlockMeshBuilder.build(mesh, overrideEntry.getValue(), offset, renderView, splitBlocks, materialFactory, random);
+            meshConsumer.accept(new WorldMesh(mesh, tick, overrideEntry.getIntKey() - 1));
+        }
+        if (!blocksWithoutOverrides.isEmpty()) {
+            Obj mesh = Objs.create();
+            BlockMeshBuilder.build(mesh, blocksWithoutOverrides, offset, renderView, splitBlocks, materialFactory, random);
+            meshConsumer.accept(new WorldMesh(mesh, tick, null));
+        }
+    }
+
     /**
      * Tessellate all the blocks within a given section.
      * @param sPos Section to tessellate.
@@ -223,40 +251,16 @@ public class WorldTessellator {
 
         // For each update
         for (var updateEntry : updates.int2ObjectEntrySet()) {
-            overrideMap.clear();
-            blocksWithoutOverrides.clear();
-
             // This isn't the most efficient ever, but in theory, we're only calling it for updated blocks.
             SnapshotRenderView renderView = new SnapshotRenderView(worldCapture, baseWorld, updateEntry.getIntKey());
+            tessellateSectionFrame(updateEntry.getIntKey(), updateEntry.getValue(), renderView, cache, random, list::add);
+            overwrittenBlocks.addAll(updateEntry.getValue());
+        }
 
-            // Split into groups based on the next time the block is updated.
-            for (var bPos : updateEntry.getValue()) {
-                overwrittenBlocks.add(bPos);
-                int nextKeyframe = cache.getNextBlockUpdate(bPos, updateEntry.getIntKey());
-                if (nextKeyframe >= 0) {
-                    overrideMap.computeIfAbsent(nextKeyframe, i -> new HashSet<>()).add(bPos);
-                } else {
-                    blocksWithoutOverrides.add(bPos);
-                }
-            }
-
-            for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
-                Obj mesh = Objs.create();
-                BlockMeshBuilder.build(mesh, overrideEntry.getValue(), offset, renderView, splitBlocks, materialFactory, random);
-                if (mergeDoubleVertices) {
-                    mesh = MeshUtils.removeDoubles(mesh);
-                }
-                // Insert mesh with proper in and out points.
-                list.add(new WorldMesh(mesh, updateEntry.getIntKey(), overrideEntry.getIntKey() - 1));
-            }
-            if (!blocksWithoutOverrides.isEmpty()) {
-                Obj mesh = Objs.create();
-                BlockMeshBuilder.build(mesh, blocksWithoutOverrides, offset, renderView, splitBlocks, materialFactory, random);
-                if (mergeDoubleVertices) {
-                    mesh = MeshUtils.removeDoubles(mesh);
-                }
-                list.add(new WorldMesh(mesh, updateEntry.getIntKey(), null));
-            }
+        // Blocks present in the first frame that get updated later
+        SectionColumnRenderRegion baseRenderView = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), sPos.toChunkPos(), baseWorld);
+        if (!overwrittenBlocks.isEmpty()) {
+            tessellateSectionFrame(0, overwrittenBlocks, baseRenderView, cache, random, list::add);
         }
 
         if (mergeDoubleVertices) {
@@ -268,7 +272,6 @@ public class WorldTessellator {
 
         // Tessellate base mesh.
         Obj baseMesh = Objs.create();
-        SectionColumnRenderRegion baseRenderView = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), sPos.toChunkPos(), baseWorld);
         BlockMeshBuilder.buildSection(baseMesh, sPos, offset, baseRenderView, splitBlocks, materialFactory, random, p -> !overwrittenBlocks.contains(p));
 
         if (baseMesh.getNumFaces() > 0) {
