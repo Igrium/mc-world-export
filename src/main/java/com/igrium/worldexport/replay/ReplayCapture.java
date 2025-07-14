@@ -2,6 +2,7 @@ package com.igrium.worldexport.replay;
 
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
+import de.javagl.obj.Mtl;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -102,6 +103,12 @@ public class ReplayCapture {
     @Getter
     private final Map<String, CompletableFuture<? extends NativeImage>> textures = new ConcurrentHashMap<>();
 
+    /**
+     * A map of all materials in the file by their library filename.
+     */
+    @Getter
+    private final Map<String, List<Mtl>> mtlLibs = new ConcurrentHashMap<>();
+
     @Getter
     private final Executor executor;
 
@@ -152,6 +159,7 @@ public class ReplayCapture {
         gameTick = 0;
 
         textures.put("world/world.png", worldTessellator.getDefaultWorldTexture());
+        mtlLibs.put("world/world.mtl", worldTessellator.getDefaultWorldMtls());
 
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;

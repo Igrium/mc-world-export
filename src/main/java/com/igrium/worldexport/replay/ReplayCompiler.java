@@ -44,6 +44,7 @@ public class ReplayCompiler {
         LOGGER.info("Extracting textures...");
         return replayCapture.getAllTextures().thenApply(map -> {
             replay.getTextures().putAll(map);
+            replay.getMtlLibs().putAll(replayCapture.getMtlLibs());
             return replay;
         });
     }

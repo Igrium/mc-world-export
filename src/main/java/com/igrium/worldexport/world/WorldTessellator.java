@@ -121,8 +121,9 @@ public class WorldTessellator {
         mtls.add(world);
 
         Mtl worldTrans = Mtls.create(WORLD_TRANS);
+        worldTrans.setMapKd("world.png");
         worldTrans.setMapD("world.png");
-        worldTrans.setMapD("world.png");
+        mtls.add(worldTrans);
 
         // TODO: Figure out how to define tint.
 
@@ -154,7 +155,6 @@ public class WorldTessellator {
                 continue;
 
             Obj obj = Objs.create();
-            obj.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.buildSection(obj, sPos, offset, renderRegion, splitBlocks, materialFactory, random, null);
 
             if (mergeDoubleVertices) {
@@ -253,13 +253,11 @@ public class WorldTessellator {
 
         for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
             Obj mesh = Objs.create();
-            mesh.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.build(mesh, overrideEntry.getValue(), offset, renderView, splitBlocks, materialFactory, random);
             meshConsumer.accept(new WorldMesh(mesh, tick, overrideEntry.getIntKey() - 1));
         }
         if (!blocksWithoutOverrides.isEmpty()) {
             Obj mesh = Objs.create();
-            mesh.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.build(mesh, blocksWithoutOverrides, offset, renderView, splitBlocks, materialFactory, random);
             meshConsumer.accept(new WorldMesh(mesh, tick, null));
         }
@@ -314,7 +312,6 @@ public class WorldTessellator {
 
         // Tessellate base mesh.
         Obj baseMesh = Objs.create();
-        baseMesh.setMtlFileNames(List.of("world.mtl"));
         BlockMeshBuilder.buildSection(baseMesh, sPos, offset, baseRenderView, splitBlocks, materialFactory, random, p -> !overwrittenBlocks.contains(p));
 
         if (baseMesh.getNumFaces() > 0) {
@@ -390,6 +387,10 @@ public class WorldTessellator {
 
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
                 .thenApply(v -> {
+                    List<String> filenames = List.of("world.mtl");
+                    for (var mesh : result) {
+                        mesh.obj().setMtlFileNames(filenames);
+                    }
                     if (mergeBaseMeshes) {
                         LOGGER.info("Merging base meshes");
 

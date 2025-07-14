@@ -2,11 +2,13 @@ package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
 import com.igrium.worldexport.world.WorldMesh;
+import de.javagl.obj.MtlWriter;
 import de.javagl.obj.ObjWriter;
 import net.minecraft.client.texture.NativeImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +26,8 @@ public class ReplayIO {
 
     public static CompletableFuture<?> saveReplayAsync(Path root, CompiledReplay replay, Executor executor) {
         return saveWorldAsync(root, replay, executor)
-                .thenCompose(v -> saveTexturesAsync(root, replay, executor));
+                .thenCompose(v -> saveTexturesAsync(root, replay, executor))
+                .thenRun(() -> saveMtls(root, replay));
     }
 
     private static CompletableFuture<?> saveWorldAsync(Path root, CompiledReplay replay, Executor executor) {
@@ -71,6 +74,22 @@ public class ReplayIO {
     private static void saveTexture(NativeImage texture, Path imagePath) throws IOException {
         Files.createDirectories(imagePath.getParent());
         texture.writeTo(imagePath);
+    }
+
+    // No need to overcomplicate this part with multithreading; these files are really small.
+    private static void saveMtls(Path root, CompiledReplay replay) {
+        for (var entry : replay.getMtlLibs().entrySet()) {
+            Path mtlPath = root.resolve(entry.getKey());
+            try {
+                Files.createDirectories(mtlPath.getParent());
+                try(BufferedWriter writer = Files.newBufferedWriter(mtlPath)) {
+                    MtlWriter.write(entry.getValue(), writer);
+                }
+
+            } catch (IOException e) {
+                LOGGER.error("Error saving MTL library {}: ", entry.getKey(), e);
+            }
+        }
     }
 
     public static void saveMesh(Path worldDir, WorldMesh mesh, String name) throws IOException {
