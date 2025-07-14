@@ -237,7 +237,7 @@ public class WorldTessellator {
             // If no updates, return pre-tessellated base mesh.
             Obj base = baseWorldMeshes.get(sPos);
             return base != null && base.getNumFaces() > 0 ?
-                    List.of(new WorldMesh(base, true)) :
+                    List.of(new WorldMesh(base)) :
                     List.of();
         }
         // Re-usable map to store a given keyframe's overrides
@@ -340,7 +340,7 @@ public class WorldTessellator {
                 }
                 result.addAll(list);
             }).exceptionally(e -> {
-                LOGGER.error("Error tessellating chunk " + cPos, e.getCause());
+                LOGGER.error("Error tessellating chunk {}", cPos, e);
                 return null;
             }));
         }
@@ -350,12 +350,12 @@ public class WorldTessellator {
                     if (mergeBaseMeshes) {
                         LOGGER.info("Merging base meshes");
 
-                        WorldMesh base = new WorldMesh(Objs.create(), true);
+                        WorldMesh base = new WorldMesh(Objs.create());
                         List<WorldMesh> finalResult = new ArrayList<>(result.size() + 1);
                         finalResult.add(base);
 
                         for (var mesh : result) {
-                            if (mesh.meta().isBaseMesh()) {
+                            if (mesh.meta().isEmpty()) {
                                 ObjUtils.add(mesh.obj(), base.obj());
                             } else {
                                 finalResult.add(mesh);

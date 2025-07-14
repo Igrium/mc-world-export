@@ -28,12 +28,6 @@ public record WorldMesh(Obj obj, Meta meta) {
         @Nullable
         private Integer endTick;
 
-        /**
-         * If this mesh represents a base mesh (the full section without updates)
-         * Only used during export process.
-         */
-        private transient boolean baseMesh;
-
         @NonNull
         @JsonAdapter(JsonAdapters.Vec3dAdapter.class)
         private Vec3d offset = Vec3d.ZERO;
@@ -48,11 +42,6 @@ public record WorldMesh(Obj obj, Meta meta) {
 
     public WorldMesh(Obj obj) {
         this(obj, new Meta());
-    }
-
-    public WorldMesh(Obj obj, boolean baseMesh) {
-        this(obj);
-        meta.baseMesh = baseMesh;
     }
 
     public WorldMesh(Obj obj, @Nullable Integer startTick, @Nullable Integer endTick) {
