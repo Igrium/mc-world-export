@@ -75,6 +75,7 @@ public class BlockMeshBuilder {
             blockRenderManager.renderBlock(state, pos, world, matrixStack, vertexConsumer, true, random);
             matrixStack.pop();
         }
+        vertexConsumer.end();
     }
 
     /**

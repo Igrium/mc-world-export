@@ -75,7 +75,8 @@ public class ObjVertexConsumer implements VertexConsumer {
     @Override
     public ObjVertexConsumer vertex(float x, float y, float z) {
         isInitialized = true;
-        endVertex();
+        tryEndVertex();
+        head++;
         posCache.set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
         vertCache[head] = new float[]{posCache.x(), posCache.y(), posCache.z()};
         return this;
@@ -113,7 +114,11 @@ public class ObjVertexConsumer implements VertexConsumer {
         return this;
     }
 
-    public void endVertex() {
+    public void end() {
+        tryEndVertex();
+    }
+
+    private void tryEndVertex() {
         if (head >= 3) {
             int objHead = baseObj.getNumVertices();
             int[] indices = new int[4];
@@ -142,11 +147,7 @@ public class ObjVertexConsumer implements VertexConsumer {
             } else {
                 baseObj.addFace(indices, indices, null);
             }
-            head = 0;
-        } else {
-            head++;
+            head = -1;
         }
-
     }
-
 }
