@@ -3,6 +3,7 @@ package com.igrium.worldexport.replay;
 import com.google.gson.Gson;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.ObjWriter;
+import net.minecraft.client.texture.NativeImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,12 @@ public class ReplayIO {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayIO.class);
 
-    public static CompletableFuture<?> saveReplayAsync(Path root, CapturedReplay replay, Executor executor) {
+    public static CompletableFuture<?> saveReplayAsync(Path root, CompiledReplay replay, Executor executor) {
+        return saveWorldAsync(root, replay, executor)
+                .thenCompose(v -> saveTexturesAsync(root, replay, executor));
+    }
+
+    private static CompletableFuture<?> saveWorldAsync(Path root, CompiledReplay replay, Executor executor) {
         Path worldDir = root.resolve("world");
         try {
             Files.createDirectories(worldDir);
@@ -45,20 +51,26 @@ public class ReplayIO {
             }));
             meshIndex++;
         }
-
         return CompletableFuture.allOf(worldFutures.toArray(new CompletableFuture[0]));
     }
 
-    @Deprecated
-    public static void saveReplay(Path root, CapturedReplay replay) throws IOException {
-        Path worldDir = root.resolve("world");
-        Files.createDirectories(worldDir);
-
-        int i = 0;
-        for (var mesh : replay.getWorldMeshes()) {
-            saveMesh(worldDir, mesh, "mesh." + i);
-            i++;
+    private static CompletableFuture<?> saveTexturesAsync(Path root, CompiledReplay replay, Executor executor) {
+        List<CompletableFuture<?>> textureFutures = new ArrayList<>(replay.getTextures().size());
+        for (var entry : replay.getTextures().entrySet()) {
+            textureFutures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    saveTexture(entry.getValue(), root.resolve(entry.getKey()));
+                } catch (Exception e) {
+                    LOGGER.error("Error saving texture {}: ", entry.getKey(), e);
+                }
+            }, executor));
         }
+        return CompletableFuture.allOf(textureFutures.toArray(new CompletableFuture[0]));
+    }
+
+    private static void saveTexture(NativeImage texture, Path imagePath) throws IOException {
+        Files.createDirectories(imagePath.getParent());
+        texture.writeTo(imagePath);
     }
 
     public static void saveMesh(Path worldDir, WorldMesh mesh, String name) throws IOException {

@@ -54,7 +54,7 @@ public class BlockMeshBuilder {
             FluidState fluidState = state.getFluidState();
 
             vertexConsumer.setMaterial(materialFactory.getMaterial(state));
-
+//            targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
             if (!fluidState.isEmpty()) {
                 vertexConsumer.matrices.push();
                 vertexConsumer.matrices.translate(pos.getX() >> 4 << 4, pos.getY() >> 4 << 4, pos.getZ() >> 4 << 4);

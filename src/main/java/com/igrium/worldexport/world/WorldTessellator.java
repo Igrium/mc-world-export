@@ -4,16 +4,18 @@ import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.WorldMaterialFactory;
-import de.javagl.obj.Obj;
-import de.javagl.obj.ObjUtils;
-import de.javagl.obj.Objs;
-import de.javagl.obj.ReadableObj;
+import com.igrium.worldexport.tex.TextureExtractor;
+import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -36,6 +38,9 @@ import java.util.function.Consumer;
  */
 public class WorldTessellator {
 
+    public static final String WORLD = "world";
+    public static final String WORLD_TRANS = "world_trans";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldTessellator.class);
 
     @Getter
@@ -45,7 +50,7 @@ public class WorldTessellator {
     private final BlockRenderView baseWorld;
 
     @Getter @Setter @NonNull
-    private WorldMaterialFactory materialFactory = (b) -> "world";
+    private WorldMaterialFactory materialFactory = this::getDefaultMaterialName;
 
     @Getter @Setter
     private @Nullable BlockPos offset;
@@ -100,6 +105,39 @@ public class WorldTessellator {
         return baseTessellationJobsUnmodifiable;
     }
 
+    public String getDefaultMaterialName(BlockState state) {
+        return state.isTransparent() ? WORLD_TRANS : WORLD;
+    }
+
+    /**
+     * Get the materials that the world mesh will reference by default.
+     * @return All default materials. Should be stored in <code>world/world.mtl</code>
+     */
+    public List<Mtl> getDefaultWorldMtls() {
+        List<Mtl> mtls = new ArrayList<>(2);
+
+        Mtl world = Mtls.create(WORLD);
+        world.setMapKd("world.png");
+        mtls.add(world);
+
+        Mtl worldTrans = Mtls.create(WORLD_TRANS);
+        worldTrans.setMapD("world.png");
+        worldTrans.setMapD("world.png");
+
+        // TODO: Figure out how to define tint.
+
+        return mtls;
+    }
+
+    /**
+     * Get the atlas texture used for blocks.
+     * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
+     */
+    @SuppressWarnings("deprecation") // Not actually deprecated
+    public CompletableFuture<NativeImage> getDefaultWorldTexture() {
+        return TextureExtractor.pullAtlasTextureAsync(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
+    }
+
     private void tessellateBaseChunk(ChunkPos cPos, Random random) {
         if (!worldCapture.getCopiedBaseWorld().containsKey(cPos))
             return;
@@ -116,6 +154,7 @@ public class WorldTessellator {
                 continue;
 
             Obj obj = Objs.create();
+            obj.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.buildSection(obj, sPos, offset, renderRegion, splitBlocks, materialFactory, random, null);
 
             if (mergeDoubleVertices) {
@@ -177,6 +216,7 @@ public class WorldTessellator {
         return CompletableFuture.allOf(futures).thenCompose(v -> awaitBaseTessellationFinished());
     }
 
+
     /**
      * Queue every section within the bounds to be tessellated.
      */
@@ -213,11 +253,13 @@ public class WorldTessellator {
 
         for (var overrideEntry : overrideMap.int2ObjectEntrySet()) {
             Obj mesh = Objs.create();
+            mesh.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.build(mesh, overrideEntry.getValue(), offset, renderView, splitBlocks, materialFactory, random);
             meshConsumer.accept(new WorldMesh(mesh, tick, overrideEntry.getIntKey() - 1));
         }
         if (!blocksWithoutOverrides.isEmpty()) {
             Obj mesh = Objs.create();
+            mesh.setMtlFileNames(List.of("world.mtl"));
             BlockMeshBuilder.build(mesh, blocksWithoutOverrides, offset, renderView, splitBlocks, materialFactory, random);
             meshConsumer.accept(new WorldMesh(mesh, tick, null));
         }
@@ -272,6 +314,7 @@ public class WorldTessellator {
 
         // Tessellate base mesh.
         Obj baseMesh = Objs.create();
+        baseMesh.setMtlFileNames(List.of("world.mtl"));
         BlockMeshBuilder.buildSection(baseMesh, sPos, offset, baseRenderView, splitBlocks, materialFactory, random, p -> !overwrittenBlocks.contains(p));
 
         if (baseMesh.getNumFaces() > 0) {
@@ -325,7 +368,7 @@ public class WorldTessellator {
      * @param callback An optional callback to be notified when a chunk finishes tessellating. Must be thread-safe.
      * @return A future that completes once all chunks have finished tessellating.
      */
-    public CompletableFuture<WorldMesh[]> tessellateAllMeshes(@Nullable ChunkTessellationCallback callback) {
+    public CompletableFuture<Collection<WorldMesh>> tessellateAllMeshes(@Nullable ChunkTessellationCallback callback) {
         BlockUpdateCache cache = BlockUpdateCache.generate(worldCapture);
         List<CompletableFuture<?>> futures = new ArrayList<>();
         List<WorldMesh> result = Collections.synchronizedList(new ArrayList<>());
@@ -351,6 +394,7 @@ public class WorldTessellator {
                         LOGGER.info("Merging base meshes");
 
                         WorldMesh base = new WorldMesh(Objs.create());
+                        base.obj().setMtlFileNames(List.of("world.mtl"));
                         List<WorldMesh> finalResult = new ArrayList<>(result.size() + 1);
                         finalResult.add(base);
 
@@ -362,9 +406,9 @@ public class WorldTessellator {
                             }
                         }
 
-                        return finalResult.toArray(new WorldMesh[0]);
+                        return finalResult;
                     } else {
-                        return result.toArray(new WorldMesh[0]);
+                        return result;
                     }
                 });
     }

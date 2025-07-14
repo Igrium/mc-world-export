@@ -1,11 +1,11 @@
 package com.igrium.worldexport.replay;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
@@ -14,10 +14,7 @@ import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
@@ -99,6 +96,12 @@ public class ReplayCapture {
     @Getter
     private final WorldTessellator worldTessellator;
 
+    /**
+     * A map of all textures in the file by their filenames relative to the root.
+     */
+    @Getter
+    private final Map<String, CompletableFuture<? extends NativeImage>> textures = new ConcurrentHashMap<>();
+
     @Getter
     private final Executor executor;
 
@@ -148,6 +151,8 @@ public class ReplayCapture {
         });
         gameTick = 0;
 
+        textures.put("world/world.png", worldTessellator.getDefaultWorldTexture());
+
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;
     }
@@ -173,19 +178,25 @@ public class ReplayCapture {
         }
     }
 
-    public CompletableFuture<CapturedReplay> compile() {
-        if (state != ReplayCaptureState.FINISHED) {
-            LOGGER.warn("Replay capture is not finished. Compilation could exhibit unwanted behavior.");
+    /**
+     * Wait for all texture futures to complete and return their values.
+     * @return A map of all texture paths and their values.
+     */
+    public CompletableFuture<Map<String, NativeImage>> getAllTextures() {
+        Map<String, NativeImage> result = new ConcurrentHashMap<>(textures.size());
+        List<CompletableFuture<?>> futures = new ArrayList<>(textures.size());
+        for (var entry : textures.entrySet()) {
+            futures.add(entry.getValue()
+                    .thenAccept(i -> result.put(entry.getKey(), i))
+                    .exceptionally(e -> {
+                        LOGGER.error("Error retrieving texture {}: {}", entry.getKey(), e);
+                        return null;
+                    }));
         }
 
-        long startTime = Util.getMeasuringTimeMs();
-        return worldTessellator.tessellateAllMeshes(null).thenApply(meshes -> {
-            CapturedReplay replay = new CapturedReplay();
-            replay.getWorldMeshes().addAll(Arrays.asList(meshes));
-            LOGGER.info("Compiled replay in {}ms", Util.getMeasuringTimeMs() - startTime);
-            return replay;
-        });
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> result);
     }
+
 
     /**
      * Finish recording this replay.

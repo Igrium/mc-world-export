@@ -4,6 +4,7 @@ import com.igrium.worldexport.command.ProfileDiffsCommand;
 import com.igrium.worldexport.command.WorldCaptureCommand;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
+import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplaySettings;
 import lombok.Getter;
@@ -58,12 +59,8 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         }
 
         activeRecording.finish();
-        return activeRecording.compile().thenCompose(r -> {
-//            try {
-//                ReplayIO.saveReplay(FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r);
-//            } catch (IOException e) {
-//                throw new CompletionException(e);
-//            }
+        ReplayCompiler compiler = new ReplayCompiler(activeRecording);
+        return compiler.compile().thenCompose(r -> {
             activeRecording = null;
             return ReplayIO.saveReplayAsync(
                     FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r, Util.getIoWorkerExecutor());
