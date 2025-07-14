@@ -1,6 +1,8 @@
 package com.igrium.worldexport.mesh;
 
 import de.javagl.obj.*;
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -46,7 +48,6 @@ public class MeshUtils {
             }
         }
 
-
         for (int faceIndex = 0; faceIndex < source.getNumFaces(); faceIndex++) {
             ObjFace face = source.getFace(faceIndex);
 
@@ -74,6 +75,7 @@ public class MeshUtils {
                 }
             }
 
+            output.setActiveMaterialGroupName(source.getActivatedMaterialGroupName(face));
             output.addFace(vertices, texCoords, normals);
         }
 

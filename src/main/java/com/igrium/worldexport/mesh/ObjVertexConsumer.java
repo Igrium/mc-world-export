@@ -1,19 +1,13 @@
 package com.igrium.worldexport.mesh;
 
+import de.javagl.obj.Obj;
+import lombok.Getter;
 import lombok.Setter;
+import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
-
-
-import de.javagl.obj.Obj;
-import lombok.Getter;
-import net.minecraft.client.render.VertexConsumer;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
 
 /**
  * A vertex consumer that feeds vertices into an OBJ.
@@ -41,19 +35,7 @@ public class ObjVertexConsumer implements VertexConsumer {
     @Getter @Setter
     private @Nullable String material;
 
-    @Getter
-    private @Nullable String activeGroup;
-
     private boolean isInitialized;
-
-    public void setActiveGroup(@Nullable String activeGroup) {
-        if (Objects.equals(activeGroup, this.activeGroup))
-            return;
-        this.activeGroup = activeGroup;
-        activeGroupSet = activeGroup != null ? Collections.singleton(activeGroup) : Collections.emptySet();
-    }
-
-    private Collection<String> activeGroupSet = Collections.emptySet();
 
     public final MatrixStack matrices = new MatrixStack();
 
@@ -139,8 +121,6 @@ public class ObjVertexConsumer implements VertexConsumer {
                 baseObj.addTexCoord(texCache[i][0], 1 - texCache[i][1]);
             }
 
-            baseObj.setActiveMaterialGroupName(material);
-            baseObj.setActiveGroupNames(activeGroupSet);
 
             if (enableNormals) {
                 baseObj.addFace(indices, indices, indices);

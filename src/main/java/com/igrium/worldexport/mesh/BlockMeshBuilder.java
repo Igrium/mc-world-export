@@ -4,6 +4,7 @@ import com.google.common.collect.AbstractIterator;
 import de.javagl.obj.Obj;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.block.BlockRenderManager;
 import net.minecraft.client.util.math.MatrixStack;
@@ -17,6 +18,7 @@ import net.minecraft.world.BlockRenderView;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -53,23 +55,24 @@ public class BlockMeshBuilder {
             BlockState state = world.getBlockState(pos);
             FluidState fluidState = state.getFluidState();
 
-            vertexConsumer.setMaterial(materialFactory.getMaterial(state));
-//            targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
+//            vertexConsumer.setMaterial(materialFactory.getMaterial(state));
             if (!fluidState.isEmpty()) {
+                targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
                 vertexConsumer.matrices.push();
                 vertexConsumer.matrices.translate(pos.getX() >> 4 << 4, pos.getY() >> 4 << 4, pos.getZ() >> 4 << 4);
                 blockRenderManager.renderFluid(pos, world, vertexConsumer, state, fluidState);
                 vertexConsumer.matrices.pop();
             }
 
-            if (state.getRenderType() == BlockRenderType.INVISIBLE)
+            if (state.getRenderType() == BlockRenderType.INVISIBLE || state.getBlock() == Blocks.AIR)
                 continue;
 
             if (splitBlocks) {
                 Identifier id = Registries.BLOCK.getId(state.getBlock());
-                vertexConsumer.setActiveGroup(id.toString());
+                targetMesh.setActiveGroupNames(List.of(id.toString()));
             }
 
+            targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
             matrixStack.push();
             matrixStack.translate(pos.getX(), pos.getY(), pos.getZ());
             blockRenderManager.renderBlock(state, pos, world, matrixStack, vertexConsumer, true, random);
