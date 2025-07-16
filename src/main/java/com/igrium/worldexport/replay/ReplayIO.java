@@ -1,6 +1,7 @@
 package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
+import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.MtlWriter;
 import de.javagl.obj.ObjWriter;
@@ -8,7 +9,9 @@ import net.minecraft.client.texture.NativeImage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,9 +29,45 @@ public class ReplayIO {
 
     public static CompletableFuture<?> saveReplayAsync(Path root, CompiledReplay replay, Executor executor) {
         return saveWorldAsync(root, replay, executor)
+                .thenCompose(v -> saveEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> saveTexturesAsync(root, replay, executor))
                 .thenRun(() -> saveMtls(root, replay));
     }
+
+    private static CompletableFuture<?> saveEntitiesAsync(Path root, CompiledReplay replay, Executor executor) {
+        Path entityDir = root.resolve("entities");
+        try {
+            Files.createDirectories(entityDir);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        List<CompletableFuture<?>> entityFutures = new ArrayList<>(replay.getEntities().size());
+        for (var entEntry : replay.getEntities().entrySet()) {
+            entityFutures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    saveEntity(entityDir, entEntry.getValue(), entEntry.getKey());
+                } catch (Exception e) {
+                    LOGGER.error("Error saving entity {}: ", entEntry.getKey(), e);
+                }
+            }, executor));
+        }
+
+        return CompletableFuture.allOf(entityFutures.toArray(new CompletableFuture[0]));
+    }
+
+    public static void saveEntity(Path entityDir, CapturedEntity entity, String name) throws IOException {
+        Path objPath = entityDir.resolve(name + ".obj");
+        try (BufferedWriter writer = Files.newBufferedWriter(objPath)) {
+            entity.writeObj(writer);
+        }
+
+        Path animPath = entityDir.resolve(name + ".anim");
+        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(animPath)))) {
+            entity.writeAnimFile(out);
+        }
+    }
+
 
     private static CompletableFuture<?> saveWorldAsync(Path root, CompiledReplay replay, Executor executor) {
         Path worldDir = root.resolve("world");
@@ -44,8 +83,8 @@ public class ReplayIO {
             String name = "mesh." + meshIndex;
             worldFutures.add(CompletableFuture.runAsync(() -> {
                 try {
-                    saveMesh(worldDir, mesh, name);
-                } catch (IOException e) {
+                    saveWorldMesh(worldDir, mesh, name);
+                } catch (Exception e) {
                     throw new CompletionException(e);
                 }
             }, executor).exceptionally(e -> {
@@ -55,6 +94,22 @@ public class ReplayIO {
             meshIndex++;
         }
         return CompletableFuture.allOf(worldFutures.toArray(new CompletableFuture[0]));
+    }
+
+    public static void saveWorldMesh(Path worldDir, WorldMesh mesh, String name) throws IOException {
+        if (mesh.obj().getNumVertices() == 0)
+            return;
+
+        // Save meta
+        if (!mesh.meta().isEmpty()) {
+            try(var jsonOut = Files.newBufferedWriter(worldDir.resolve(name + ".json"))) {
+                GSON.toJson(mesh.meta(), jsonOut);
+            }
+        }
+
+        try(var objOut = Files.newBufferedWriter(worldDir.resolve(name + ".obj"))) {
+            ObjWriter.write(mesh.obj(), objOut);
+        }
     }
 
     private static CompletableFuture<?> saveTexturesAsync(Path root, CompiledReplay replay, Executor executor) {
@@ -89,22 +144,6 @@ public class ReplayIO {
             } catch (IOException e) {
                 LOGGER.error("Error saving MTL library {}: ", entry.getKey(), e);
             }
-        }
-    }
-
-    public static void saveMesh(Path worldDir, WorldMesh mesh, String name) throws IOException {
-        if (mesh.obj().getNumVertices() == 0)
-            return;
-
-        // Save meta
-        if (!mesh.meta().isEmpty()) {
-            try(var jsonOut = Files.newBufferedWriter(worldDir.resolve(name + ".json"))) {
-                GSON.toJson(mesh.meta(), jsonOut);
-            }
-        }
-
-        try(var objOut = Files.newBufferedWriter(worldDir.resolve(name + ".obj"))) {
-            ObjWriter.write(mesh.obj(), objOut);
         }
     }
 }

@@ -3,6 +3,8 @@ package com.igrium.worldexport.anim;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.floats.FloatIterator;
 import it.unimi.dsi.fastutil.floats.FloatList;
+import lombok.Getter;
+import lombok.Setter;
 import org.joml.*;
 
 import java.io.DataInputStream;
@@ -12,7 +14,7 @@ import java.io.IOException;
 /**
  * Represents a 3D point transformation that is animated.
  */
-public class AnimatedTransform {
+public class AnimationCurve {
 
     // Important implementation detail: each list should always be the same length.
     private final FloatList xPosCurve = new FloatArrayList();
@@ -28,6 +30,9 @@ public class AnimatedTransform {
     private final FloatList yScaleCurve = new FloatArrayList();
     private final FloatList zScaleCurve = new FloatArrayList();
 
+    @Getter @Setter
+    private int frameOffset = 0;
+
     /**
      * The number of frames in this animation.
      */
@@ -39,7 +44,7 @@ public class AnimatedTransform {
         return xPosCurve.isEmpty();
     }
 
-    public void appendFrom(AnimatedTransform other) {
+    public void appendFrom(AnimationCurve other) {
         xPosCurve.addAll(other.xPosCurve);
         yPosCurve.addAll(other.yPosCurve);
         zPosCurve.addAll(other.zPosCurve);
@@ -71,6 +76,19 @@ public class AnimatedTransform {
 
     public void addFrame(Matrix4fc transform) {
         addFrame(transform.getTranslation(new Vector3f()),
+                transform.getNormalizedRotation(new Quaternionf()),
+                transform.getScale(new Vector3f()));
+    }
+
+    public void setFrame(int frame, Vector3fc pos, Quaternionfc rot, Vector3fc scale) throws IndexOutOfBoundsException {
+        setPosition(frame, pos);
+        setRotation(frame, rot);
+        setScale(frame, scale);
+    }
+
+    public void setFrame(int frame, Matrix4fc transform) {
+        setFrame(frame,
+                transform.getTranslation(new Vector3f()),
                 transform.getNormalizedRotation(new Quaternionf()),
                 transform.getScale(new Vector3f()));
     }
