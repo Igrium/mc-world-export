@@ -140,10 +140,7 @@ public class ReplayCapture {
         worldTessellator.setMergeDoubleVertices(settings.isMergeDoubleVertices());
 
         entityCapture = new EntityCapture(settings.getBounds().toBox());
-        int offsetX = settings.getOffset().getX();
-        int offsetY = settings.getOffset().getY();
-        int offsetZ = settings.getOffset().getZ();
-        entityCapture.setGlobalOffset(new Vec3d(offsetX, offsetY, offsetZ));
+        entityCapture.setGlobalOffset(settings.getOffset());
     }
 
     /**

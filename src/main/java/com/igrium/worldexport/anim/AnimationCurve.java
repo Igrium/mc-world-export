@@ -190,7 +190,7 @@ public class AnimationCurve {
         writeCurve(zScaleCurve, out);
     }
 
-    private void writeCurve(FloatList curve, DataOutputStream out) throws IOException {
+    private static void writeCurve(FloatList curve, DataOutputStream out) throws IOException {
         FloatIterator iter = curve.iterator();
         while (iter.hasNext()) {
             out.writeFloat(iter.nextFloat());
@@ -214,7 +214,7 @@ public class AnimationCurve {
         readCurve(zScaleCurve, in, length);
     }
 
-    private void readCurve(FloatList curve, DataInputStream in, int length) throws IOException {
+    private static void readCurve(FloatList curve, DataInputStream in, int length) throws IOException {
         // Create a separate buffer so we don't constantly grow the curve array unnecessarily.
         float[] buffer = new float[length];
         for (int i = 0; i < length; i++) {

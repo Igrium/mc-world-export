@@ -1,30 +1,10 @@
-from contextvars import Context
-from typing import Literal
+import struct
 import bpy
+
+from typing import BinaryIO, Literal
 from bpy.types import Context, Object
 
-# def import_obj(filepath: str, context: int | str | None = None, global_scale: float | None = 1,
-#                 clamp_size: float | None = 0,
-#                 forward_axis: Literal['X', 'Y', 'Z', 'NEGATIVE_X', 'NEGATIVE_Y', 'NEGATIVE_Z'] | None = "NEGATIVE_Z",
-#                 up_axis: Literal['X', 'Y', 'Z', 'NEGATIVE_X', 'NEGATIVE_Y', 'NEGATIVE_Z'] | None = "Y",
-#                 use_split_objects: bool | None = True,
-#                 use_split_groups: bool | None = False,
-#                 import_vertex_groups: bool | None = False,
-#                 validate_meshes: bool | None = True,
-#                 close_spline_loops: bool | None = True,
-#                 collection_separator: str = "",
-#                 mtl_name_collision_mode: Literal['MAKE_UNIQUE', 'REFERENCE_EXISTING'] | None = "MAKE_UNIQUE"
-#     ):
-    
-#     existing = set(bpy.data.objects)
-#     bpy.ops.wm.obj_import(context, filepath=filepath, global_scale=global_scale,
-#                           clamp_size=clamp_size, forward_axis=forward_axis, up_axis=up_axis,
-#                           use_split_objects=use_split_objects, use_split_groups=use_split_groups,
-#                           import_vertex_groups=import_vertex_groups, validate_meshes=validate_meshes,
-#                           close_spline_loops=close_spline_loops, collection_separator=collection_separator,
-#                           mtl_name_collision_mode=mtl_name_collision_mode)
-    
-#     return (set(bpy.data.objects) - existing).pop()
+
 
 def import_obj(filepath: str):
     existing = set(bpy.data.objects)
@@ -43,3 +23,26 @@ def add_vis_keyframe(obj: Object, visible: bool, frame: float):
     obj.hide_render = not visible
     obj.keyframe_insert('hide_viewport', frame=frame)
     obj.keyframe_insert('hide_render', frame=frame)
+
+def read_int(f: BinaryIO) -> int:
+    data: bytes = f.read(4)
+    if len(data) != 4:
+        raise EOFError("Unexpected end of file while reading int")
+    return struct.unpack('>i', data)[0]
+
+def read_float(f: BinaryIO) -> float:
+    data: bytes = f.read(4)
+    if len(data) != 4:
+        raise EOFError("Unexpected end of file while reading float")
+    return struct.unpack('>f', data)[0]
+
+
+def read_utf(f: BinaryIO) -> str:
+    length_bytes: bytes = f.read(2)
+    if len(length_bytes) != 2:
+        raise EOFError("Unexpected end of file while reading UTF length")
+    length: int = struct.unpack('>H', length_bytes)[0]
+    utf8_bytes: bytes = f.read(length)
+    if len(utf8_bytes) != length:
+        raise EOFError("Unexpected end of file while reading UTF data")
+    return utf8_bytes.decode('utf-8')

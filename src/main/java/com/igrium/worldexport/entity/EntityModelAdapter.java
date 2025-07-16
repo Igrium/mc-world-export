@@ -37,6 +37,6 @@ public class EntityModelAdapter<T extends Entity, S extends EntityRenderState> {
     public void capture(T entity, CapturedEntity capture, int tick) {
         Vec3d pos = entity.getPos().add(globalOffset);
         float yRot = Math.toRadians(entity.getYaw());
-        capture.addFrame(CapturedEntity.ROOT_NAME, tick, pos.toVector3f(), new Quaternionf().rotateY(yRot), new Vector3f());
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, pos.toVector3f(), new Quaternionf().rotateY(yRot), new Vector3f(1));
     }
 }

@@ -114,6 +114,11 @@ public class CapturedEntity {
     }
 
     public void writeAnimFile(DataOutputStream out) throws IOException {
+        int total = 0;
+        for (var list : curves.values()) {
+            total += list.size();
+        }
+        out.writeInt(total);
         for (var entry : curves.entrySet()) {
             for (var curve : entry.getValue()) {
                 out.writeUTF(entry.getKey());
@@ -122,21 +127,16 @@ public class CapturedEntity {
         }
     }
 
-    @SuppressWarnings("InfiniteLoopStatement")
     public int readAnimFile(DataInputStream in) throws IOException {
-        int i = 0;
-        try {
-            while (true) {
-                String name = in.readUTF();
-                AnimationCurve curve = new AnimationCurve();
-                curve.read(in);
-
-                curves.computeIfAbsent(name, n -> new ArrayList<>()).add(curve);
-                i++;
-            }
-        } catch (EOFException e) {
-            return i;
+        int size = in.readInt();
+        int i;
+        for (i = 0; i < size; i++) {
+            String name = in.readUTF();
+            AnimationCurve curve = new AnimationCurve();
+            curve.read(in);
+            curves.computeIfAbsent(name, n -> new ArrayList<>()).add(curve);
         }
+        return i;
     }
 
     public void writeObj(Writer writer) throws IOException {

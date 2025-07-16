@@ -3,10 +3,12 @@ package com.igrium.worldexport.entity;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.experimental.Tolerate;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,11 +40,16 @@ public class EntityCapture {
     @Getter @Setter @NonNull
     private Vec3d globalOffset = Vec3d.ZERO;
 
+    @Tolerate
+    public void setGlobalOffset(Vec3i offset) {
+        this.globalOffset = new Vec3d(offset.getX(), offset.getY(), offset.getZ());
+    }
+
     /**
      * All entities that have been captured with their corresponding animation data.
      */
     @Getter
-    private final Map<Entity, CapturedEntity> captures = new HashMap<>();
+    private final Map<Entity, CapturedEntity> entities = new HashMap<>();
 
     public EntityCapture(@NotNull Box bounds) {
         this.bounds = bounds;
@@ -79,7 +86,7 @@ public class EntityCapture {
 
     private <T extends Entity> void captureEntity(T entity, int tick) {
         var modelAdapter = getModelAdapter(entity);
-        CapturedEntity capture = captures.computeIfAbsent(entity, e -> new CapturedEntity());
+        CapturedEntity capture = entities.computeIfAbsent(entity, e -> new CapturedEntity());
         modelAdapter.capture(entity, capture, tick);
     }
 }

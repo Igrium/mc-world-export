@@ -4,6 +4,7 @@ import net.minecraft.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -26,7 +27,9 @@ public class ReplayCompiler {
 
         long startTime = Util.getMeasuringTimeMs();
         CompiledReplay replay = new CompiledReplay();
-        return compileWorld(replay).thenCompose(this::compileTextures).thenApply(r -> {
+        return compileWorld(replay)
+                .thenApply(this::compileEntities)
+                .thenCompose(this::compileTextures).thenApply(r -> {
             LOGGER.info("Compiled replay export in {}ms", Util.getMeasuringTimeMs() - startTime);
             return r;
         });
@@ -40,6 +43,14 @@ public class ReplayCompiler {
         });
     }
 
+    private CompiledReplay compileEntities(CompiledReplay replay) {
+        for (var entEntry : replayCapture.getEntityCapture().getEntities().entrySet()) {
+            String name = getUniqueName(entEntry.getKey().getName().getString(), replay.getEntities().keySet());
+            replay.getEntities().put(name, entEntry.getValue());
+        }
+        return replay;
+    }
+
     private CompletableFuture<CompiledReplay> compileTextures(CompiledReplay replay) {
         LOGGER.info("Extracting textures...");
         return replayCapture.getAllTextures().thenApply(map -> {
@@ -47,5 +58,16 @@ public class ReplayCompiler {
             replay.getMtlLibs().putAll(replayCapture.getMtlLibs());
             return replay;
         });
+    }
+
+
+    public static String getUniqueName(String baseName, Collection<? extends String> existing) {
+        String name = baseName;
+        int conflictIndex = 1;
+        while (existing.contains(name)) {
+            name = baseName + String.format("%03d", conflictIndex);
+            conflictIndex++;
+        }
+        return name;
     }
 }
