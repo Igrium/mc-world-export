@@ -4,6 +4,8 @@ import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.WorldMaterialFactory;
+import com.igrium.worldexport.tex.NativeImageReplayTexture;
+import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -135,8 +137,9 @@ public class WorldTessellator {
      * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
      */
     @SuppressWarnings("deprecation") // Not actually deprecated
-    public CompletableFuture<NativeImage> getDefaultWorldTexture() {
-        return TextureExtractor.pullAtlasTextureAsync(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
+    public CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
+        return TextureExtractor.pullAtlasTextureAsync(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+                .thenApply(NativeImageReplayTexture::new);
     }
 
     private void tessellateBaseChunk(ChunkPos cPos, Random random) {

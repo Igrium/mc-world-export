@@ -2,6 +2,7 @@ package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
 import com.igrium.worldexport.entity.CapturedEntity;
+import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.MtlWriter;
 import de.javagl.obj.ObjWriter;
@@ -126,9 +127,9 @@ public class ReplayIO {
         return CompletableFuture.allOf(textureFutures.toArray(new CompletableFuture[0]));
     }
 
-    private static void saveTexture(NativeImage texture, Path imagePath) throws IOException {
+    private static void saveTexture(ReplayTexture texture, Path imagePath) throws IOException {
         Files.createDirectories(imagePath.getParent());
-        texture.writeTo(imagePath);
+        texture.writeToFile(imagePath);
     }
 
     // No need to overcomplicate this part with multithreading; these files are really small.

@@ -1,11 +1,24 @@
 package com.igrium.worldexport.entity;
 
 import lombok.Getter;
+
+import lombok.NonNull;
+import lombok.Setter;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.Vec3d;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
-public class EntityModelAdapter<T extends Entity, S extends EntityRenderState> {
+/**
+ * Handles the export of a single entity type. Analogous to {@link #entityRenderer}.
+ *
+ * @param <T> Type of entity to capture.
+ * @param <S> That entity's render state.
+ * @apiNote Unlike entity renderers, one instance exists <em>per exported replay</em>
+ */
+public abstract class EntityModelAdapter<T extends Entity, S extends EntityRenderState> {
 
     /**
      * The vanilla entity renderer for this entity. Used to delegate functions that don't directly have to do with meshing.
@@ -13,10 +26,24 @@ public class EntityModelAdapter<T extends Entity, S extends EntityRenderState> {
     @Getter
     private final EntityRenderer<T, S> entityRenderer;
 
-    private final S state;
+    /**
+     * An offset to apply to the position of all entities.
+     */
+    @Getter @Setter @NonNull
+    private Vec3d globalOffset = Vec3d.ZERO;
 
     public EntityModelAdapter(EntityRenderer<T, S> entityRenderer) {
         this.entityRenderer = entityRenderer;
-        state = entityRenderer.createRenderState();
+    }
+
+    /**
+     * Capture the entity's current pose.
+     * @param entity Entity to capture the pose of.
+     * @param capture Animation to insert the pose.
+     * @param tick The current tick index in the replay.
+     */
+    public void capture(T entity, CapturedEntity capture, int tick) {
+        Vec3d pos = entity.getPos().add(globalOffset);
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, pos.toVector3f(), new Quaternionf(), new Vector3f());
     }
 }

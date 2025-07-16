@@ -1,5 +1,6 @@
 package com.igrium.worldexport.replay;
 
+import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
 import de.javagl.obj.Mtl;
@@ -101,7 +102,7 @@ public class ReplayCapture {
      * A map of all textures in the file by their filenames relative to the root.
      */
     @Getter
-    private final Map<String, CompletableFuture<? extends NativeImage>> textures = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<? extends ReplayTexture>> textures = new ConcurrentHashMap<>();
 
     /**
      * A map of all materials in the file by their library filename.
@@ -190,8 +191,8 @@ public class ReplayCapture {
      * Wait for all texture futures to complete and return their values.
      * @return A map of all texture paths and their values.
      */
-    public CompletableFuture<Map<String, NativeImage>> getAllTextures() {
-        Map<String, NativeImage> result = new ConcurrentHashMap<>(textures.size());
+    public CompletableFuture<Map<String, ReplayTexture>> getAllTextures() {
+        Map<String, ReplayTexture> result = new ConcurrentHashMap<>(textures.size());
         List<CompletableFuture<?>> futures = new ArrayList<>(textures.size());
         for (var entry : textures.entrySet()) {
             futures.add(entry.getValue()

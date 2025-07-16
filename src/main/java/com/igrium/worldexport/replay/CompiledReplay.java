@@ -1,6 +1,7 @@
 package com.igrium.worldexport.replay;
 
 import com.igrium.worldexport.entity.CapturedEntity;
+import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.Mtl;
 import lombok.Getter;
@@ -26,7 +27,7 @@ public class CompiledReplay {
     /**
      * A map of texture names (relative to the replay root) and their texture data.
      */
-    private final Map<String, NativeImage> textures = new HashMap<>();
+    private final Map<String, ReplayTexture> textures = new HashMap<>();
 
     /**
      * A map of mtl file names (relative to the replay root) and the materials in them.
