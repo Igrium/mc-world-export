@@ -63,6 +63,11 @@ public class ReplayIO {
             entity.writeObj(writer);
         }
 
+        Path jsonPath = entityDir.resolve(name + ".json");
+        try (BufferedWriter writer = Files.newBufferedWriter(jsonPath)) {
+            GSON.toJson(entity.getParents(), writer);
+        }
+
         Path animPath = entityDir.resolve(name + ".anim");
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(animPath)))) {
             entity.writeAnimFile(out);

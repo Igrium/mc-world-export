@@ -1,5 +1,6 @@
 package com.igrium.worldexport.replay;
 
+import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
@@ -11,6 +12,7 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
@@ -98,6 +100,9 @@ public class ReplayCapture {
     @Getter
     private final WorldTessellator worldTessellator;
 
+    @Getter
+    private final EntityCapture entityCapture;
+
     /**
      * A map of all textures in the file by their filenames relative to the root.
      */
@@ -133,6 +138,12 @@ public class ReplayCapture {
         worldTessellator.setSplitBlocks(settings.isSplitBlocks());
         worldTessellator.setMergeBaseMeshes(settings.isMergeBaseMeshes());
         worldTessellator.setMergeDoubleVertices(settings.isMergeDoubleVertices());
+
+        entityCapture = new EntityCapture(settings.getBounds().toBox());
+        int offsetX = settings.getOffset().getX();
+        int offsetY = settings.getOffset().getY();
+        int offsetZ = settings.getOffset().getZ();
+        entityCapture.setGlobalOffset(new Vec3d(offsetX, offsetY, offsetZ));
     }
 
     /**
@@ -169,7 +180,7 @@ public class ReplayCapture {
     public void onEndTick() {
         int stride = settings.getTickStride();
         if (gameTick % stride == 0) {
-            // do tick logic
+            entityCapture.captureFrame(world, replayTick);
             replayTick++;
         }
         gameTick++;

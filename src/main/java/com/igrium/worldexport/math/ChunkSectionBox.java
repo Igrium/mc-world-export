@@ -1,5 +1,7 @@
 package com.igrium.worldexport.math;
 
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 
@@ -118,6 +120,23 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      */
     public ChunkSectionPos maxPosInclusive() {
         return ChunkSectionPos.from(maxXInclusive(), maxYInclusive(), maxZInclusive());
+    }
+
+    /**
+     * Get a world-space, floating-point box containing the entire volume of this section box.
+     */
+    public Box toBox() {
+        ChunkSectionPos minPos = minPos();
+        int minX = minPos.getMinX();
+        int minY = minPos.getMinY();
+        int minZ = minPos.getMinZ();
+
+        ChunkSectionPos maxPos = maxPosInclusive();
+        int maxX = maxPos.getMaxX();
+        int maxY = maxPos.getMaxY();
+        int maxZ = maxPos.getMaxZ();
+
+        return new Box(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
     }
 
     /**

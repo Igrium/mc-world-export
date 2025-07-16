@@ -36,6 +36,18 @@ public class CapturedEntity {
     private final Map<String, List<AnimationCurve>> curves = new HashMap<>();
 
     /**
+     * If a model part needs to be parented to another,
+     * it goes here with the child as the key and the parent as the value.
+     * <p>
+     * If a part is not in this map, it is assumed parented to the root.
+     *
+     * @apiNote Parts can only have one parent, which is set for the duration of the animation.
+     * All transforms on that part are relative to the parent.
+     */
+    @Getter
+    private final Map<String, String> parents = new HashMap<>();
+
+    /**
      * Attempt to find an animation curve that contains (or can contain) the selected tick.
      * <p>
      * If a curve is found where the tick is already within its, range, return that.
