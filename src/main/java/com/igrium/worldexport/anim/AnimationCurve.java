@@ -174,6 +174,7 @@ public class AnimationCurve {
     }
 
     public void write(DataOutputStream out) throws IOException {
+        out.writeInt(frameOffset);
         out.writeInt(size());
 
         writeCurve(xPosCurve, out);
@@ -198,6 +199,7 @@ public class AnimationCurve {
     }
 
     public void read(DataInputStream in) throws IOException {
+        frameOffset = in.readInt();
         int length = in.readInt();
 
         readCurve(xPosCurve, in, length);
