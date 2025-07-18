@@ -50,9 +50,9 @@ class AnimationCurve:
         """
         
         if (pos_transform != None):
-            transformed_x = [0.0] *len(self.pos_x)
-            transformed_y = [0.0] *len(self.pos_y)
-            transformed_z = [0.0] *len(self.pos_z)
+            transformed_x = [0.0] * len(self.pos_x)
+            transformed_y = [0.0] * len(self.pos_y)
+            transformed_z = [0.0] * len(self.pos_z)
             
             for i in range(0, len(self.pos_x)):
                 x, y, z = pos_transform(self.pos_x[i], self.pos_y[i], self.pos_z[i])
@@ -64,9 +64,12 @@ class AnimationCurve:
             transformed_y = self.pos_y
             transformed_z = self.pos_z
         
-        pos_path = base_datapath + '.location'
-        rot_path = base_datapath + '.rotation_quaternion'
-        scale_path = base_datapath + '.scale'
+        if base_datapath and not base_datapath.endswith('.'):
+            base_datapath += '.'
+        
+        pos_path = base_datapath + 'location'
+        rot_path = base_datapath + 'rotation_quaternion'
+        scale_path = base_datapath + 'scale'
         
         _apply_curve(transformed_x, self.tick_offset, context, action, pos_path, 0)
         _apply_curve(transformed_y, self.tick_offset, context, action, pos_path, 1)
@@ -92,13 +95,14 @@ def _apply_curve(values: list[float], tick_offset: int, context: ReplayImportCon
         val
     ) for tick, val in enumerate(values)]
     
+    flattened = [item for tuple in keyframes for item in tuple]
     
     keyframe_points.add(len(keyframes))
-    keyframe_points.foreach_set('co', itertools.chain.from_iterable(keyframes))
+    keyframe_points.foreach_set('co', flattened)
     keyframe_points.foreach_set('interpolation', [1] * len(keyframes))
 
 def _read_curve(curve: list[float], f: BinaryIO, length: int):
     data = f.read(length * 4)
-    floats = struct.unpack('>f', data)
+    floats = struct.unpack(f'>{length}f', data)
     curve.extend(floats)
     

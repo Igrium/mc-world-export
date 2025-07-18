@@ -1,44 +1,26 @@
+import bpy
 from dataclasses import dataclass
 from bpy.types import Context, Collection
+from .replay_types import ReplayImportSettings, ReplayImportContext
+import os
 
-@dataclass
-class ReplayImportSettings:
-    use_scene_framerate: bool = True
-    """
-    If set, scale the imported keyframes based on the scene's framerate.
-    If unset, assumes 1 frame = 1 tick.
-    """
-    
-    local_root_bone: bool = False
-    """Create a root bone in the armature rather than animating the armature's position.
-    """
-    
-    clean_curves: bool = True
-    """Run a 'clean curves' operator on the imported entities.
-    """
+from . import world_importer
+from .entity import entity_loader
 
-@dataclass
-class ReplayImportContext:
-    
-    context: Context
-    world_collection: Collection
-    entity_collection: Collection
-    
-    
-    settings: ReplayImportSettings = ReplayImportSettings()
-    
-    def tick_to_frame(self, tick: int) -> float:
-        """Return the global scene frame that a replay tick falls on.
 
-        Args:
-            tick (int): Replay tick index.
-
-        Returns:
-            float: Scene frame. Might be a non-integer.
-        """
-        
-        scene = self.context.scene
-        if self.settings.use_scene_framerate and scene != None:
-            return tick * (scene.render.fps / scene.render.fps_base)
-        else:
-            return tick
+def import_replay(replay_root: str, settings: ReplayImportSettings, bl_context: Context):
+    scene = bl_context.scene
+    if not scene: return
+    
+    world_collection = bpy.data.collections.new("World")
+    scene.collection.children.link(world_collection)
+    
+    entity_collection = bpy.data.collections.new("Entities")
+    scene.collection.children.link(entity_collection)
+    
+    context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection)
+    
+    world_importer.import_world(os.path.join(replay_root, 'world'))
+    entity_loader.import_entities(context)
+    
+    

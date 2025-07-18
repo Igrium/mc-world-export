@@ -2,6 +2,9 @@ import bpy
 import os
 
 from .. import world_importer
+from .. import replay_importer
+
+from ..replay_importer import ReplayImportSettings
 
 from bpy.types import Context, Operator, Panel, StringProperty, BoolProperty, EnumProperty
 from bpy_extras.io_utils import ImportHelper
@@ -30,6 +33,8 @@ class ImportReplay(Operator, ImportHelper): # type: ignore
     """This appears in the tooltip of the operator and in the generated docs"""
     bl_idname = "worldexport.import_replay"
     bl_label = "Import Minecraft Replay"
+    
+    # filepath: str
 
     # ImportHelper mix-in class uses this.
     filename_ext = ".zip"
@@ -59,7 +64,8 @@ class ImportReplay(Operator, ImportHelper): # type: ignore
     )
 
     def execute(self, context): # type: ignore
-        world_importer.import_world(os.path.join(self.filepath, 'world')) # type: ignore
+        # world_importer.import_world(os.path.join(self.filepath, 'world')) # type: ignore
+        replay_importer.import_replay(self.filepath, ReplayImportSettings(), context) # type: ignore
         return {'FINISHED'}
 
 

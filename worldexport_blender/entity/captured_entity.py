@@ -4,7 +4,7 @@ import json
 import os.path
 from .. import common
 from ..anim.animation_curve import AnimationCurve
-from ..replay_importer import ReplayImportSettings, ReplayImportContext
+from ..replay_types import ReplayImportSettings, ReplayImportContext
 from typing import BinaryIO, TextIO
 from bpy.types import Object, Context
 
@@ -19,9 +19,9 @@ class CapturedEntity:
     
     curves: list[tuple[str, AnimationCurve]] = []
     
-    armature: Object | None
+    armature: Object | None = None
     
-    mesh: Object | None
+    mesh: Object | None = None
     
     def __init__(self, name: str) -> None:
         self.name = name
@@ -44,7 +44,9 @@ class CapturedEntity:
         if not os.path.exists(path):
             return
         
-        self.mesh = common.import_obj(path)
+        imported = common.import_obj(path)
+        if (imported):
+            self.mesh = imported.pop()
     
     def gen_armature(self, context: ReplayImportContext):
         # TODO: Actually implement armature shit
@@ -52,6 +54,7 @@ class CapturedEntity:
         empty_obj.empty_display_size = 1
         
         context.entity_collection.objects.link(empty_obj)
+        self.armature = empty_obj
         
         if (self.mesh != None):
             self.mesh.parent = empty_obj
@@ -66,7 +69,17 @@ class CapturedEntity:
         if (self.armature == None):
             raise Exception("Armature has not been generated yet!")
         
+        anim_data = self.armature.animation_data_create()
+        action = bpy.data.actions.new(name=f'{self.name}_action')
+        anim_data.action = action
         
+        for (name, curve) in self.curves:
+            if name == 'root':
+                data_prefix = ''
+            else:
+                data_prefix = f'pose.bones["{name}"].'
+            
+            curve.apply(action, data_prefix, context)
         
         
 def read_anim_file(f: BinaryIO, curves: list[tuple[str, AnimationCurve]]):

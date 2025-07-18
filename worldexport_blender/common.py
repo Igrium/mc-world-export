@@ -9,7 +9,7 @@ from bpy.types import Context, Object
 def import_obj(filepath: str):
     existing = set(bpy.data.objects)
     bpy.ops.wm.obj_import(filepath=filepath)
-    return (set(bpy.data.objects) - existing).pop()
+    return set(bpy.data.objects) - existing
 
 def tick_to_frame(tick: int, context: Context) -> float:
     scene = context.scene

@@ -35,10 +35,13 @@ def _parse_world_mesh(name: str, world_dir: str) -> WorldMesh:
     else:
         return WorldMesh(name, None, None)
     
-def _import_world_mesh(mesh: WorldMesh, world_dir: str) -> Object:
+def _import_world_mesh(mesh: WorldMesh, world_dir: str) -> Object | None:
     obj_path = os.path.join(world_dir, mesh.name + '.obj')
     # obj = common.import_obj(obj_path, mtl_name_collision_mode='REFERENCE_EXISTING')
-    obj = common.import_obj(obj_path)
+    imported = common.import_obj(obj_path)
+    if not imported:
+        return None
+    obj = imported.pop()
     
     # Add keyframes
     if mesh.start_tick == None and mesh.end_tick == None:
