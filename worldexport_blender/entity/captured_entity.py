@@ -5,6 +5,7 @@ import os.path
 from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
+from .. import common
 from typing import BinaryIO, TextIO
 from bpy.types import Object, Context
 
@@ -79,7 +80,7 @@ class CapturedEntity:
             else:
                 data_prefix = f'pose.bones["{name}"].'
             
-            curve.apply(action, data_prefix, context)
+            curve.apply(action, data_prefix, context, common.convert_coords)
         
         
 def read_anim_file(f: BinaryIO, curves: list[tuple[str, AnimationCurve]]):

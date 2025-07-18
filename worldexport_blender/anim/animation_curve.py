@@ -58,7 +58,7 @@ class AnimationCurve:
                 x, y, z = pos_transform(self.pos_x[i], self.pos_y[i], self.pos_z[i])
                 transformed_x[i] = x
                 transformed_y[i] = y
-                transformed_z[i] = y
+                transformed_z[i] = z
         else:
             transformed_x = self.pos_x
             transformed_y = self.pos_y
@@ -86,7 +86,10 @@ class AnimationCurve:
         
 
 def _apply_curve(values: list[float], tick_offset: int, context: ReplayImportContext, action: Action, data_path: str, index: int = 0):
-    curve = action.fcurves.new(data_path, index=index)
+    curve = action.fcurves.find(data_path, index=0)
+    if (curve == None):
+        curve = action.fcurves.new(data_path, index=index)
+        
     keyframe_points = curve.keyframe_points
     
     # Create list of keyframes, with the frame as the first element and the value as the second element
