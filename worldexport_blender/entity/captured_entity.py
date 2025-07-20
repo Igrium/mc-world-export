@@ -6,8 +6,8 @@ from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
 from .. import common
-from typing import BinaryIO, TextIO
-from bpy.types import Object, Context
+from typing import BinaryIO
+from bpy.types import Object
 
 class CapturedEntity:
     """An in-memory representation of a replay entity before it's applied to Blender objects
@@ -74,14 +74,34 @@ class CapturedEntity:
         action = bpy.data.actions.new(name=f'{self.name}_action')
         anim_data.action = action
         
+        flattened_curves: dict[tuple[str, int], list[float]] = {}
+        
+        # Assemble keyframes from all replay curves into one array.
         for (name, curve) in self.curves:
             if name == 'root':
                 data_prefix = ''
             else:
                 data_prefix = f'pose.bones["{name}"].'
             
-            curve.apply(action, data_prefix, context, common.convert_coords)
+            # curve.apply(action, data_prefix, context, common.convert_coords)
+            for ref, vals in curve.to_key_arrays(data_prefix, context, common.convert_coords).items():
+                existing = flattened_curves.get(ref)
+                if existing:
+                    existing.extend(vals)
+                else:
+                    flattened_curves[ref] = vals
         
+        # Apply anim curves
+        for (data_path, index), keys in flattened_curves.items():
+            # curve = action.fcurves.find(data_path, index=index)
+            # if not curve:
+            curve = action.fcurves.new(data_path, index=index)
+            
+            keyframe_points = curve.keyframe_points
+            keyframe_points.add(len(keys) // 2)
+            keyframe_points.foreach_set('co', keys)
+            keyframe_points.foreach_set('interpolation', [1] * (len(keys) // 2))
+            
         
 def read_anim_file(f: BinaryIO, curves: list[tuple[str, AnimationCurve]]):
     size: int = struct.unpack('>i', f.read(4))[0]
