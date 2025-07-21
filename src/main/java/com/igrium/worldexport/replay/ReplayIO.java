@@ -1,25 +1,27 @@
 package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
+import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldMesh;
+import de.javagl.obj.MtlReader;
 import de.javagl.obj.MtlWriter;
 import de.javagl.obj.ObjWriter;
-import net.minecraft.client.texture.NativeImage;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 public class ReplayIO {
@@ -33,6 +35,14 @@ public class ReplayIO {
                 .thenCompose(v -> saveEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> saveTexturesAsync(root, replay, executor))
                 .thenRun(() -> saveMtls(root, replay));
+    }
+
+    public static CompletableFuture<CompiledReplay> loadReplayAsync(Path root, Executor executor) {
+        CompiledReplay replay = new CompiledReplay();
+        return loadEntitiesAsync(root, replay, executor)
+                .thenCompose(v -> loadTexturesAsync(root, replay, executor))
+                .thenRun(() -> loadMtls(root, replay))
+                .thenApply(v -> replay);
     }
 
     private static CompletableFuture<?> saveEntitiesAsync(Path root, CompiledReplay replay, Executor executor) {
@@ -74,6 +84,65 @@ public class ReplayIO {
         }
     }
 
+    private static CompletableFuture<?> loadEntitiesAsync(Path root, CompiledReplay replay, Executor executor) {
+        Path entityDir = root.resolve("entities");
+        List<String> entityNames;
+        try (var fileStream = Files.list(entityDir)) {
+
+            entityNames = fileStream
+                    .filter(path -> path.toString().endsWith(".anim"))
+                    .filter(Files::isRegularFile)
+                    .map(path -> FilenameUtils.getBaseName(path.toString()))
+                    .toList();
+
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        List<CompletableFuture<?>> futures = new ArrayList<>(entityNames.size());
+        Map<String, CapturedEntity> entities = new ConcurrentHashMap<>();
+
+        for (var entName : entityNames) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    entities.put(entName, loadEntity(entityDir, entName));
+                } catch (Exception e) {
+                    LOGGER.error("Error saving entity {}: ", entName, e);
+                }
+            }, executor));
+        }
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenRun(() -> {
+            replay.getEntities().putAll(entities);
+        });
+    }
+
+    public static CapturedEntity loadEntity(Path entityDir, String name) throws IOException {
+        Path objPath = entityDir.resolve(name + ".obj");
+        CapturedEntity entity = new CapturedEntity();
+        if (Files.isRegularFile(objPath)) {
+            try (BufferedReader reader = Files.newBufferedReader(objPath)) {
+                entity.readObj(reader);
+            }
+        }
+
+        Path jsonPath = entityDir.resolve(name + ".json");
+        if (Files.isRegularFile(jsonPath)) {
+            try (BufferedReader reader = Files.newBufferedReader(jsonPath)) {
+                TypeToken<Map<String, String>> typeToken = new TypeToken<>() {};
+                entity.getParents().putAll(GSON.fromJson(reader, typeToken));
+            }
+        }
+
+        Path animPath = entityDir.resolve(name + ".anim");
+        if (Files.isRegularFile(animPath)) {
+            try (DataInputStream in = new DataInputStream(new BufferedInputStream(Files.newInputStream(animPath)))) {
+                entity.readAnimFile(in);
+            }
+        }
+
+        return entity;
+    }
 
     private static CompletableFuture<?> saveWorldAsync(Path root, CompiledReplay replay, Executor executor) {
         Path worldDir = root.resolve("world");
@@ -118,6 +187,7 @@ public class ReplayIO {
         }
     }
 
+
     private static CompletableFuture<?> saveTexturesAsync(Path root, CompiledReplay replay, Executor executor) {
         List<CompletableFuture<?>> textureFutures = new ArrayList<>(replay.getTextures().size());
         for (var entry : replay.getTextures().entrySet()) {
@@ -137,6 +207,39 @@ public class ReplayIO {
         texture.writeToFile(imagePath);
     }
 
+    private static CompletableFuture<?> loadTexturesAsync(Path root, CompiledReplay replay, Executor executor) {
+        List<Path> texturePaths;
+        try (var stream = Files.walk(root)) {
+            texturePaths = stream.filter(p -> p.toString().endsWith(".png")).toList();
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        List<CompletableFuture<?>> futures = new ArrayList<>(texturePaths.size());
+        Map<String, ReplayTexture> result = new ConcurrentHashMap<>();
+
+        for (var texPath : texturePaths) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    result.put(root.relativize(texPath).toString(), loadTexture(texPath));
+                } catch (Exception e) {
+                    LOGGER.error("Error loading replay texture {}:", texPath, e);
+                }
+            }, executor));
+        }
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenRun(() -> replay.getTextures().putAll(result));
+    }
+
+    private static ReplayTexture loadTexture(Path imagePath) throws IOException {
+        byte[] data;
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(imagePath))) {
+            data = in.readAllBytes();
+        }
+        return new PngReplayTexture(data);
+    }
+
     // No need to overcomplicate this part with multithreading; these files are really small.
     private static void saveMtls(Path root, CompiledReplay replay) {
         for (var entry : replay.getMtlLibs().entrySet()) {
@@ -149,6 +252,25 @@ public class ReplayIO {
 
             } catch (IOException e) {
                 LOGGER.error("Error saving MTL library {}: ", entry.getKey(), e);
+            }
+        }
+    }
+
+    private static void loadMtls(Path root, CompiledReplay replay) {
+        List<Path> mtlPaths;
+        try (var stream = Files.walk(root)) {
+            mtlPaths = stream.filter(path -> path.toString().endsWith(".mtl")).toList();
+        } catch (IOException e) {
+            LOGGER.error("Failed to retrieve mtl directory listing: ", e);
+            return;
+        }
+
+        for (var path : mtlPaths) {
+            try (BufferedReader reader = Files.newBufferedReader(path)) {
+                replay.getMtlLibs().put(root.relativize(path).toString(), new ArrayList<>(MtlReader.read(reader)));
+
+            } catch (IOException e) {
+                LOGGER.error("Error loading MTL library {}: ", path, e);
             }
         }
     }

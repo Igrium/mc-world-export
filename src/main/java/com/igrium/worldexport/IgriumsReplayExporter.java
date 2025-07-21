@@ -2,6 +2,7 @@ package com.igrium.worldexport;
 
 import com.igrium.worldexport.command.ProfileDiffsCommand;
 import com.igrium.worldexport.command.WorldCaptureCommand;
+import com.igrium.worldexport.debugger.ReplayDebugger;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
@@ -45,6 +46,10 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         ClientChunkEvents.CHUNK_LOAD.register(ReplayCapture::globalClientChunkLoad);
 
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register(ReplayCapture::globalClientWorldChange);
+
+        if (FabricLoader.getInstance().isModLoaded("craftui")) {
+            ReplayDebugger.registerMenuButton();
+        }
     }
 
     public ReplayCapture startRecording(World world, ReplaySettings settings) {

@@ -3,6 +3,7 @@ package com.igrium.worldexport.anim;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.floats.FloatIterator;
 import it.unimi.dsi.fastutil.floats.FloatList;
+import it.unimi.dsi.fastutil.floats.FloatLists;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.*;
@@ -29,6 +30,46 @@ public class AnimationCurve {
     private final FloatList xScaleCurve = new FloatArrayList();
     private final FloatList yScaleCurve = new FloatArrayList();
     private final FloatList zScaleCurve = new FloatArrayList();
+
+    public final float[] getXPosCurve() {
+        return xPosCurve.toFloatArray();
+    }
+
+    public final float[] getYPosCurve() {
+        return yPosCurve.toFloatArray();
+    }
+
+    public final float[] getZPosCurve() {
+        return zPosCurve.toFloatArray();
+    }
+
+    public final float[] getWRotCurve() {
+        return wRotCurve.toFloatArray();
+    }
+
+    public final float[] getXRotCurve() {
+        return xRotCurve.toFloatArray();
+    }
+
+    public final float[] getYRotCurve() {
+        return yRotCurve.toFloatArray();
+    }
+
+    public final float[] getZRotCurve() {
+        return zRotCurve.toFloatArray();
+    }
+
+    public final float[] getXScaleCurve() {
+        return xScaleCurve.toFloatArray();
+    }
+
+    public final float[] getYScaleCurve() {
+        return yScaleCurve.toFloatArray();
+    }
+
+    public final float[] getZScaleCurve() {
+        return zScaleCurve.toFloatArray();
+    }
 
     @Getter @Setter
     private int frameOffset = 0;

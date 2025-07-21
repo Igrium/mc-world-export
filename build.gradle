@@ -12,6 +12,11 @@ base {
 }
 
 repositories {
+    maven { url 'https://jitpack.io' }
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+    }
 }
 
 dependencies {
@@ -24,6 +29,9 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     implementation(include("de.javagl:obj:0.4.0"))
+
+    // For debugging exported replays
+    modImplementation "com.github.igrium:craftui:e2f627b2be"
 
 }
 

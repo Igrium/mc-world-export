@@ -3,5 +3,7 @@
   "command.worldcapture.save.norecording": "There is no active recording to save.",
   "command.worldcapture.save.saving": "Saving replay capture...",
   "command.worldcapture.save.confirmed": "Saved to %s in %d ms.",
-  "command.worldcapture.save.failed": "Failed to save replay. See console for details. (%s)"
+  "command.worldcapture.save.failed": "Failed to save replay. See console for details. (%s)",
+
+  "menu.worldexport.replaydebugger": "Open Replay Debugger"
 }
