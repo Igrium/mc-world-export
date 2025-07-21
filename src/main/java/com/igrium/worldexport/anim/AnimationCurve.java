@@ -17,6 +17,8 @@ import java.io.IOException;
  */
 public class AnimationCurve {
 
+    public static final int NUM_CHANNELS = 10;
+
     // Important implementation detail: each list should always be the same length.
     private final FloatList xPosCurve = new FloatArrayList();
     private final FloatList yPosCurve = new FloatArrayList();
@@ -30,6 +32,22 @@ public class AnimationCurve {
     private final FloatList xScaleCurve = new FloatArrayList();
     private final FloatList yScaleCurve = new FloatArrayList();
     private final FloatList zScaleCurve = new FloatArrayList();
+
+    public final float[] getCurve(int index) {
+        return switch (index) {
+            case 0 -> getXPosCurve();
+            case 1 -> getYPosCurve();
+            case 2 -> getZPosCurve();
+            case 3 -> getWRotCurve();
+            case 4 -> getXRotCurve();
+            case 5 -> getYRotCurve();
+            case 6 -> getZRotCurve();
+            case 7 -> getXScaleCurve();
+            case 8 -> getYScaleCurve();
+            case 9 -> getZScaleCurve();
+            default -> throw new IndexOutOfBoundsException("Illegal channel index: " + index);
+        };
+    }
 
     public final float[] getXPosCurve() {
         return xPosCurve.toFloatArray();
@@ -264,5 +282,21 @@ public class AnimationCurve {
             buffer[i] = in.readFloat();
         }
         curve.addAll(FloatList.of(buffer));
+    }
+
+    public static String nameFromCurveIndex(int index) {
+        return switch (index) {
+            case 0 -> "Location X";
+            case 1 -> "Location Y";
+            case 2 -> "Location Z";
+            case 3 -> "Rotation W";
+            case 4 -> "Rotation X";
+            case 5 -> "Rotation Y";
+            case 6 -> "Rotation Z";
+            case 7 -> "Scale X";
+            case 8 -> "Scale Y";
+            case 9 -> "Scale Z";
+            default -> "[unknown]";
+        };
     }
 }

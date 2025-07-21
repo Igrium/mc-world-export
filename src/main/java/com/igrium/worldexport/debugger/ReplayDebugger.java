@@ -8,6 +8,7 @@ import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.replay.CompiledReplay;
 import com.igrium.worldexport.replay.ReplayIO;
 import imgui.ImGui;
+import imgui.ImGuiIO;
 import imgui.extension.implot.ImPlot;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.flag.ImGuiWindowFlags;
@@ -26,7 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 
 public class ReplayDebugger extends CraftApp {
 
@@ -56,6 +61,19 @@ public class ReplayDebugger extends CraftApp {
 
     @Nullable
     private String selectedEntity;
+
+    @Getter
+    private final Set<CurveSelectionReference> selectedCurveRefs = new HashSet<>();
+
+    public record DirectChannelRef(AnimationCurve curve, int index) {};
+
+    public Stream<DirectChannelRef> getSelectedCurves() {
+        if (replay == null) {
+            return Stream.empty();
+        }
+        return selectedCurveRefs.stream().map(ref ->
+                new DirectChannelRef(ref.getCurve(replay.getEntities()), ref.channelIndex()));
+    }
 
     @Override
     protected void render(MinecraftClient minecraftClient) {
@@ -102,18 +120,103 @@ public class ReplayDebugger extends CraftApp {
         if (replay == null)
             return;
 
+        ImGuiIO io = ImGui.getIO();
+        boolean shiftPressed = io.getKeyShift();
+
         for (var entEntry : replay.getEntities().entrySet()) {
             int flags = ImGuiTreeNodeFlags.OpenOnArrow;
-            if (entEntry.getKey().equals(selectedEntity)) flags |= ImGuiTreeNodeFlags.Selected;
 
-            boolean showTree = ImGui.treeNodeEx(entEntry.getKey(), flags);
+            int entityFlags = flags;
+            if (CurveSelectionReference.isEntitySelected(selectedCurveRefs, entEntry.getKey()))
+                entityFlags |= ImGuiTreeNodeFlags.Selected;
+
+            boolean showPartTree = ImGui.treeNodeEx(entEntry.getKey(), entityFlags);
             if (ImGui.isItemClicked()) {
-                selectedEntity = entEntry.getKey();
+                selectAllCurves(entEntry.getKey(), entEntry.getValue(), !shiftPressed);
             }
-            if (showTree) {
+            // Model Part
+            if (showPartTree) {
+                for (var partEntry : entEntry.getValue().getCurves().entrySet()) {
+
+                    int partFlags = flags;
+                    if (CurveSelectionReference.isModelPartSelected(selectedCurveRefs, entEntry.getKey(), partEntry.getKey()))
+                        partFlags |= ImGuiTreeNodeFlags.Selected;
+
+                    boolean showCurveTree = ImGui.treeNodeEx(partEntry.getKey(), partFlags);
+                    if (ImGui.isItemClicked()) {
+                        selectAllPartCurves(entEntry.getKey(), partEntry.getKey(), partEntry.getValue(), !shiftPressed);
+                    }
+                    // Curve
+                    if (showCurveTree) {
+                        for (int curveIndex = 0; curveIndex < partEntry.getValue().size(); curveIndex++) {
+
+                            int curveFlags = flags;
+                            if (CurveSelectionReference.isCurveIndexSelected(selectedCurveRefs, entEntry.getKey(), partEntry.getKey(), curveIndex))
+                                curveFlags |= ImGuiTreeNodeFlags.Selected;
+
+                            boolean showChannelTree = ImGui.treeNodeEx("Curve " + curveIndex, curveFlags);
+                            if (ImGui.isItemClicked()) {
+                                selectAllChannels(entEntry.getKey(), partEntry.getKey(), curveIndex, !shiftPressed);
+                            }
+                            // Channel
+                            if (showChannelTree) {
+                                for (int i = 0; i < AnimationCurve.NUM_CHANNELS; i++) {
+                                    CurveSelectionReference channelRef = new CurveSelectionReference(entEntry.getKey(), partEntry.getKey(), curveIndex, i);
+
+                                    int channelFlags = flags | ImGuiTreeNodeFlags.Leaf;
+                                    if (selectedCurveRefs.contains(channelRef))
+                                        channelFlags |= ImGuiTreeNodeFlags.Selected;
+
+                                    boolean openedLeaf = ImGui.treeNodeEx(AnimationCurve.nameFromCurveIndex(i), channelFlags);
+                                    if (ImGui.isItemClicked()) {
+                                        selectCurveChannel(channelRef, !shiftPressed);
+                                    }
+                                    if (openedLeaf) {
+                                        ImGui.treePop();
+                                    }
+
+                                }
+                                ImGui.treePop();
+                            }
+                        }
+
+                        ImGui.treePop();
+                    }
+                }
                 ImGui.treePop();
             }
         }
+
+    }
+
+    private void selectAllCurves(String entityName, CapturedEntity entity, boolean clear) {
+        if (clear)
+            selectedCurveRefs.clear();
+        for (var partEntry : entity.getCurves().entrySet()) {
+            selectAllPartCurves(entityName, partEntry.getKey(), partEntry.getValue(), false);
+        }
+    }
+
+    private void selectAllPartCurves(String entityName, String partName, Collection<? super AnimationCurve> curves, boolean clear) {
+        if (clear)
+            selectedCurveRefs.clear();
+        for (int i = 0; i < curves.size(); i++) {
+            selectAllChannels(entityName, partName, i, false);
+        }
+    }
+
+    private void selectAllChannels(String entityName, String partName, int curveIndex, boolean clear) {
+        if (clear)
+            selectedCurveRefs.clear();
+        for (int i = 0; i < AnimationCurve.NUM_CHANNELS; i++) {
+            selectedCurveRefs.add(new CurveSelectionReference(entityName, partName, curveIndex, i));
+        }
+    }
+
+    private void selectCurveChannel(CurveSelectionReference ref, boolean clear) {
+        if (clear)
+            selectedCurveRefs.clear();
+        selectedCurveRefs.add(ref);
     }
 
     private void drawErrorPopup() {
@@ -134,36 +237,21 @@ public class ReplayDebugger extends CraftApp {
             fitPlot = false;
         }
         if (ImPlot.beginPlot("Animation Curves")) {
-            if (replay != null && selectedEntity != null) {
-                var entity = replay.getEntities().get(selectedEntity);
-                entity.getCurves().values().stream().flatMap(List::stream).forEach(this::drawCurve);
-            }
+
+            getSelectedCurves().forEach(r -> {
+                double[] ticks = new double[r.curve.size()];
+                for (int i = 0; i < ticks.length; i++) {
+                    ticks[i] = i + r.curve.getFrameOffset();
+                }
+
+                drawLine(AnimationCurve.nameFromCurveIndex(r.index), ticks, r.curve.getCurve(r.index));
+            });
+
             ImPlot.endPlot();
         }
         if (ImGui.button("Reset View"))
             fitPlot = true;
 
-    }
-
-    private void drawCurve(AnimationCurve curve) {
-        double[] ticks = new double[curve.size()];
-        int offset = curve.getFrameOffset();
-        for (int i = 0; i < ticks.length; i++) {
-            ticks[i] = i + offset;
-        }
-
-        drawLine("Location X", ticks, curve.getXPosCurve());
-        drawLine("Location Y", ticks, curve.getYPosCurve());
-        drawLine("Location Z", ticks, curve.getZPosCurve());
-
-        drawLine("Rotation W", ticks, curve.getWRotCurve());
-        drawLine("Rotation X", ticks, curve.getXRotCurve());
-        drawLine("Rotation Y", ticks, curve.getYRotCurve());
-        drawLine("Rotation Z", ticks, curve.getZRotCurve());
-
-        drawLine("Scale X", ticks, curve.getXScaleCurve());
-        drawLine("Scale Y", ticks, curve.getYScaleCurve());
-        drawLine("Scale Z", ticks, curve.getZScaleCurve());
     }
 
     private void drawLine(String name, double[] xData, float[] yData) {
@@ -186,6 +274,7 @@ public class ReplayDebugger extends CraftApp {
 
     public void openReplay(CompiledReplay replay) {
         selectedEntity = null;
+        selectedCurveRefs.clear();
         this.replay = replay;
     }
 
