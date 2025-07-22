@@ -38,7 +38,7 @@ public class ReplayCompiler {
     private CompletableFuture<CompiledReplay> compileWorld(CompiledReplay replay) {
         LOGGER.info("Tessellating block world...");
         return replayCapture.getWorldTessellator().tessellateAllMeshes(null).thenApply(meshes -> {
-            replay.getWorldMeshes().addAll(meshes);
+            replay.getWorldMeshes().putAll(meshes);
             return replay;
         });
     }

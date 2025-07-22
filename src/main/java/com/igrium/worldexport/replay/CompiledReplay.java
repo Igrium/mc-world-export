@@ -21,8 +21,7 @@ public class CompiledReplay {
     /**
      * All the meshes that belong to the world.
      */
-    // TODO: Should this be a map?
-    private final List<WorldMesh> worldMeshes = new ArrayList<>();
+    Map<String, WorldMesh> worldMeshes = new HashMap<>();
 
     /**
      * A map of texture names (relative to the replay root) and their texture data.

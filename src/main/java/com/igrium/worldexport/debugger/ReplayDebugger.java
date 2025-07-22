@@ -88,6 +88,11 @@ public class ReplayDebugger extends CraftApp {
             ImGui.text("Entities");
             ImGui.separator();
             drawEntityTree();
+
+            ImGui.text("World Meshes");
+            ImGui.separator();
+            drawWorldMeshes();
+
         } else {
             ImGui.text("Please open a replay.");
         }
@@ -113,6 +118,24 @@ public class ReplayDebugger extends CraftApp {
                 ImGui.endMenu();
             }
             ImGui.endMenuBar();
+        }
+    }
+
+    private void drawWorldMeshes() {
+        if (replay == null)
+            return;
+
+        for (var meshEntry : replay.getWorldMeshes().entrySet()) {
+            if (ImGui.treeNodeEx(meshEntry.getKey())) {
+                var meta = meshEntry.getValue().meta();
+                ImGui.text("Num faces: " + meshEntry.getValue().obj().getNumFaces());
+
+                ImGui.text("Start tick: " + meta.getStartTick());
+                ImGui.text("End tick: " + meta.getEndTick());
+                ImGui.text("3D offset: [%f, %f, %f]".formatted(meta.getOffset().x, meta.getOffset().y, meta.getOffset().z));
+
+                ImGui.treePop();
+            }
         }
     }
 

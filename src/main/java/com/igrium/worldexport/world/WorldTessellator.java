@@ -368,11 +368,12 @@ public class WorldTessellator {
      * @param callback An optional callback to be notified when a chunk finishes tessellating. Must be thread-safe.
      * @return A future that completes once all chunks have finished tessellating.
      */
-    public CompletableFuture<Collection<WorldMesh>> tessellateAllMeshes(@Nullable ChunkTessellationCallback callback) {
+    public CompletableFuture<Map<String, WorldMesh>> tessellateAllMeshes(@Nullable ChunkTessellationCallback callback) {
         BlockUpdateCache cache = BlockUpdateCache.generate(worldCapture);
         List<CompletableFuture<?>> futures = new ArrayList<>();
-        List<WorldMesh> result = Collections.synchronizedList(new ArrayList<>());
+//        List<WorldMesh> result = Collections.synchronizedList(new ArrayList<>());
 
+        Map<String, WorldMesh> result = new ConcurrentHashMap<>();
         AtomicInteger index = new AtomicInteger();
 
         for (ChunkPos cPos : worldCapture.getCopiedBaseWorld().keySet()) {
@@ -381,39 +382,40 @@ public class WorldTessellator {
                 if (callback != null) {
                     callback.accept(cPos, list, i, worldCapture.getCopiedBaseWorld().size());
                 }
-                result.addAll(list);
+                int localI = 0;
+                for (var mesh : list) {
+                    result.put("chunk" + i + ".mesh" + localI, mesh);
+                    localI++;
+                }
             }).exceptionally(e -> {
                 LOGGER.error("Error tessellating chunk {}", cPos, e);
                 return null;
             }));
         }
 
-        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                .thenApply(v -> {
-                    List<String> filenames = List.of("world.mtl");
-                    for (var mesh : result) {
-                        mesh.obj().setMtlFileNames(filenames);
-                    }
-                    if (mergeBaseMeshes) {
-                        LOGGER.info("Merging base meshes");
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).thenApply(v -> {
+            List<String> mtlLibs = List.of("world.mtl");
+            for (var mesh : result.values()) {
+                mesh.obj().setMtlFileNames(mtlLibs);
+            }
+            if (mergeBaseMeshes) {
+                LOGGER.info("Merging base meshes");
+                WorldMesh base = new WorldMesh(Objs.create());
+                base.obj().setMtlFileNames(mtlLibs);
+                Map<String, WorldMesh> finalResult = new HashMap<>(result.size() + 1);
+                finalResult.put("world_base", base);
 
-                        WorldMesh base = new WorldMesh(Objs.create());
-                        base.obj().setMtlFileNames(List.of("world.mtl"));
-                        List<WorldMesh> finalResult = new ArrayList<>(result.size() + 1);
-                        finalResult.add(base);
-
-                        for (var mesh : result) {
-                            if (mesh.meta().isEmpty()) {
-                                ObjUtils.add(mesh.obj(), base.obj());
-                            } else {
-                                finalResult.add(mesh);
-                            }
-                        }
-
-                        return finalResult;
+                for (var meshEntry : result.entrySet()) {
+                    if (meshEntry.getValue().meta().isEmpty()) {
+                        ObjUtils.add(meshEntry.getValue().obj(), base.obj());
                     } else {
-                        return result;
+                        finalResult.put(meshEntry.getKey(), meshEntry.getValue());
                     }
-                });
+                }
+                return finalResult;
+            } else {
+                return result;
+            }
+        });
     }
 }
