@@ -148,7 +148,8 @@ public class ReplayDebugger extends CraftApp {
                     }
                     // Curve
                     if (showCurveTree) {
-                        for (int curveIndex = 0; curveIndex < partEntry.getValue().size(); curveIndex++) {
+                        int curveIndex = 0;
+                        for (var curve : partEntry.getValue()) {
 
                             int curveFlags = flags;
                             if (CurveSelectionReference.isCurveIndexSelected(selectedCurveRefs, entEntry.getKey(), partEntry.getKey(), curveIndex))
@@ -160,6 +161,9 @@ public class ReplayDebugger extends CraftApp {
                             }
                             // Channel
                             if (showChannelTree) {
+                                ImGui.text("Frame Offset: " + curve.getFrameOffset());
+                                ImGui.text("Curve Length: " + curve.size());
+
                                 for (int i = 0; i < AnimationCurve.NUM_CHANNELS; i++) {
                                     CurveSelectionReference channelRef = new CurveSelectionReference(entEntry.getKey(), partEntry.getKey(), curveIndex, i);
 
@@ -178,6 +182,7 @@ public class ReplayDebugger extends CraftApp {
                                 }
                                 ImGui.treePop();
                             }
+                            curveIndex++;
                         }
 
                         ImGui.treePop();

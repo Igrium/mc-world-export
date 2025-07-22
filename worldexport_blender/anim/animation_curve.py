@@ -9,18 +9,32 @@ from ..replay_importer import ReplayImportContext
 class AnimationCurve:
     tick_offset: int = 0
     
-    pos_x: list[float] = []
-    pos_y: list[float] = []
-    pos_z: list[float] = []
+    pos_x: list[float]
+    pos_y: list[float]
+    pos_z: list[float]
     
-    rot_w: list[float] = []
-    rot_x: list[float] = []
-    rot_y: list[float] = []
-    rot_z: list[float] = []
+    rot_w: list[float]
+    rot_x: list[float]
+    rot_y: list[float]
+    rot_z: list[float]
     
-    scale_x: list[float] = []
-    scale_y: list[float] = []
-    scale_z: list[float] = []
+    scale_x: list[float]
+    scale_y: list[float]
+    scale_z: list[float]
+    
+    def __init__(self) -> None:
+        self.pos_x = []
+        self.pos_y = []
+        self.pos_z = []
+        
+        self.rot_w = []
+        self.rot_x = []
+        self.rot_y = []
+        self.rot_z = []
+        
+        self.scale_x = []
+        self.scale_y = []
+        self.scale_z = []
     
     def read(self, f: BinaryIO):
         self.tick_offset = struct.unpack('>i', f.read(4))[0]
@@ -83,7 +97,7 @@ class AnimationCurve:
         def to_key_array(values: list[float]):
             # Create list of keyframes, with the frame as the first element and the value as the second element
             keyframes = [(
-                context.tick_to_frame(tick),
+                context.tick_to_frame(tick + self.tick_offset),
                 val
             ) for tick, val in enumerate(values)]
             

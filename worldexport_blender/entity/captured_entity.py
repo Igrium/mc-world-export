@@ -5,7 +5,6 @@ import os.path
 from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
-from .. import common
 from typing import BinaryIO
 from bpy.types import Object
 
@@ -14,18 +13,22 @@ class CapturedEntity:
     """
     name: str
     
-    parents: dict[str, str] = {}
+    parents: dict[str, str]
     """A map of model part names and their parent (optional)
     """
     
-    curves: list[tuple[str, AnimationCurve]] = []
+    curves: list[tuple[str, AnimationCurve]]
     
-    armature: Object | None = None
+    armature: Object | None
     
-    mesh: Object | None = None
+    mesh: Object | None
     
     def __init__(self, name: str) -> None:
         self.name = name
+        self.parents = {}
+        self.curves = []
+        self.armature = None
+        self.mesh = None
         
     def load_anim_file(self, entity_folder: str, context: ReplayImportContext):
         path = os.path.join(entity_folder, self.name + '.anim')
@@ -38,7 +41,7 @@ class CapturedEntity:
             return
         
         with open(path, 'r') as f:
-            parents = json.load(f)
+            self.parents = json.load(f)
             
     def load_mesh(self, entity_folder: str, context: ReplayImportContext):
         path = os.path.join(entity_folder, self.name + '.json')
