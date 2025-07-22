@@ -7,12 +7,19 @@ import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.replay.CompiledReplay;
 import com.igrium.worldexport.replay.ReplayIO;
+import de.javagl.obj.Mtl;
+import de.javagl.obj.MtlWriter;
+import de.javagl.obj.Mtls;
 import imgui.ImGui;
 import imgui.ImGuiIO;
 import imgui.extension.implot.ImPlot;
+import imgui.flag.ImGuiInputTextFlags;
 import imgui.flag.ImGuiTreeNodeFlags;
 import imgui.flag.ImGuiWindowFlags;
+import imgui.type.ImString;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
@@ -25,12 +32,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class ReplayDebugger extends CraftApp {
@@ -59,9 +65,6 @@ public class ReplayDebugger extends CraftApp {
 
     private boolean showErrorPopup;
 
-    @Nullable
-    private String selectedEntity;
-
     @Getter
     private final Set<CurveSelectionReference> selectedCurveRefs = new HashSet<>();
 
@@ -75,6 +78,12 @@ public class ReplayDebugger extends CraftApp {
                 new DirectChannelRef(ref.getCurve(replay.getEntities()), ref.channelIndex()));
     }
 
+    @Getter @Setter @NonNull
+    private MaterialSelectionReference selectedMaterial = MaterialSelectionReference.EMPTY;
+
+    private final Map<Mtl, ImString> serializedMtlCache = new WeakHashMap<>();
+    private final ImString emptyString = new ImString("");
+
     @Override
     protected void render(MinecraftClient minecraftClient) {
         ImGui.begin("Replay Debugger", ImGuiWindowFlags.MenuBar);
@@ -85,13 +94,23 @@ public class ReplayDebugger extends CraftApp {
         }
 
         if (replay != null) {
-            ImGui.text("Entities");
+            if (ImGui.treeNodeEx("Materials", ImGuiTreeNodeFlags.DefaultOpen)) {
+                drawMtlList();
+                ImGui.treePop();
+            }
             ImGui.separator();
-            drawEntityTree();
 
-            ImGui.text("World Meshes");
+            if (ImGui.treeNodeEx("World Meshes", ImGuiTreeNodeFlags.DefaultOpen)) {
+                drawWorldMeshTree();
+                ImGui.treePop();
+            }
             ImGui.separator();
-            drawWorldMeshes();
+
+            if (ImGui.treeNodeEx("Entities", ImGuiTreeNodeFlags.DefaultOpen)) {
+                drawEntityTree();
+                ImGui.treePop();
+            }
+            ImGui.separator();
 
         } else {
             ImGui.text("Please open a replay.");
@@ -103,7 +122,12 @@ public class ReplayDebugger extends CraftApp {
             ImGui.begin("Animation Curves");
             drawCurves();
             ImGui.end();
+
+            ImGui.begin("MTL Inspector");
+            drawMtlInspector();
+            ImGui.end();
         }
+
     }
 
     private void drawMenuBar() {
@@ -121,7 +145,58 @@ public class ReplayDebugger extends CraftApp {
         }
     }
 
-    private void drawWorldMeshes() {
+    private void drawMtlList() {
+        if (replay == null)
+            return;
+
+        for (var mtlEntry : replay.getMtlLibs().entrySet()) {
+            if (ImGui.treeNodeEx(mtlEntry.getKey())) {
+                int mtlIndex = 0;
+                for (var mtl : mtlEntry.getValue()) {
+                    int flags = ImGuiTreeNodeFlags.Leaf;
+                    if (selectedMaterial.mtlLib().equals(mtlEntry.getKey())
+                            && selectedMaterial.index() == mtlIndex) {
+                        flags |= ImGuiTreeNodeFlags.Selected;
+                    }
+
+                    boolean nodeOpen = ImGui.treeNodeEx(mtl.getName(), flags);
+                    if (ImGui.isItemClicked()) {
+                        selectedMaterial = new MaterialSelectionReference(mtlEntry.getKey(), mtlIndex);
+                    }
+                    if (nodeOpen)
+                        ImGui.treePop();
+
+                    mtlIndex++;
+                }
+                ImGui.treePop();
+            }
+        }
+    }
+
+    private void drawMtlInspector() {
+        if (replay == null)
+            return;
+
+        ImString text;
+        Mtl selected = selectedMaterial.get(replay.getMtlLibs());
+        if (selected != null) {
+            text = serializedMtlCache.computeIfAbsent(selected, m -> {
+                StringWriter writer = new StringWriter();
+                try {
+                    MtlWriter.write(List.of(m), writer);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return new ImString(writer.toString());
+            });
+        } else {
+            text = emptyString;
+        }
+
+        ImGui.inputTextMultiline("##MTL data", text, ImGui.getWindowWidth(), ImGui.getWindowHeight() -48 , ImGuiInputTextFlags.ReadOnly);
+    }
+
+    private void drawWorldMeshTree() {
         if (replay == null)
             return;
 
@@ -301,8 +376,8 @@ public class ReplayDebugger extends CraftApp {
     }
 
     public void openReplay(CompiledReplay replay) {
-        selectedEntity = null;
         selectedCurveRefs.clear();
+        setSelectedMaterial(MaterialSelectionReference.EMPTY);
         this.replay = replay;
     }
 
