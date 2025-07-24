@@ -18,6 +18,9 @@ import java.util.concurrent.CompletableFuture;
  */
 @Getter
 public class CompiledReplay {
+
+
+
     /**
      * All the meshes that belong to the world.
      */
@@ -34,4 +37,6 @@ public class CompiledReplay {
     private final Map<String, List<Mtl>> mtlLibs = new HashMap<>();
 
     private final Map<String, CapturedEntity> entities = new HashMap<>();
+
+
 }

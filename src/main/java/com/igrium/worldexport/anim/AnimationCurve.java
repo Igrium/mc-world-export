@@ -226,6 +226,18 @@ public class AnimationCurve {
         return dest;
     }
 
+    /**
+     * Get an array of all channel indices that have data in them.
+     */
+    public int[] getChannelIndices() {
+        int numChannels = NUM_CHANNELS;
+        int[] result = new int[numChannels];
+        for (int i = 0; i < numChannels; i++) {
+            result[i] = i;
+        }
+        return result;
+    }
+
     private void assertInBounds(int frame) {
         if (frame > size()) {
             throw new IndexOutOfBoundsException("Frame " + frame + " is out of bounds for animation of length " + size());

@@ -11,6 +11,7 @@ import org.joml.Vector3fc;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Holds an entity's exported model and animation data.
@@ -158,6 +159,65 @@ public class CapturedEntity {
             ObjGroup group = merged.getGroup(i);
             Obj split = ObjUtils.groupToObj(merged, group, null);
             modelParts.put(group.getName(), split);
+        }
+    }
+
+    public record ModelPartTreeNode(String partName, List<ModelPartTreeNode> children) {
+        public ModelPartTreeNode(String partName) {
+            this(partName, new ArrayList<>());
+        }
+    };
+
+    public Collection<ModelPartTreeNode> generatePartHierarchy() {
+        return generatePartHierarchy(curves.keySet(), parents);
+    }
+
+    /**
+     * Generate a tree hierarchy of model parts from the flat parents map stored here.
+     * @param partNames All the part names to consider.
+     * @param parents The flat parent map.
+     * @return A collection of all root tree nodes.
+     */
+    public static Collection<ModelPartTreeNode> generatePartHierarchy(Collection<String> partNames, Map<String, String> parents) {
+        Map<String, ModelPartTreeNode> nodes = new HashMap<>(partNames.size());
+        List<ModelPartTreeNode> rootNodes = new ArrayList<>(partNames.size());
+        for (var partName : partNames) {
+            ModelPartTreeNode node = nodes.computeIfAbsent(partName, ModelPartTreeNode::new);
+            String parentName = parents.get(partName);
+            if (parentName != null && partName.contains(parentName)) {
+                ModelPartTreeNode parent = nodes.computeIfAbsent(parentName, ModelPartTreeNode::new);
+                parent.children.add(node);
+            }
+            else {
+                rootNodes.add(node);
+            }
+        }
+
+        return rootNodes;
+    }
+
+    /**
+     * Given a hierarchy of model part nodes, find any (invalid) parent-child loops.
+     * @param rootNodes Root nodes of the tree to search.
+     * @return A collection of any parent nodes containing an invalid parent-child relationship.
+     */
+    public static Collection<ModelPartTreeNode> findHierarchyCycles(Collection<? extends ModelPartTreeNode> rootNodes) {
+        Set<ModelPartTreeNode> collisions = new HashSet<>();
+        Set<ModelPartTreeNode> visited = new HashSet<>();
+
+        rootNodes.stream().distinct().forEach(
+                n -> dfsDetect(n, visited, collisions::add));
+        return collisions;
+    }
+
+    private static void dfsDetect(ModelPartTreeNode node, Set<ModelPartTreeNode> visited, Consumer<ModelPartTreeNode> collisions) {
+        visited.add(node);
+        for (var child : node.children) {
+            if (visited.contains(child)) {
+                collisions.accept(child);
+            } else {
+                dfsDetect(child, visited, collisions);
+            }
         }
     }
 }
