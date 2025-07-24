@@ -111,7 +111,7 @@ public class ReplayIO {
                 try {
                     entities.put(entName, loadEntity(entityDir, entName));
                 } catch (Exception e) {
-                    LOGGER.error("Error saving entity {}: ", entName, e);
+                    LOGGER.error("Error loading entity {}: ", entName, e);
                 }
             }, executor));
         }

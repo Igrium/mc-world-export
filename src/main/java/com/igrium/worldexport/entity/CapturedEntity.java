@@ -81,21 +81,23 @@ public class CapturedEntity {
      *
      * @param modelPart Model part to search in.
      * @param tick      The tick in question.
+     * @param format    The format to give the curve if it needs to be made.
      * @return The new or existing curve.
      */
-    public AnimationCurve getOrCreateCurve(String modelPart, int tick) {
+    public AnimationCurve getOrCreateCurve(String modelPart, int tick, AnimationCurve.CurveFormat format) {
         List<AnimationCurve> curveList = curves.computeIfAbsent(modelPart, p -> new ArrayList<>());
         AnimationCurve curve = getCurve(curveList, tick);
         if (curve == null) {
             curve = new AnimationCurve();
             curve.setFrameOffset(tick);
+            curve.setFormat(format);
             curveList.add(curve);
         }
         return curve;
     }
 
-    public void addFrame(String modelPart, int tick, Vector3fc pos, Quaternionfc rot, Vector3fc scale) {
-        AnimationCurve curve = getOrCreateCurve(modelPart, tick);
+    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, Vector3fc pos, Quaternionfc rot, Vector3fc scale) {
+        AnimationCurve curve = getOrCreateCurve(modelPart, tick, format);
         int index = tick - curve.getFrameOffset();
         if (index >= curve.size()) {
             curve.addFrame(pos, rot, scale);
@@ -104,8 +106,8 @@ public class CapturedEntity {
         }
     }
 
-    public void addFrame(String modelPart, int tick, Matrix4fc transform) {
-        AnimationCurve curve = getOrCreateCurve(modelPart, tick);
+    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, Matrix4fc transform) {
+        AnimationCurve curve = getOrCreateCurve(modelPart, tick, format);
         int index = tick - curve.getFrameOffset();
         if (index >= curve.size()) {
             curve.addFrame(transform);

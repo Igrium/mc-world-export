@@ -114,7 +114,7 @@ public class CurveViewerWindow {
                 String partPrefix = curveRef.modelPart.entity() + ":" + curveRef.modelPart.part() + " ";
 
                 for (int index : selectionEntry.getValue()) {
-                    drawLine(partPrefix + AnimationCurve.nameFromCurveIndex(index), ticks, curve.getCurve(index));
+                    drawLine(partPrefix + AnimationCurve.nameFromCurveIndex(index), ticks, curve.getChannel(index));
                 }
             }
             ImPlot.endPlot();
