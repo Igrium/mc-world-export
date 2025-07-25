@@ -68,13 +68,19 @@ public class ReplayIO {
 
     public static void saveEntity(Path entityDir, CapturedEntity entity, String name) throws IOException {
         Path objPath = entityDir.resolve(name + ".obj");
-        try (BufferedWriter writer = Files.newBufferedWriter(objPath)) {
-            entity.writeObj(writer);
+
+        if (!entity.getModelParts().isEmpty()) {
+            try (BufferedWriter writer = Files.newBufferedWriter(objPath)) {
+                entity.writeObj(writer);
+            }
+
         }
 
-        Path jsonPath = entityDir.resolve(name + ".json");
-        try (BufferedWriter writer = Files.newBufferedWriter(jsonPath)) {
-            GSON.toJson(entity.getParents(), writer);
+        if (!entity.getParents().isEmpty()) {
+            Path jsonPath = entityDir.resolve(name + ".json");
+            try (BufferedWriter writer = Files.newBufferedWriter(jsonPath)) {
+                GSON.toJson(entity.getParents(), writer);
+            }
         }
 
         Path animPath = entityDir.resolve(name + ".anim");

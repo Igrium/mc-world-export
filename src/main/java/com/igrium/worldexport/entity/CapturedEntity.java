@@ -151,12 +151,18 @@ public class CapturedEntity {
     }
 
     public void writeObj(Writer writer) throws IOException {
+        if (modelParts.isEmpty())
+            return;
         Obj merged = Objs.create();
         Set<String> mtls = new HashSet<>();
         for (var partEntry : modelParts.entrySet()) {
             MeshUtils.addAsGroup(partEntry.getValue(), partEntry.getKey(), merged);
             mtls.addAll(partEntry.getValue().getMtlFileNames());
         }
+
+        if (merged.getNumFaces() == 0)
+            return;
+
         merged.setMtlFileNames(mtls);
 
         ObjWriter.write(merged, writer);
