@@ -6,7 +6,9 @@ from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
 from typing import BinaryIO
-from bpy.types import Object
+from bpy.types import Object, EditBone
+
+ROOT_NAME = 'transform'
 
 class CapturedEntity:
     """An in-memory representation of a replay entity before it's applied to Blender objects
@@ -17,7 +19,8 @@ class CapturedEntity:
     """A map of model part names and their parent (optional)
     """
     
-    curves: list[tuple[str, AnimationCurve]]
+    # curves: list[tuple[str, AnimationCurve]]
+    curves: dict[str, list[AnimationCurve]]
     
     armature: Object | None
     
@@ -26,7 +29,7 @@ class CapturedEntity:
     def __init__(self, name: str) -> None:
         self.name = name
         self.parents = {}
-        self.curves = []
+        self.curves = {}
         self.armature = None
         self.mesh = None
         
@@ -54,14 +57,55 @@ class CapturedEntity:
     
     def gen_armature(self, context: ReplayImportContext):
         # TODO: Actually implement armature shit
-        empty_obj = bpy.data.objects.new(self.name, None)
-        empty_obj.empty_display_size = 1
         
-        context.entity_collection.objects.link(empty_obj)
-        self.armature = empty_obj
+        if (len(self.curves) == 1):
+            empty_obj = bpy.data.objects.new(self.name, None)
+            empty_obj.empty_display_size = 1
+            
+            context.entity_collection.objects.link(empty_obj)
+            self.armature = empty_obj
+            
+            if (self.mesh):
+                self.mesh.parent = empty_obj
+            return
         
-        if (self.mesh != None):
-            self.mesh.parent = empty_obj
+        armature = bpy.data.armatures.new(self.name)
+        obj = bpy.data.objects.new(self.name, armature)
+        
+        context.entity_collection.objects.link(obj)
+        
+        context.bl_context.view_layer.objects.active = obj # pyright: ignore[reportOptionalMemberAccess]
+        
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+        
+        edit_bones = armature.edit_bones
+        bl_bones: dict[str, EditBone] = {}
+        
+        for name in self.curves.keys():
+            if name == ROOT_NAME: continue
+            
+            bone = edit_bones.new(name)
+            bone.head = [0, 0, 0]
+            bone.tail = [0, 0.16, 0]
+            
+            bl_bones[name] = bone
+        
+        for name, bone in edit_bones.items():
+            parent_name = self.parents.get(name)
+            if not parent_name: continue # Yeah I could use :=, but this is more readable
+            
+            parent = bl_bones.get(parent_name)
+            if not parent: continue
+            
+            bone.parent = parent
+        
+        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+        
+        self.armature = obj
+        if (self.mesh):
+                self.mesh.parent = obj
+        
     
     def load(self, entity_folder: str, context: ReplayImportContext):
         self.load_anim_file(entity_folder, context)
@@ -80,20 +124,21 @@ class CapturedEntity:
         flattened_curves: dict[tuple[str, int], list[float]] = {}
         
         # Assemble keyframes from all replay curves into one array.
-        for (name, curve) in self.curves:
-            if name == 'transform':
+        for name, curve_list in self.curves.items():
+            if name == ROOT_NAME:
                 data_prefix = ''
             else:
                 data_prefix = f'pose.bones["{name}"].'
+                
+            for curve in curve_list:
+                for ref, vals in curve.to_key_arrays(data_prefix, context, common.convert_coords).items():
+                    existing = flattened_curves.get(ref)
+                    if existing:
+                        existing.extend(vals)
+                    else:
+                        flattened_curves[ref] = vals
             
-            # curve.apply(action, data_prefix, context, common.convert_coords)
-            for ref, vals in curve.to_key_arrays(data_prefix, context, common.convert_coords).items():
-                existing = flattened_curves.get(ref)
-                if existing:
-                    existing.extend(vals)
-                else:
-                    flattened_curves[ref] = vals
-        
+
         # Apply anim curves
         for (data_path, index), keys in flattened_curves.items():
             # curve = action.fcurves.find(data_path, index=index)
@@ -106,11 +151,18 @@ class CapturedEntity:
             keyframe_points.foreach_set('interpolation', [1] * (len(keys) // 2))
             
         
-def read_anim_file(f: BinaryIO, curves: list[tuple[str, AnimationCurve]]):
+def read_anim_file(f: BinaryIO, curves: dict[str, list[AnimationCurve]]):
     size: int = struct.unpack('>i', f.read(4))[0]
     for i in range(0, size): 
         name = common.read_utf(f)
         curve = AnimationCurve()
         curve.read(f)
-        curves.append((name, curve))
+        
+        if name in curves:
+            curve_list = curves[name]
+        else:
+            curve_list = []
+            curves[name] = curve_list
+        
+        curve_list.append(curve)
     

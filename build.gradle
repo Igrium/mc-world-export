@@ -31,7 +31,7 @@ dependencies {
     implementation(include("de.javagl:obj:0.4.0"))
 
     // For debugging exported replays
-    modImplementation "com.github.igrium:craftui:e2f627b2be"
+    modImplementation "com.github.igrium:craftui:db770015ca"
 
 }
 

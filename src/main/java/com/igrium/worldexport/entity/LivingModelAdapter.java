@@ -78,8 +78,13 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         M model = renderer.getModel();
         setModel(model);
 
+        Vec3d pos = renderer.getPositionOffset(state).add(offset).add(entity.getPos());
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
+
         MatrixStack matrixStack = new MatrixStack();
         matrixStack.push();
+
+
         if (state.isInPose(EntityPose.SLEEPING)) {
             Direction direction = state.sleepingDirection;
             if (direction != null) {

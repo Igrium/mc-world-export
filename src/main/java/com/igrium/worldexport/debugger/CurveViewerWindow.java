@@ -168,6 +168,7 @@ public class CurveViewerWindow {
                     }
 
                     if (expandCurve) {
+                        ImGui.text("Curve Format: " + curveFormatName(curve.getFormat()));
                         ImGui.text("Frame Offset: " + curve.getFrameOffset());
                         ImGui.text("Curve Length: " + curve.size());
 
@@ -197,6 +198,14 @@ public class CurveViewerWindow {
         }
 
         ImGui.endChild();
+    }
+
+    private static String curveFormatName(AnimationCurve.CurveFormat format) {
+        return switch(format) {
+            case POS -> "Position Only";
+            case POS_ROT -> "Position/Rotation";
+            case POS_ROT_SCALE -> "Position/Rotation/Scale";
+        };
     }
 
     private static double[] convertArray(float[] floats) {
