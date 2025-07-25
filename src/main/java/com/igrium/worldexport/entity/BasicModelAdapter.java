@@ -1,16 +1,16 @@
 package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Math;
 import org.joml.Quaternionf;
 
 public class BasicModelAdapter<T extends Entity> extends ModelAdapter<T, EntityRenderState> {
-    protected BasicModelAdapter() {
-        super(EntityRenderState.class);
+    protected BasicModelAdapter(EntityRenderer<? super T, ? extends EntityRenderState> renderer) {
+        super(renderer);
     }
 
     private final EntityRenderState defaultState = new EntityRenderState();

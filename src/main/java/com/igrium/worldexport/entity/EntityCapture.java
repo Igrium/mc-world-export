@@ -4,9 +4,18 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Tolerate;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.LivingEntityRenderer;
+import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.render.entity.state.LivingEntityRenderState;
+import net.minecraft.client.util.SkinTextures;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
@@ -56,20 +65,13 @@ public class EntityCapture {
         this.bounds = bounds;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T extends Entity> ModelAdapter<? super T, ?> getModelAdapter(EntityType<T> entityType) {
-        return (ModelAdapter<? super T, ?>) modelAdapters.computeIfAbsent(entityType, this::createModelAdapter);
-    }
 
     @SuppressWarnings("unchecked")
-    public <T extends Entity> ModelAdapter<? super T, ?> getModelAdapter(T entity) {
-        EntityType<T> type = (EntityType<T>) entity.getType();
-        return getModelAdapter(type);
+    public <T extends Entity> ModelAdapter<T, ?> getModelAdapter(T entity) {
+        EntityType<?> type = entity.getType(); // EntityType<T> for unchecked
+        return (ModelAdapter<T, ?>) modelAdapters.computeIfAbsent(type, t -> ModelAdapters.createModelAdapter(entity));
     }
 
-    private <T extends Entity> ModelAdapter<? super T, ?> createModelAdapter(EntityType<T> entityType) {
-        return ModelAdapters.createModelAdapter(entityType);
-    }
 
     /**
      * Capture all entity poses for this frame.

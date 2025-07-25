@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.client.util.math.MatrixStack;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,11 +43,12 @@ public class MeshUtils {
         for (int i = 0; i < input.getNumFaces(); i++) {
             ObjFace inputFace = input.getFace(i);
             if (i == 0)
-                output.setActiveGroupNames(List.of(groupName));
+                output.setActiveGroupNames(Collections.singleton(groupName));
 
             activateGroups(input, inputFace, groupName, output);
 
             ObjFace outputFace = duplicateFaceWithOffsets(inputFace, vertexOffset, texCoordOffset, normalOffset);
+            output.addFace(outputFace);
         }
     }
 

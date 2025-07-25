@@ -7,15 +7,21 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRendererContext;
 import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.render.entity.state.LivingEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -23,6 +29,25 @@ import org.joml.Vector3f;
 
 public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
         extends ModelAdapter<T, S> implements FeatureRendererContext<S, M> {
+
+
+    /**
+     * Attempt to create a living model adapter by casting an <code>EntityRenderer</code> to <code>LivingEntityRenderer</code>
+     * This method exists to deal with all the bullshit surrounding generics in regard to renderers
+     *
+     * @param renderer The renderer to attempt to cast.
+     * @param <T>      Entity type.
+     * @param <S>      Render state type.
+     * @return The created model adapter.
+     * @throws ClassCastException If the supplied renderer is not an instance of <code>LivingEntityRenderer</code>
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static <T extends Entity, S extends EntityRenderState> ModelAdapter<T, S> fromEntityRenderer(EntityRenderer<? super T, ? extends S> renderer) throws ClassCastException {
+        // There has to be a better way to handle this generic shitshow.
+        // The logic here is that if the cast succeeds, then T and S must fit the requirements.
+        // It's not like we reveal them to the calling class anyway.
+        return new LivingModelAdapter<>((LivingEntityRenderer) renderer);
+    }
 
     /**
      * The model gets set each capture based on the vanilla renderer's model.
@@ -33,26 +58,22 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     @Getter @Setter @NonNull
     private AnimationCurve.CurveFormat curveFormat = AnimationCurve.CurveFormat.POS_ROT;
 
-    // TODO: feature renderers
+    @Getter
+    private final LivingEntityRenderer<? super T, S, M> renderer;
 
-    protected LivingModelAdapter(Class<? extends S> renderStateClass) {
-        super(renderStateClass);
+    public LivingModelAdapter(LivingEntityRenderer<? super T, S, M> renderer) {
+        super(renderer);
+        this.renderer = renderer;
     }
 
-    protected LivingModelAdapter(Class<S> renderStateClass, AnimationCurve.CurveFormat curveFormat) {
-        this(renderStateClass);
-        setCurveFormat(curveFormat);
-    }
-
-    @Override
-    protected LivingEntityRenderer<T, S, M> getRenderer(T entity) throws ClassCastException, NullPointerException {
-        return (LivingEntityRenderer<T, S, M>) super.getRenderer(entity);
+    public LivingModelAdapter(LivingEntityRenderer<T, S, M> renderer, AnimationCurve.@NotNull CurveFormat curveFormat) {
+        this(renderer);
+        this.curveFormat = curveFormat;
     }
 
     @Override
     public void capture(T entity, S state, CapturedEntity capture, Vec3d offset, int tick) {
-        LivingEntityRenderer<T, S, M> renderer = getRenderer(entity);
-        AccessorLivingEntityRenderer<T, S, M> rendererAccessor = getRendererAccessor(renderer);
+        AccessorLivingEntityRenderer<? super T, S, M> rendererAccessor = getRendererAccessor(renderer);
 
         M model = renderer.getModel();
         setModel(model);
@@ -124,7 +145,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
      * Utility method to cast LivingEntityRenderer to its accessor while dealing with all the generic bullshit.
      */
     @SuppressWarnings("unchecked")
-    protected AccessorLivingEntityRenderer<T, S, M> getRendererAccessor(LivingEntityRenderer<T, S, M> renderer) {
+    protected static <T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> AccessorLivingEntityRenderer<T, S, M> getRendererAccessor(LivingEntityRenderer<T, S, M> renderer) {
         return ((AccessorLivingEntityRenderer<T, S, M>) renderer);
     }
 }
