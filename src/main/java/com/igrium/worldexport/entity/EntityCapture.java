@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Tolerate;
+import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.util.math.Box;
@@ -20,7 +21,7 @@ import java.util.function.Predicate;
  * Manages the capturing entity movements.
  */
 public class EntityCapture {
-    private final Map<EntityType<?>, EntityModelAdapter<?, ?>> modelAdapters = new HashMap<>();
+    private final Map<EntityType<?>, ModelAdapter<?, ?>> modelAdapters = new HashMap<>();
 
     /**
      * The world-space bounds of the export.
@@ -56,20 +57,18 @@ public class EntityCapture {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Entity> EntityModelAdapter<? super T, ?> getModelAdapter(EntityType<T> entityType) {
-        return (EntityModelAdapter<? super T, ?>) modelAdapters.computeIfAbsent(entityType, this::createModelAdapter);
+    public <T extends Entity> ModelAdapter<? super T, ?> getModelAdapter(EntityType<T> entityType) {
+        return (ModelAdapter<? super T, ?>) modelAdapters.computeIfAbsent(entityType, this::createModelAdapter);
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Entity> EntityModelAdapter<? super T, ?> getModelAdapter(T entity) {
+    public <T extends Entity> ModelAdapter<? super T, ?> getModelAdapter(T entity) {
         EntityType<T> type = (EntityType<T>) entity.getType();
         return getModelAdapter(type);
     }
 
-    private <T extends Entity> EntityModelAdapter<? super T, ?> createModelAdapter(EntityType<T> entityType) {
-        var adapter = ModelAdapters.createModelAdapter(entityType);
-        adapter.setGlobalOffset(globalOffset);
-        return adapter;
+    private <T extends Entity> ModelAdapter<? super T, ?> createModelAdapter(EntityType<T> entityType) {
+        return ModelAdapters.createModelAdapter(entityType);
     }
 
     /**
@@ -86,7 +85,12 @@ public class EntityCapture {
 
     private <T extends Entity> void captureEntity(T entity, int tick) {
         var modelAdapter = getModelAdapter(entity);
+        captureModelAdapter(modelAdapter, entity, tick);
+    }
+
+    private <T extends Entity, S extends EntityRenderState> void captureModelAdapter(ModelAdapter<T, S> modelAdapter, T entity, int tick) {
+        S state = modelAdapter.getAndUpdateRenderState(entity);
         CapturedEntity capture = entities.computeIfAbsent(entity, e -> new CapturedEntity());
-        modelAdapter.capture(entity, capture, tick);
+        modelAdapter.capture(entity, state, capture, globalOffset, tick);
     }
 }

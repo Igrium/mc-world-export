@@ -43,6 +43,14 @@ public class AnimationCurve {
         CurveFormat(int numChannels) {
             this.numChannels = numChannels;
         }
+
+        public boolean hasRotation() {
+            return this == POS_ROT || this == POS_ROT_SCALE;
+        }
+
+        public boolean hasScale() {
+            return this == POS_ROT_SCALE;
+        }
     }
 
 
@@ -158,11 +166,11 @@ public class AnimationCurve {
     }
 
     public boolean hasRotation() {
-        return format == CurveFormat.POS_ROT || format == CurveFormat.POS_ROT_SCALE;
+        return format.hasRotation();
     }
 
     public boolean hasScale() {
-        return format == CurveFormat.POS_ROT_SCALE;
+        return format.hasScale();
     }
 
     public void appendFrom(AnimationCurve other) {

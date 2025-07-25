@@ -81,7 +81,7 @@ class CapturedEntity:
         
         # Assemble keyframes from all replay curves into one array.
         for (name, curve) in self.curves:
-            if name == 'root':
+            if name == 'transform':
                 data_prefix = ''
             else:
                 data_prefix = f'pose.bones["{name}"].'

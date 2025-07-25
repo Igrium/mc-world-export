@@ -21,7 +21,7 @@ public class CapturedEntity {
     /**
      * The name of the animation entry that's used for the root.
      */
-    public static final String ROOT_NAME = "root";
+    public static final String ROOT_NAME = "transform";
 
     /**
      * A map of model part names and their mesh data.
@@ -73,6 +73,11 @@ public class CapturedEntity {
         return extendableCurve;
     }
 
+    public @Nullable AnimationCurve getCurve(String modelPart, int tick) {
+        List<AnimationCurve> curveList = curves.get(modelPart);
+        return curveList != null ? getCurve(curveList, tick) : null;
+    }
+
     /**
      * Get or create a curve that's able to accept a keyframe at a given tick.
      * <p>
@@ -83,6 +88,9 @@ public class CapturedEntity {
      * @param tick      The tick in question.
      * @param format    The format to give the curve if it needs to be made.
      * @return The new or existing curve.
+     * @apiNote <code>format</code> only affects the format of newly-created curves.
+     * If a curve already exists, its format may differ from <code>format</code>.
+     * Make sure to double-check before messing with channels.
      */
     public AnimationCurve getOrCreateCurve(String modelPart, int tick, AnimationCurve.CurveFormat format) {
         List<AnimationCurve> curveList = curves.computeIfAbsent(modelPart, p -> new ArrayList<>());
@@ -96,7 +104,7 @@ public class CapturedEntity {
         return curve;
     }
 
-    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, Vector3fc pos, Quaternionfc rot, Vector3fc scale) {
+    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, Vector3fc pos, @Nullable Quaternionfc rot, @Nullable Vector3fc scale) {
         AnimationCurve curve = getOrCreateCurve(modelPart, tick, format);
         int index = tick - curve.getFrameOffset();
         if (index >= curve.size()) {
