@@ -2,6 +2,7 @@ import bpy
 import struct
 import json
 import os.path
+from .. import import_obj
 from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
@@ -51,7 +52,7 @@ class CapturedEntity:
         if not os.path.exists(path):
             return
         
-        imported = common.import_obj(path, import_vertex_groups=True)
+        imported = common.load_obj_python(context.bl_context, path, import_vertex_groups=True)
         if (imported):
             self.mesh = imported.pop()
             if self.armature:
