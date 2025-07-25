@@ -19,8 +19,6 @@ import java.util.concurrent.CompletableFuture;
 @Getter
 public class CompiledReplay {
 
-
-
     /**
      * All the meshes that belong to the world.
      */

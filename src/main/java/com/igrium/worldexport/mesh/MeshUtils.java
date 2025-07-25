@@ -53,13 +53,15 @@ public class MeshUtils {
     }
 
     private static void activateGroups(ReadableObj input, ObjFace face, String groupName, WritableObj output) {
-        Set<String> activatedGroupNames = input.getActivatedGroupNames(face);
-        if (activatedGroupNames != null) {
-            // Duplicate so we don't mess with the input OBJ
-            activatedGroupNames = new HashSet<>(activatedGroupNames);
-            activatedGroupNames.add(groupName);
-            output.setActiveGroupNames(activatedGroupNames);
-        }
+//        Set<String> activatedGroupNames = input.getActivatedGroupNames(face);
+//        if (activatedGroupNames != null) {
+//            // Duplicate so we don't mess with the input OBJ
+//            activatedGroupNames = new HashSet<>(activatedGroupNames);
+//            activatedGroupNames.add(groupName);
+//            output.setActiveGroupNames(activatedGroupNames);
+//        }
+        // Ends up discarding the input groups, but that's fine.
+        output.setActiveGroupNames(Collections.singleton(groupName));
 
         String activatedMaterialGroupName = input.getActivatedMaterialGroupName(face);
         if (activatedMaterialGroupName != null) {

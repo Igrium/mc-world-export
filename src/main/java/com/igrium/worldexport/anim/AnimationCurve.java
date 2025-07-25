@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 
 import java.io.*;
+import java.util.Arrays;
 
 /**
  * Represents a 3D point transformation that is animated.
@@ -188,7 +189,7 @@ public class AnimationCurve {
                 yRotChannel.addAll(other.yRotChannel);
                 zRotChannel.addAll(other.zRotChannel);
             } else {
-                pad(wRotChannel, other.size());
+                pad(wRotChannel, 1f, other.size());
                 pad(xRotChannel, other.size());
                 pad(yRotChannel, other.size());
                 pad(zRotChannel, other.size());
@@ -211,6 +212,12 @@ public class AnimationCurve {
 
     private static void pad(FloatList list, int amount) {
         list.addElements(list.size(), new float[amount]);
+    }
+
+    private static void pad(FloatList list, float value, int amount) {
+        float[] array = new float[amount];
+        Arrays.fill(array, amount);
+        list.addElements(list.size(), array);
     }
 
     /**

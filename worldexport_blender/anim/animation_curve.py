@@ -1,8 +1,7 @@
 from enum import Enum, IntEnum
 import struct
-import itertools
 
-from typing import BinaryIO, Callable
+from typing import BinaryIO, Callable, TypeAlias
 from bpy.types import Action
 from ..replay_importer import ReplayImportContext
 
@@ -35,7 +34,10 @@ class CurveFormat(IntEnum):
             return 10
         else:
             raise TypeError("Not a valid curve format index: " + self)
+
     
+VectorOperator: TypeAlias = Callable[[float, float, float], tuple[float, float, float]]
+QuaternionOperator: TypeAlias = Callable[[float, float, float, float], tuple[float, float, float, float]]
 
 class AnimationCurve:
     format: CurveFormat = CurveFormat.POS_ROT_SCALE
@@ -102,32 +104,22 @@ class AnimationCurve:
             read_channel(self.scale_z)
     
     def to_key_arrays(self, base_datapath: str, context: ReplayImportContext,
-                      pos_transform: Callable[[float, float, float], tuple[float, float, float]] | None = None):
+                      pos_transform: VectorOperator | None = None,
+                      rot_transform: QuaternionOperator | None = None,
+                      scale_transform: VectorOperator | None = None):
         """Convert to collection of flattened keyframe arrays suitable for `keyframe_points.foreach_set`
 
         Args:
             base_datapath (Data path prefix): prefix the curve datapath with this.
             context (ReplayImportContext): Import context
-            pos_transform (Callable[[float, float, float], tuple[float, float, float]] | None, optional): A function to apply to all location values. Defaults to None.
 
         Returns:
             _type_: A dictionary of datpaths and their curve arrays
         """
         
-        if pos_transform is not None:
-            transformed_x = [0.0] * len(self.pos_x)
-            transformed_y = [0.0] * len(self.pos_y)
-            transformed_z = [0.0] * len(self.pos_z)
-            
-            for i in range(0, len(self.pos_x)):
-                x, y, z = pos_transform(self.pos_x[i], self.pos_y[i], self.pos_z[i])
-                transformed_x[i] = x
-                transformed_y[i] = y
-                transformed_z[i] = z
-        else:
-            transformed_x = self.pos_x
-            transformed_y = self.pos_y
-            transformed_z = self.pos_z
+        pos_xp, pos_yp, pos_zp = _apply_vector_operator(self.pos_x, self.pos_y, self.pos_z, pos_transform)
+        rot_wp, rot_xp, rot_yp, rot_zp = _apply_quat_operator(self.rot_w, self.rot_x, self.rot_y, self.rot_z, rot_transform)
+        scale_xp, scale_yp, scale_zp = _apply_vector_operator(self.scale_x, self.scale_y, self.scale_z, scale_transform)
         
         if base_datapath and not base_datapath.endswith('.'):
             base_datapath += '.'
@@ -148,19 +140,45 @@ class AnimationCurve:
 
         arrays: dict[tuple[str, int], list[float]] = {}
         
-        arrays[(pos_path, 0)] = to_key_array(transformed_x)
-        arrays[(pos_path, 1)] = to_key_array(transformed_y)
-        arrays[(pos_path, 2)] = to_key_array(transformed_z)
+        arrays[(pos_path, 0)] = to_key_array(pos_xp)
+        arrays[(pos_path, 1)] = to_key_array(pos_yp)
+        arrays[(pos_path, 2)] = to_key_array(pos_zp)
         
         if self.has_rotation():
-            arrays[(rot_path, 0)] = to_key_array(self.rot_w)
-            arrays[(rot_path, 1)] = to_key_array(self.rot_x)
-            arrays[(rot_path, 2)] = to_key_array(self.rot_y)
-            arrays[(rot_path, 3)] = to_key_array(self.rot_z)
+            arrays[(rot_path, 0)] = to_key_array(rot_wp)
+            arrays[(rot_path, 1)] = to_key_array(rot_xp)
+            arrays[(rot_path, 2)] = to_key_array(rot_yp)
+            arrays[(rot_path, 3)] = to_key_array(rot_zp)
             
         if self.has_scale():
-            arrays[(scale_path, 0)] = to_key_array(self.scale_x)
-            arrays[(scale_path, 1)] = to_key_array(self.scale_y)
-            arrays[(scale_path, 2)] = to_key_array(self.scale_z)
+            arrays[(scale_path, 0)] = to_key_array(scale_xp)
+            arrays[(scale_path, 1)] = to_key_array(scale_yp)
+            arrays[(scale_path, 2)] = to_key_array(scale_zp)
         
         return arrays
+    
+def _apply_vector_operator(x: list[float], y: list[float], z: list[float], operator: VectorOperator | None):
+    if operator:
+        xp = [0.0] * len(x)
+        yp = [0.0] * len(y)
+        zp = [0.0] * len(z)
+        
+        for i in range(0, len(x)):
+            xp[i], yp[i], zp[i] = operator(x[i], y[i], z[i])
+        return (xp, yp, zp)
+    else:
+        return (x, y, z)
+    
+def _apply_quat_operator(w: list[float], x: list[float], y: list[float], z: list[float], operator: QuaternionOperator | None):
+    if operator:
+        dw = [0.0] * len(w)
+        dx = [0.0] * len(x)
+        dy = [0.0] * len(y)
+        dz = [0.0] * len(z)
+        
+        for i in range(0, len(x)):
+            dw[i], dx[i], dy[i], dz[i] = operator(w[i], x[i], y[i], z[i])
+        return (dw, dx, dy, dz)
+    else:
+        return (w, x, y, z)
+    

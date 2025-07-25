@@ -6,7 +6,7 @@ from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
 from typing import BinaryIO
-from bpy.types import Object, EditBone
+from bpy.types import Object, EditBone, ArmatureModifier
 
 ROOT_NAME = 'transform'
 
@@ -47,13 +47,22 @@ class CapturedEntity:
             self.parents = json.load(f)
             
     def load_mesh(self, entity_folder: str, context: ReplayImportContext):
-        path = os.path.join(entity_folder, self.name + '.json')
+        path = os.path.join(entity_folder, self.name + '.obj')
         if not os.path.exists(path):
             return
         
-        imported = common.import_obj(path)
+        imported = common.import_obj(path, import_vertex_groups=True)
         if (imported):
             self.mesh = imported.pop()
+            if self.armature:
+                self.mesh.parent = self.armature
+                
+                if self.armature.type == 'ARMATURE':
+                    mod = self.mesh.modifiers.new('Armature', 'ARMATURE')
+                    mod.object = self.armature # type: ignore
+                    
+                
+                
     
     def gen_armature(self, context: ReplayImportContext):
         # TODO: Actually implement armature shit
@@ -65,8 +74,8 @@ class CapturedEntity:
             context.entity_collection.objects.link(empty_obj)
             self.armature = empty_obj
             
-            if (self.mesh):
-                self.mesh.parent = empty_obj
+            # if (self.mesh):
+            #     self.mesh.parent = empty_obj
             return
         
         armature = bpy.data.armatures.new(self.name)
@@ -87,7 +96,7 @@ class CapturedEntity:
             
             bone = edit_bones.new(name)
             bone.head = [0, 0, 0]
-            bone.tail = [0, 0.16, 0]
+            bone.tail = [0, 0, 0.16]
             
             bl_bones[name] = bone
         
@@ -103,15 +112,16 @@ class CapturedEntity:
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
         
         self.armature = obj
-        if (self.mesh):
-                self.mesh.parent = obj
+        # if (self.mesh):
+        #         self.mesh.parent = obj
         
     
     def load(self, entity_folder: str, context: ReplayImportContext):
         self.load_anim_file(entity_folder, context)
         self.load_relations_file(entity_folder, context)
-        self.load_mesh(entity_folder, context)
         self.gen_armature(context)
+        self.load_mesh(entity_folder, context)
+
     
     def apply_animation(self, context: ReplayImportContext):
         if (self.armature == None):
@@ -127,11 +137,13 @@ class CapturedEntity:
         for name, curve_list in self.curves.items():
             if name == ROOT_NAME:
                 data_prefix = ''
+                transform_operator = common.convert_coords
             else:
                 data_prefix = f'pose.bones["{name}"].'
+                transform_operator = None
                 
             for curve in curve_list:
-                for ref, vals in curve.to_key_arrays(data_prefix, context, common.convert_coords).items():
+                for ref, vals in curve.to_key_arrays(data_prefix, context, transform_operator).items():
                     existing = flattened_curves.get(ref)
                     if existing:
                         existing.extend(vals)

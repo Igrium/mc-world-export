@@ -112,19 +112,20 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         AnimationCurve rootCurve = capture.getCurve("root", tick);
         if (rootCurve != null) {
             Matrix4f transform = matrixStack.peek().getPositionMatrix();
-            Vector3f rootPos = rootCurve.getPosition(tick, new Vector3f());
-            Quaternionf rootRot = rootCurve.hasRotation() ? rootCurve.getRotation(tick, new Quaternionf()) : null;
-            Vector3f rootScale = rootCurve.hasScale() ? rootCurve.getScale(tick, new Vector3f()) : null;
+            Vector3f rootPos = new Vector3f();
+            Quaternionf rootRot = rootCurve.hasRotation() ? new Quaternionf() : null;
+            Vector3f rootScale = rootCurve.hasScale() ? new Vector3f() : null;
 
             rootPos.add(transform.getTranslation(new Vector3f()));
             if (rootRot != null)
-                rootRot.mul(transform.getNormalizedRotation(new Quaternionf()));
+                rootRot.mul(transform.getUnnormalizedRotation(new Quaternionf()));
 
             if (rootScale != null) {
                 rootScale.mul(transform.getScale(new Vector3f()));
             }
 
-            rootCurve.setFrame(tick, rootPos, rootRot, rootScale);
+//            rootCurve.setFrame(tick, rootPos, rootRot, rootScale);
+            capture.addFrame("root", tick, rootCurve.getFormat(), rootPos, rootRot, rootScale);
         }
 
 

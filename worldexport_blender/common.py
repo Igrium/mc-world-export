@@ -4,10 +4,13 @@ import bpy
 from typing import BinaryIO, Literal
 from bpy.types import Context, Object
 
-def import_obj(filepath: str):
+def import_obj(filepath: str, use_split_objects=True, use_split_groups=False,
+               import_vertex_groups=False, validate_meshes=True):
     existing = set(bpy.data.objects)
-    bpy.ops.wm.obj_import(filepath=filepath)
-    return set(bpy.data.objects) - existing
+    bpy.ops.wm.obj_import(filepath=filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
+                          import_vertex_groups=import_vertex_groups, validate_meshes=validate_meshes)
+    new = set(bpy.data.objects)
+    return new - existing
 
 def convert_coords(x: float, y: float, z: float):
     return (x, -z, y)
