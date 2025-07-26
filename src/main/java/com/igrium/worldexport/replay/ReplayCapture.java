@@ -8,11 +8,9 @@ import de.javagl.obj.Mtl;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
@@ -103,17 +101,9 @@ public class ReplayCapture {
     @Getter
     private final EntityCapture entityCapture;
 
-    /**
-     * A map of all textures in the file by their filenames relative to the root.
-     */
     @Getter
-    private final Map<String, CompletableFuture<? extends ReplayTexture>> textures = new ConcurrentHashMap<>();
+    private final MaterialHolder materialHolder = new MaterialHolder();
 
-    /**
-     * A map of all materials in the file by their library filename.
-     */
-    @Getter
-    private final Map<String, List<Mtl>> mtlLibs = new ConcurrentHashMap<>();
 
     @Getter
     private final Executor executor;
@@ -141,6 +131,7 @@ public class ReplayCapture {
 
         entityCapture = new EntityCapture(settings.getBounds().toBox());
         entityCapture.setGlobalOffset(settings.getOffset());
+        entityCapture.setMaterialHolder(materialHolder);
     }
 
     /**
@@ -167,8 +158,9 @@ public class ReplayCapture {
         });
         gameTick = 0;
 
-        textures.put("world/world.png", worldTessellator.getDefaultWorldTexture());
-        mtlLibs.put("world/world.mtl", worldTessellator.getDefaultWorldMtls());
+
+        materialHolder.getTextures().put("world/world.png", worldTessellator.getDefaultWorldTexture());
+        materialHolder.putMtlLib("world/world.mtl", worldTessellator.getDefaultWorldMtls());
 
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;
@@ -200,9 +192,10 @@ public class ReplayCapture {
      * @return A map of all texture paths and their values.
      */
     public CompletableFuture<Map<String, ReplayTexture>> getAllTextures() {
-        Map<String, ReplayTexture> result = new ConcurrentHashMap<>(textures.size());
-        List<CompletableFuture<?>> futures = new ArrayList<>(textures.size());
-        for (var entry : textures.entrySet()) {
+        Map<String, ReplayTexture> result = new ConcurrentHashMap<>(materialHolder.getTextures().size());
+        List<CompletableFuture<?>> futures = new ArrayList<>(materialHolder.getTextures().size());
+
+        for (var entry : materialHolder.getTextures().entrySet()) {
             futures.add(entry.getValue()
                     .thenAccept(i -> result.put(entry.getKey(), i))
                     .exceptionally(e -> {

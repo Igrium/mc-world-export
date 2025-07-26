@@ -2,13 +2,18 @@ package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.mixin.AccessorLivingEntityRenderer;
+import com.igrium.worldexport.replay.MaterialHolder;
+import com.igrium.worldexport.tex.NativeImageReplayTexture;
+import com.igrium.worldexport.tex.ReplayTexture;
+import com.igrium.worldexport.tex.TextureExtractor;
+import de.javagl.obj.Mtl;
+import de.javagl.obj.Mtls;
+import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRendererContext;
@@ -19,6 +24,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +32,10 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
         extends ModelAdapter<T, S> implements FeatureRendererContext<S, M> {
@@ -72,7 +82,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     }
 
     @Override
-    public void capture(T entity, S state, CapturedEntity capture, Vec3d offset, int tick) {
+    public void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3d offset, int tick) {
         AccessorLivingEntityRenderer<? super T, S, M> rendererAccessor = getRendererAccessor(renderer);
 
         M model = renderer.getModel();
@@ -124,19 +134,35 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
                 rootScale.mul(transform.getScale(new Vector3f()));
             }
 
-//            rootCurve.setFrame(tick, rootPos, rootRot, rootScale);
             capture.addFrame("root", tick, rootCurve.getFormat(), rootPos, rootRot, rootScale);
         }
 
+        // Extract texture
+        Identifier texId = renderer.getTexture(state);
+        String texName = EntityCapture.getEntityTexturePath(texId);
+        String texPath = texName.endsWith(".png") ? texName : texName + ".png";
+
+        materials.getTextures().computeIfAbsent(texName, tex ->
+                CompletableFuture.completedFuture(new NativeImageReplayTexture(TextureExtractor.pullTexture(texId))));
+
+        Mtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
+            Mtl mtl = Mtls.create(n);
+            mtl.setMapKd(texPath);
+            return mtl;
+        });
 
         // TODO: Check if doing this every frame causes performance issues.
         ModelParts.buildParentHierarchy(model.getRootPart(), "root", capture.getParents()::put);
 
         // Add part meshes if needed.
         ModelParts.forEachPart(model.getRootPart(), "root", (path, part) -> {
-            capture.getModelParts().computeIfAbsent(path, p -> ModelParts.modelPartToMesh(part, Objs.create()));
+            capture.getModelParts().computeIfAbsent(path, p -> {
+                Obj obj = Objs.create();
+                obj.setMtlFileNames(Collections.singleton("../entities.mtl"));
+                obj.setActiveMaterialGroupName(mat.getName());
+                return ModelParts.modelPartToMesh(part, obj);
+            });
         });
-
     }
 
     @Override

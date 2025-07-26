@@ -4,7 +4,9 @@ import net.minecraft.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -55,7 +57,9 @@ public class ReplayCompiler {
         LOGGER.info("Extracting textures...");
         return replayCapture.getAllTextures().thenApply(map -> {
             replay.getTextures().putAll(map);
-            replay.getMtlLibs().putAll(replayCapture.getMtlLibs());
+            for (var mtlLibEntry : replayCapture.getMaterialHolder().getMtlLibs().entrySet()) {
+                replay.getMtlLibs().put(mtlLibEntry.getKey(), List.copyOf(mtlLibEntry.getValue().values()));
+            }
             return replay;
         });
     }

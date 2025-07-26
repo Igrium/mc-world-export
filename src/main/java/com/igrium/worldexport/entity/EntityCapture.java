@@ -1,21 +1,15 @@
 package com.igrium.worldexport.entity;
 
+import com.igrium.worldexport.replay.MaterialHolder;
+import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Tolerate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.client.util.SkinTextures;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
@@ -24,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 /**
@@ -49,6 +44,12 @@ public class EntityCapture {
      */
     @Getter @Setter @NonNull
     private Vec3d globalOffset = Vec3d.ZERO;
+
+    /**
+     * Any textures that entities require will be added to this map.
+     */
+    @Getter @Setter @NonNull
+    private MaterialHolder materialHolder = new MaterialHolder();
 
     @Tolerate
     public void setGlobalOffset(Vec3i offset) {
@@ -93,6 +94,10 @@ public class EntityCapture {
     private <T extends Entity, S extends EntityRenderState> void captureModelAdapter(ModelAdapter<T, S> modelAdapter, T entity, int tick) {
         S state = modelAdapter.getAndUpdateRenderState(entity);
         CapturedEntity capture = entities.computeIfAbsent(entity, e -> new CapturedEntity());
-        modelAdapter.capture(entity, state, capture, globalOffset, tick);
+        modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
+    }
+
+    public static String getEntityTexturePath(Identifier id) {
+        return id.getNamespace() + "/" + id.getPath();
     }
 }
