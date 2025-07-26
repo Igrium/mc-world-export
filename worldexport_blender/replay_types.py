@@ -16,6 +16,10 @@ class ReplayImportSettings:
     clean_curves: bool = True
     """Run a 'clean curves' operator on the imported entities.
     """
+    
+    process_materials: bool = True
+    """Run post-processing on the materials to set interpolation mode, etc.
+    """
 
 @dataclass
 class ReplayImportContext:
