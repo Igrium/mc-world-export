@@ -98,6 +98,9 @@ public class EntityCapture {
     }
 
     public static String getEntityTexturePath(Identifier id) {
-        return id.getNamespace() + "/" + id.getPath();
+        String path = id.getPath();
+        if (!path.endsWith(".png"))
+            path += ".png";
+        return id.getNamespace() + "/" + path;
     }
 }
