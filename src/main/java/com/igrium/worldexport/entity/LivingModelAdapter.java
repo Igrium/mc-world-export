@@ -148,6 +148,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         Mtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
             Mtl mtl = Mtls.create(n);
             mtl.setMapKd(texPath);
+            mtl.setMapD(texPath);
             return mtl;
         });
 
