@@ -11,29 +11,20 @@ class WorldMesh:
     name: str
     start_tick: int | None
     end_tick: int | None
+
+
+def import_world(dir: str):
+
+    json_path = os.path.join(dir, 'world.json')
+    if not os.path.exists(json_path): return
     
+    with open(json_path, 'r') as file:
+        world_json: dict[str, dict] = json.load(file)
 
-def import_world(world_dir: str):
-    for local in os.listdir(world_dir):
-        if not local.endswith('.obj'): continue
-        
-        glob = os.path.join(world_dir, local)
-        if not os.path.isfile(glob): continue
-        
-        name = os.path.splitext(local)[0]
-        
-        mesh = _parse_world_mesh(name, world_dir)
-        _import_world_mesh(mesh, world_dir)
+    for name, meta in world_json.items():
+        mesh = WorldMesh(name, meta.get('startTick'), meta.get('endTick'))
+        _import_world_mesh(mesh, dir)
     ...
-
-def _parse_world_mesh(name: str, world_dir: str) -> WorldMesh:
-    json_path = os.path.join(world_dir, name + '.json')
-    if os.path.exists(json_path):
-        with open(json_path, 'r') as file:
-            data: dict = json.load(file)
-        return WorldMesh(name, data.get('startTick'), data.get('endTick'))
-    else:
-        return WorldMesh(name, None, None)
     
 def _import_world_mesh(mesh: WorldMesh, world_dir: str) -> Object | None:
     obj_path = os.path.join(world_dir, mesh.name + '.obj')

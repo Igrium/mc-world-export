@@ -159,8 +159,8 @@ public class ReplayCapture {
         gameTick = 0;
 
 
-        materialHolder.getTextures().put("world/world.png", worldTessellator.getDefaultWorldTexture());
-        materialHolder.putMtlLib("world/world.mtl", worldTessellator.getDefaultWorldMtls());
+        materialHolder.getTextures().put("world.png", worldTessellator.getDefaultWorldTexture());
+        materialHolder.putMtlLib("world.mtl", worldTessellator.getDefaultWorldMtls());
 
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;

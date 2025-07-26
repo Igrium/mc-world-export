@@ -39,13 +39,13 @@ class CapturedEntity:
         with open(path, 'rb') as f:
             read_anim_file(f, self.curves)
             
-    def load_relations_file(self, entity_folder: str, context: ReplayImportContext):
-        path = os.path.join(entity_folder, self.name + '.json')
-        if not os.path.exists(path):
-            return
+    # def load_relations_file(self, entity_folder: str, context: ReplayImportContext):
+    #     path = os.path.join(entity_folder, self.name + '.json')
+    #     if not os.path.exists(path):
+    #         return
         
-        with open(path, 'r') as f:
-            self.parents = json.load(f)
+    #     with open(path, 'r') as f:
+    #         self.parents = json.load(f)
             
     def load_mesh(self, entity_folder: str, context: ReplayImportContext):
         path = os.path.join(entity_folder, self.name + '.obj')
@@ -119,7 +119,7 @@ class CapturedEntity:
     
     def load(self, entity_folder: str, context: ReplayImportContext):
         self.load_anim_file(entity_folder, context)
-        self.load_relations_file(entity_folder, context)
+        # self.load_relations_file(entity_folder, context)
         self.gen_armature(context)
         self.load_mesh(entity_folder, context)
 

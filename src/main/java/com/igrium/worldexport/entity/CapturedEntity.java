@@ -124,7 +124,7 @@ public class CapturedEntity {
         }
     }
 
-    public void writeAnimFile(DataOutputStream out) throws IOException {
+    public void writeAnimFile(DataOutput out) throws IOException {
         int total = 0;
         for (var list : curves.values()) {
             total += list.size();
@@ -138,7 +138,7 @@ public class CapturedEntity {
         }
     }
 
-    public int readAnimFile(DataInputStream in) throws IOException {
+    public int readAnimFile(DataInput in) throws IOException {
         int size = in.readInt();
         int i;
         for (i = 0; i < size; i++) {

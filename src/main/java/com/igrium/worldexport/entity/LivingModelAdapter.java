@@ -158,7 +158,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         ModelParts.forEachPart(model.getRootPart(), "root", (path, part) -> {
             capture.getModelParts().computeIfAbsent(path, p -> {
                 Obj obj = Objs.create();
-                obj.setMtlFileNames(Collections.singleton("../entities.mtl"));
+                obj.setMtlFileNames(Collections.singleton("entities.mtl"));
                 obj.setActiveMaterialGroupName(mat.getName());
                 return ModelParts.modelPartToMesh(part, obj);
             });

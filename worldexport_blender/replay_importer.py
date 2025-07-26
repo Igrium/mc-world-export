@@ -20,7 +20,5 @@ def import_replay(replay_root: str, settings: ReplayImportSettings, bl_context: 
     
     context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection)
     
-    world_importer.import_world(os.path.join(replay_root, 'world'))
+    world_importer.import_world(replay_root)
     entity_loader.import_entities(context)
-    
-    

@@ -5,30 +5,31 @@ import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayTexture;
+import com.igrium.worldexport.util.ExceptionUtils;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.*;
-import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 public class ReplayIO {
-
     private static final Gson GSON = new Gson();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayIO.class);
 
     public static CompletableFuture<?> saveReplayAsync(Path root, CompiledReplay replay, Executor executor) {
+        try {
+            Files.createDirectories(root);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
         return saveWorldAsync(root, replay, executor)
                 .thenCompose(v -> saveEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> saveTexturesAsync(root, replay, executor))
@@ -44,80 +45,72 @@ public class ReplayIO {
                 .thenApply(v -> replay);
     }
 
-    private static CompletableFuture<?> saveEntitiesAsync(Path root, CompiledReplay replay, Executor executor) {
-        Path entityDir = root.resolve("entities");
-        try {
-            Files.createDirectories(entityDir);
-        } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
-        }
+    /**
+     * Maps world mesh names to their metadata. All meshes must be present, even with empty metadata.
+     */
+    public static TypeToken<Map<String, WorldMesh.Meta>> worldJsonType = new TypeToken<>() {};
 
+    /**
+     * Maps entity names to their parent declaration. All entities must be present, even with empty parents.
+     */
+    public static TypeToken<Map<String, Map<String, String>>> entityJsonType = new TypeToken<>() {};
+
+    private static CompletableFuture<?> saveEntitiesAsync(Path dir, CompiledReplay replay, Executor executor) {
         List<CompletableFuture<?>> entityFutures = new ArrayList<>(replay.getEntities().size());
+        Map<String, Map<String, String>>  entityJson = new ConcurrentHashMap<>();
+
         for (var entEntry : replay.getEntities().entrySet()) {
             entityFutures.add(CompletableFuture.runAsync(() -> {
                 try {
-                    saveEntity(entityDir, entEntry.getValue(), entEntry.getKey());
-                } catch (Exception e) {
-                    LOGGER.error("Error saving entity {}: ", entEntry.getKey(), e);
+                    saveEntity(dir, entEntry.getValue(), entEntry.getKey(), entityJson);
+                } catch (IOException e) {
+                    LOGGER.error("Error saving entity {}:", entEntry.getKey(), e);
                 }
             }, executor));
         }
 
-        return CompletableFuture.allOf(entityFutures.toArray(new CompletableFuture[0]));
+        return CompletableFuture.allOf(entityFutures.toArray(new CompletableFuture[0])).thenRunAsync(() -> {
+            try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("entities.json"))) {
+                GSON.toJson(entityJson, writer);
+            } catch (IOException e) {
+                throw ExceptionUtils.sneakyThrow(e);
+            }
+        }, executor);
     }
 
-    public static void saveEntity(Path entityDir, CapturedEntity entity, String name) throws IOException {
-        Path objPath = entityDir.resolve(name + ".obj");
+    private static void saveEntity(Path dir, CapturedEntity entity, String name, Map<String, Map<String, String>> entityJson) throws IOException {
 
         if (!entity.getModelParts().isEmpty()) {
-            try (BufferedWriter writer = Files.newBufferedWriter(objPath)) {
+            try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve(name + ".obj"))) {
                 entity.writeObj(writer);
             }
-
         }
 
-        if (!entity.getParents().isEmpty()) {
-            Path jsonPath = entityDir.resolve(name + ".json");
-            try (BufferedWriter writer = Files.newBufferedWriter(jsonPath)) {
-                GSON.toJson(entity.getParents(), writer);
-            }
-        }
-
-        Path animPath = entityDir.resolve(name + ".anim");
+        Path animPath = dir.resolve(name + ".anim");
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(animPath)))) {
             entity.writeAnimFile(out);
         }
+
+        entityJson.put(name, Map.copyOf(entity.getParents()));
     }
 
-    private static CompletableFuture<?> loadEntitiesAsync(Path root, CompiledReplay replay, Executor executor) {
-        Path entityDir = root.resolve("entities");
-        if (!Files.isDirectory(entityDir)) {
-            LOGGER.error("Entity directory is not a directory.");
-            return CompletableFuture.completedFuture(null);
-        }
-
-        List<String> entityNames;
-        try (var fileStream = Files.list(entityDir)) {
-
-            entityNames = fileStream
-                    .filter(path -> path.toString().endsWith(".anim"))
-                    .filter(Files::isRegularFile)
-                    .map(path -> FilenameUtils.getBaseName(path.toString()))
-                    .toList();
-
+    private static CompletableFuture<?> loadEntitiesAsync(Path dir, CompiledReplay replay, Executor executor) {
+        Map<String, Map<String, String>> entityJson;
+        try (BufferedReader reader = Files.newBufferedReader(dir.resolve("entities.json"))) {
+            entityJson = GSON.fromJson(reader, entityJsonType);
         } catch (IOException e) {
             return CompletableFuture.failedFuture(e);
         }
 
-        List<CompletableFuture<?>> futures = new ArrayList<>(entityNames.size());
+        List<CompletableFuture<?>> futures = new ArrayList<>(entityJson.size());
         Map<String, CapturedEntity> entities = new ConcurrentHashMap<>();
 
-        for (var entName : entityNames) {
+        for (var entEntry : entityJson.entrySet()) {
             futures.add(CompletableFuture.runAsync(() -> {
                 try {
-                    entities.put(entName, loadEntity(entityDir, entName));
-                } catch (Exception e) {
-                    LOGGER.error("Error loading entity {}: ", entName, e);
+                    entities.put(entEntry.getKey(), loadEntity(dir, entEntry.getKey(), entEntry.getValue()));
+                } catch (IOException e) {
+                    LOGGER.error("Error loading entity {}: ", entEntry.getKey(), e);
                 }
             }, executor));
         }
@@ -127,8 +120,8 @@ public class ReplayIO {
         });
     }
 
-    public static CapturedEntity loadEntity(Path entityDir, String name) throws IOException {
-        Path objPath = entityDir.resolve(name + ".obj");
+    private static CapturedEntity loadEntity(Path dir, String name, Map<String, String> parents) throws IOException {
+        Path objPath = dir.resolve(name + ".obj");
         CapturedEntity entity = new CapturedEntity();
         if (Files.isRegularFile(objPath)) {
             try (BufferedReader reader = Files.newBufferedReader(objPath)) {
@@ -136,122 +129,88 @@ public class ReplayIO {
             }
         }
 
-        Path jsonPath = entityDir.resolve(name + ".json");
-        if (Files.isRegularFile(jsonPath)) {
-            try (BufferedReader reader = Files.newBufferedReader(jsonPath)) {
-                TypeToken<Map<String, String>> typeToken = new TypeToken<>() {};
-                entity.getParents().putAll(GSON.fromJson(reader, typeToken));
-            }
-        }
-
-        Path animPath = entityDir.resolve(name + ".anim");
+        Path animPath = dir.resolve(name + ".anim");
         if (Files.isRegularFile(animPath)) {
             try (DataInputStream in = new DataInputStream(new BufferedInputStream(Files.newInputStream(animPath)))) {
                 entity.readAnimFile(in);
             }
         }
 
+        entity.getParents().putAll(parents);
         return entity;
     }
 
-    private static CompletableFuture<?> saveWorldAsync(Path root, CompiledReplay replay, Executor executor) {
-        Path worldDir = root.resolve("world");
-        try {
-            Files.createDirectories(worldDir);
-        } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
-        }
-
+    private static CompletableFuture<?> saveWorldAsync(Path dir, CompiledReplay replay, Executor executor) {
         List<CompletableFuture<?>> worldFutures = new ArrayList<>(replay.getWorldMeshes().size());
-        for (var meshEntry: replay.getWorldMeshes().entrySet()) {
+        Map<String, WorldMesh.Meta> worldJson = new ConcurrentHashMap<>();
+
+        for (var meshEntry : replay.getWorldMeshes().entrySet()) {
             String name = meshEntry.getKey();
             worldFutures.add(CompletableFuture.runAsync(() -> {
                 try {
-                    saveWorldMesh(worldDir, meshEntry.getValue(), name);
+                    saveWorldMesh(dir, meshEntry.getValue(), name, worldJson);
                 } catch (Exception e) {
-                    throw new CompletionException(e);
+                    LOGGER.error("Error saving world mesh {}:", name, e);
                 }
-            }, executor).exceptionally(e -> {
-                LOGGER.error("Error saving world mesh {}", name, e);
-                return null;
-            }));
-        }
-        return CompletableFuture.allOf(worldFutures.toArray(new CompletableFuture[0]));
-    }
-
-    public static void saveWorldMesh(Path worldDir, WorldMesh mesh, String name) throws IOException {
-        if (mesh.obj().getNumVertices() == 0)
-            return;
-
-        // Save meta
-        if (!mesh.meta().isEmpty()) {
-            try(var jsonOut = Files.newBufferedWriter(worldDir.resolve(name + ".json"))) {
-                GSON.toJson(mesh.meta(), jsonOut);
-            }
-        }
-
-        try(var objOut = Files.newBufferedWriter(worldDir.resolve(name + ".obj"))) {
-            ObjWriter.write(mesh.obj(), objOut);
-        }
-    }
-
-    private static CompletableFuture<Map<String, WorldMesh>> loadWorldAsync(Path root, CompiledReplay replay, Executor executor) {
-        Path worldDir = root.resolve("world");
-        if (!Files.isDirectory(worldDir)) {
-            LOGGER.error("World directory is not a directory.");
-            return CompletableFuture.completedFuture(Map.of());
-        }
-
-        List<String> meshNames;
-        try (var filestream = Files.list(worldDir)) {
-
-            meshNames = filestream
-                    .filter(path -> path.toString().endsWith(".obj"))
-                    .filter(Files::isRegularFile)
-                    .map(path -> FilenameUtils.getBaseName(path.toString()))
-                    .toList();
-
-        } catch (IOException e) {
-            return CompletableFuture.failedFuture(e);
-        }
-
-        List<CompletableFuture<?>> futures = new ArrayList<>(meshNames.size());
-        Map<String, WorldMesh> result = new ConcurrentHashMap<>();
-
-        for (var meshName : meshNames) {
-            futures.add(CompletableFuture.supplyAsync(() -> {
-                try {
-                    result.put(meshName, loadWorldMesh(worldDir, meshName));
-                } catch (Exception e) {
-                    LOGGER.error("Error loading world mesh {}", meshName, e);
-                }
-                return null;
             }, executor));
         }
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> {
-                    replay.getWorldMeshes().putAll(result);
-                    return result;
-                });
+        return CompletableFuture.allOf(worldFutures.toArray(new CompletableFuture[0])).thenRunAsync(() -> {
+            try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("world.json"))) {
+                GSON.toJson(worldJson, writer);
+            } catch (IOException e) {
+                throw ExceptionUtils.sneakyThrow(e);
+            }
+        }, executor);
     }
 
-    public static WorldMesh loadWorldMesh(Path worldDir, String name) throws IOException {
+    private static void saveWorldMesh(Path dir, WorldMesh mesh, String name, Map<String, WorldMesh.Meta> worldJson) throws IOException {
+        if (mesh.obj().getNumVertices() == 0)
+            return;
+
+        try (var objOut = Files.newBufferedWriter(dir.resolve(name + ".obj"))) {
+            ObjWriter.write(mesh.obj(), objOut);
+        }
+
+        worldJson.put(name, mesh.meta());
+    }
+
+    private static CompletableFuture<Map<String, WorldMesh>> loadWorldAsync(Path dir, CompiledReplay replay, Executor executor) {
+        Map<String, WorldMesh.Meta> worldJson;
+        try (BufferedReader reader = Files.newBufferedReader(dir.resolve("world.json"))) {
+            worldJson = GSON.fromJson(reader, worldJsonType);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        if (worldJson.isEmpty()) {
+            return CompletableFuture.completedFuture(Map.of());
+        }
+
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+        Map<String, WorldMesh> result = new ConcurrentHashMap<>();
+
+        for (var meshEntry : worldJson.entrySet()) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    result.put(meshEntry.getKey(), loadWorldMesh(dir, meshEntry.getKey(), meshEntry.getValue()));
+                } catch (IOException e) {
+                    LOGGER.error("Error loading world mesh {}:", meshEntry.getKey(), e);
+                }
+            }, executor));
+        }
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> {
+            replay.getWorldMeshes().putAll(result);
+            return result;
+        });
+    }
+
+    private static WorldMesh loadWorldMesh(Path dir, String name, WorldMesh.Meta meta) throws IOException {
         Obj obj;
-        try (BufferedReader reader = Files.newBufferedReader(worldDir.resolve(name + ".obj"))) {
+        try (BufferedReader reader = Files.newBufferedReader(dir.resolve(name + ".obj"))) {
             obj = ObjReader.read(reader);
         }
-
-        WorldMesh.Meta meta;
-        Path metaPath = worldDir.resolve(name + ".json");
-        if (Files.isRegularFile(metaPath)) {
-            try (BufferedReader reader = Files.newBufferedReader(metaPath)) {
-                meta = GSON.fromJson(reader, WorldMesh.Meta.class);
-            }
-        } else {
-            meta = new WorldMesh.Meta();
-        }
-
         return new WorldMesh(obj, meta);
     }
 
