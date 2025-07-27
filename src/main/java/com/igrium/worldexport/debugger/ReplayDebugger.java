@@ -7,7 +7,7 @@ import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.replay.CompiledReplay;
 import com.igrium.worldexport.replay.ReplayIO;
-import de.javagl.obj.Mtl;
+import com.igrium.worldexport.tex.ReplayMtl;
 import imgui.ImGui;
 import imgui.flag.ImGuiWindowFlags;
 import lombok.Getter;
@@ -66,7 +66,7 @@ public final class ReplayDebugger extends CraftApp {
 
     public record MaterialSelectionReference(String mtlLib, int index) {
         @Nullable
-        public Mtl get(Map<? super String, ? extends List<? extends Mtl>> mtlLibs) {
+        public ReplayMtl get(Map<? super String, ? extends List<? extends ReplayMtl>> mtlLibs) {
             var mtlList = mtlLibs.get(mtlLib);
             if (mtlList != null) {
                 if (index >= 0 && index < mtlList.size()) {

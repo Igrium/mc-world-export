@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.PngReplayTexture;
+import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.util.ExceptionUtils;
 import com.igrium.worldexport.world.WorldMesh;
@@ -269,35 +270,103 @@ public class ReplayIO {
     // No need to overcomplicate this part with multithreading; these files are really small.
     private static void saveMtls(Path root, CompiledReplay replay) {
         for (var entry : replay.getMtlLibs().entrySet()) {
-            Path mtlPath = root.resolve(entry.getKey());
             try {
-                Files.createDirectories(mtlPath.getParent());
-                try(BufferedWriter writer = Files.newBufferedWriter(mtlPath)) {
-                    MtlWriter.write(entry.getValue(), writer);
-                }
-
-            } catch (IOException e) {
-                LOGGER.error("Error saving MTL library {}: ", entry.getKey(), e);
+                saveMtl(root, entry.getKey(), entry.getValue());
+            } catch (Exception e) {
+                LOGGER.error("Error saving mtl {}: ", entry.getKey(), e);
             }
         }
     }
+
+    private static void saveMtl(Path root, String name, Collection<? extends ReplayMtl> rMtls) throws IOException {
+        if (!name.endsWith(".mtl")) {
+            LOGGER.warn("Mtl {} should end with '.mtl'", name);
+            name += ".mtl";
+        }
+
+        List<Mtl> mtls = new ArrayList<>(rMtls.size());
+        Map<String, Map<String, ReplayMtl.Property<?>>> properties = new HashMap<>(rMtls.size());
+
+        for (ReplayMtl rMtl : rMtls) {
+            mtls.add(rMtl.mtl());
+            if (!rMtl.properties().isEmpty()) {
+                properties.put(rMtl.getName(), rMtl.properties());
+            }
+        }
+
+        try(var writer = Files.newBufferedWriter(root.resolve(name))) {
+            MtlWriter.write(mtls, writer);
+        }
+
+        if (!properties.isEmpty()) {
+            try(var writer = Files.newBufferedWriter(root.resolve(name + ".json"))) {
+                GSON.toJson(properties, writer);
+            }
+        }
+    }
+
+    private static final TypeToken<Map<String, Map<String, ReplayMtl.Property<?>>>> mtlPropertyType = new TypeToken<>() {};
 
     private static void loadMtls(Path root, CompiledReplay replay) {
-        List<Path> mtlPaths;
-        try (var stream = Files.walk(root)) {
-            mtlPaths = stream.filter(path -> path.toString().endsWith(".mtl")).toList();
+        List<Path> mtlFiles;
+        try (var s = Files.walk(root).filter(f -> f.toString().endsWith(".mtl") && Files.isRegularFile(f))) {
+            mtlFiles = s.toList();
         } catch (IOException e) {
-            LOGGER.error("Failed to retrieve mtl directory listing: ", e);
-            return;
+            // Will get caught by the completable future this is a part of, so no need to handle.
+            // Also this code shouldn't even get called if the folder doesn't exist.
+            throw ExceptionUtils.sneakyThrow(e);
         }
 
-        for (var path : mtlPaths) {
-            try (BufferedReader reader = Files.newBufferedReader(path)) {
-                replay.getMtlLibs().put(root.relativize(path).toString(), new ArrayList<>(MtlReader.read(reader)));
-
-            } catch (IOException e) {
-                LOGGER.error("Error loading MTL library {}: ", path, e);
+        for (Path mtlFile : mtlFiles) {
+            String name = mtlFile.getFileName().toString();
+            try {
+                replay.getMtlLibs().put(name, loadMtl(root, name));
+            } catch (Exception e) {
+                LOGGER.error("Error loading mtl {}: ", name, e);
             }
         }
     }
+
+    private static List<ReplayMtl> loadMtl(Path root, String name) throws IOException {
+        List<Mtl> mtls;
+        try(BufferedReader reader = Files.newBufferedReader(root.resolve(name))) {
+            mtls = MtlReader.read(reader);
+        }
+
+        Map<String, Map<String, ReplayMtl.Property<?>>> properties;
+        Path propertyFile = root.resolve(name + ".json");
+        if (Files.exists(propertyFile)) {
+            try (BufferedReader reader = Files.newBufferedReader(propertyFile)) {
+                properties = GSON.fromJson(reader, mtlPropertyType);
+            }
+        } else {
+            properties = Map.of();
+        }
+
+        List<ReplayMtl> result = new ArrayList<>(mtls.size());
+        for (var mtl : mtls) {
+            Map<String, ReplayMtl.Property<?>> props = properties.get(mtl.getName());
+            result.add(new ReplayMtl(mtl, props != null ? props : new HashMap<>()));
+        }
+        return result;
+    }
+
+//    private static void loadMtls(Path root, CompiledReplay replay) {
+//        List<Path> mtlPaths;
+//        try (var stream = Files.walk(root)) {
+//            mtlPaths = stream.filter(path -> path.toString().endsWith(".mtl")).toList();
+//        } catch (IOException e) {
+//            LOGGER.error("Failed to retrieve mtl directory listing: ", e);
+//            return;
+//        }
+//
+//        for (var path : mtlPaths) {
+//            try (BufferedReader reader = Files.newBufferedReader(path)) {
+//                replay.getMtlLibs().put(root.relativize(path).toString(), new ArrayList<>(MtlReader.read(reader)));
+//
+//            } catch (IOException e) {
+//                LOGGER.error("Error loading MTL library {}: ", path, e);
+//            }
+//        }
+//    }
 }

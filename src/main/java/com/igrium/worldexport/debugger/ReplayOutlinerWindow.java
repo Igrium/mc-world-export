@@ -44,7 +44,7 @@ public class ReplayOutlinerWindow {
                         flags |= ImGuiTreeNodeFlags.Selected;
                     }
 
-                    boolean nodeOpen = ImGui.treeNodeEx(mtl.getName(), flags);
+                    boolean nodeOpen = ImGui.treeNodeEx(mtl.mtl().getName(), flags);
                     if (ImGui.isItemClicked()) {
                         replayDebugger.setSelectedMaterial(new ReplayDebugger.MaterialSelectionReference(mtlEntry.getKey(), mtlIndex));
                     }

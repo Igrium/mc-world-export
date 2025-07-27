@@ -4,6 +4,7 @@ import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.mixin.AccessorLivingEntityRenderer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
+import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.Mtl;
@@ -24,6 +25,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -145,10 +147,11 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         materials.getTextures().computeIfAbsent(texName, tex ->
                 CompletableFuture.completedFuture(new NativeImageReplayTexture(TextureExtractor.pullTexture(texId))));
 
-        Mtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
-            Mtl mtl = Mtls.create(n);
-            mtl.setMapKd(texPath);
-            mtl.setMapD(texPath);
+        ReplayMtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
+            ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
+            mtl.mtl().setMapKd(texPath);
+            mtl.mtl().setMapD(texPath);
+            mtl.properties().put("entityType", ReplayMtl.Property.of(Registries.ENTITY_TYPE.getId(entity.getType()).toString()));
             return mtl;
         });
 

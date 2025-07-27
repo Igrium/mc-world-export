@@ -5,6 +5,7 @@ import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.WorldMaterialFactory;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
+import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.*;
@@ -115,16 +116,19 @@ public class WorldTessellator {
      * Get the materials that the world mesh will reference by default.
      * @return All default materials. Should be stored in <code>world/world.mtl</code>
      */
-    public List<Mtl> getDefaultWorldMtls() {
-        List<Mtl> mtls = new ArrayList<>(2);
+    public List<ReplayMtl> getDefaultWorldMtls() {
+        List<ReplayMtl> mtls = new ArrayList<>(2);
 
-        Mtl world = Mtls.create(WORLD);
-        world.setMapKd("world.png");
+        ReplayMtl world = new ReplayMtl(Mtls.create(WORLD));
+        world.mtl().setMapKd("world.png");
+        world.properties().put("vertexTint", ReplayMtl.Property.of(true));
         mtls.add(world);
 
-        Mtl worldTrans = Mtls.create(WORLD_TRANS);
-        worldTrans.setMapKd("world.png");
-        worldTrans.setMapD("world.png");
+        ReplayMtl worldTrans = new ReplayMtl(Mtls.create(WORLD_TRANS));
+        worldTrans.mtl().setMapKd("world.png");
+        worldTrans.mtl().setMapD("world.png");
+        worldTrans.properties().put("vertexTint", ReplayMtl.Property.of(true));
+
         mtls.add(worldTrans);
 
         // TODO: Figure out how to define tint.

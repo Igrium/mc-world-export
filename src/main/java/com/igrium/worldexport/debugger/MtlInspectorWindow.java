@@ -1,13 +1,12 @@
 package com.igrium.worldexport.debugger;
 
 import com.igrium.worldexport.replay.CompiledReplay;
+import com.igrium.worldexport.tex.ReplayMtl;
 import de.javagl.obj.Mtl;
 import de.javagl.obj.MtlWriter;
 import imgui.ImGui;
 import imgui.flag.ImGuiInputTextFlags;
 import imgui.type.ImString;
-import lombok.Lombok;
-import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -30,15 +29,30 @@ public class MtlInspectorWindow {
             return;
 
         ImString text;
-        Mtl selected = replayDebugger.getSelectedMaterial().get(replay.getMtlLibs());
+        ReplayMtl selected = replayDebugger.getSelectedMaterial().get(replay.getMtlLibs());
         if (selected != null) {
-            text = serializedMtlCache.computeIfAbsent(selected, MtlInspectorWindow::serializeMtl);
+            text = serializedMtlCache.computeIfAbsent(selected.mtl(), MtlInspectorWindow::serializeMtl);
         } else {
             text = emptyString;
         }
         ImGui.pushItemWidth(-1);
         ImGui.inputTextMultiline("##MTL Data", text, ImGuiInputTextFlags.ReadOnly);
         ImGui.popItemWidth();
+
+        ImGui.separator();
+
+        if (ImGui.beginTable("Properties", 2)) {
+            if (selected != null) {
+                for (var entry : selected.properties().entrySet()) {
+                    ImGui.tableNextRow();
+                    ImGui.tableSetColumnIndex(0);
+                    ImGui.text(entry.getKey());
+                    ImGui.tableSetColumnIndex(1);
+                    ImGui.text(entry.getValue().getValue().toString());
+                }
+            }
+            ImGui.endTable();
+        }
     }
 
     private static ImString serializeMtl(Mtl mtl) {
