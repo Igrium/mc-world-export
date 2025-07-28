@@ -2,7 +2,7 @@ package com.igrium.worldexport.command;
 
 import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.math.ChunkSectionBox;
-import com.igrium.worldexport.replay.ReplaySettings;
+import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -37,7 +37,7 @@ public class WorldCaptureCommand
         int radius = IntegerArgumentType.getInteger(context, "radius");
         ChunkSectionPos center = ChunkSectionPos.from(context.getSource().getPosition());
         ChunkSectionBox bounds = ChunkSectionBox.fromRadius(center, radius);
-        ReplaySettings settings = ReplaySettings.builder()
+        ReplayExportSettings settings = ReplayExportSettings.builder()
                 .bounds(bounds)
                 .build();
 

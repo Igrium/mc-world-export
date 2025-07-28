@@ -4,7 +4,6 @@ import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
-import de.javagl.obj.Mtl;
 import lombok.Getter;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
@@ -90,7 +89,7 @@ public class ReplayCapture {
     private final World world;
 
     @Getter
-    private final ReplaySettings settings;
+    private final ReplayExportSettings settings;
 
     @Getter
     private final WorldCapture worldCapture;
@@ -114,7 +113,7 @@ public class ReplayCapture {
     private int gameTick;
     private int replayTick;
 
-    public ReplayCapture(World world, ReplaySettings settings) {
+    public ReplayCapture(World world, ReplayExportSettings settings) {
         this.world = world;
         this.settings = settings;
 
@@ -129,7 +128,7 @@ public class ReplayCapture {
         worldTessellator.setMergeBaseMeshes(settings.isMergeBaseMeshes());
         worldTessellator.setMergeDoubleVertices(settings.isMergeDoubleVertices());
 
-        entityCapture = new EntityCapture(settings.getBounds().toBox());
+        entityCapture = new EntityCapture(settings.entityBounds());
         entityCapture.setGlobalOffset(settings.getOffset());
         entityCapture.setMaterialHolder(materialHolder);
     }

@@ -7,7 +7,7 @@ import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
-import com.igrium.worldexport.replay.ReplaySettings;
+import com.igrium.worldexport.replay.ReplayExportSettings;
 import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -54,7 +54,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
 
     }
 
-    public ReplayCapture startRecording(World world, ReplaySettings settings) {
+    public ReplayCapture startRecording(World world, ReplayExportSettings settings) {
         activeRecording = new ReplayCapture(world, settings);
         activeRecording.beginCapture();
         return activeRecording;

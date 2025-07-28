@@ -2,7 +2,7 @@ package com.igrium.worldexport.compat.replaymod.gui;
 
 import com.igrium.worldexport.compat.replaymod.CustomPipelines;
 import com.igrium.worldexport.math.ChunkSectionBox;
-import com.igrium.worldexport.replay.ReplaySettings;
+import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.replaymod.core.utils.Utils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.*;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
@@ -18,7 +18,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import com.replaymod.render.RenderSettings;
-import com.replaymod.render.ReplayModRender;
 import com.replaymod.render.rendering.VideoRenderer;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
@@ -32,7 +31,6 @@ import org.apache.logging.log4j.LogManager;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -42,16 +40,17 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiVerticalList settingsList = new GuiVerticalList(contentPanel).setDrawSlider(true);
     public final GuiPanel buttonPanel = new GuiPanel(contentPanel).setLayout(new HorizontalLayout().setSpacing(4));
 
-    private ReplayHandler replayHandler;
-    private Timeline timeline;
-    private AbstractGuiScreen<?> screen;
+    private final ReplayHandler replayHandler;
+    private final Timeline timeline;
+    private final AbstractGuiScreen<?> screen;
 
-    private MinecraftClient client = MinecraftClient.getInstance();
+    private final MinecraftClient client = MinecraftClient.getInstance();
 
     private int minLowerDepth = 0;
     private int maxLowerDepth = 16;
 
     private final int minViewDistance = 1;
+    private final int minEntityDistance = 0;
 
     @Getter
     private File outputFile;
@@ -87,6 +86,24 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         return viewDistanceSlider.getValue() + minViewDistance;
     }
 
+    public final GuiSlider entityDistanceSlider = new GuiSlider()
+            .onValueChanged(this::setEntitySliderDistanceText).setSize(122, 20).setSteps(32 - minEntityDistance);
+
+    private void setEntitySliderDistanceText() {
+        String prefix = "Entity Radius (Chunks): ";
+        int distance = getEntityDistance();
+        String suffix = distance > 0 ? String.valueOf(distance) : "[use view distance]";
+        entityDistanceSlider.setText(prefix + suffix);
+    }
+
+    public void setEntityDistance(int entityDistance) {
+        entityDistanceSlider.setValue(entityDistance - minEntityDistance);
+    }
+
+    public int getEntityDistance() {
+        return entityDistanceSlider.getValue() + minEntityDistance;
+    }
+
     public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(new Runnable() {
         public void run() {
             lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
@@ -115,7 +132,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    viewDistanceSlider, lowerDepthSlider)
+                    viewDistanceSlider, entityDistanceSlider, lowerDepthSlider)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
 
     {
@@ -160,6 +177,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         setOutputFile(generateOutputFile());
         setViewDistance(client.options.getClampedViewDistance());
+        setEntityDistance(0);
         setLowerDepth(minLowerDepth);
     }
 
@@ -172,11 +190,16 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         ClientPlayerEntity player = client.player;
         ChunkSectionPos center = player != null ? ChunkSectionPos.from(player.getBlockPos()) : ChunkSectionPos.from(0,0,0);
 
-        CustomPipelines.replaySettings = ReplaySettings.builder()
+        var builder = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
                 .bounds(ChunkSectionBox.fromRadius(center, getViewDistance()))
-                .offset(center.getMinPos().multiply(-1))
-                .build();
+                .offset(center.getMinPos().multiply(-1));
+
+        if (getEntityDistance() > 0) {
+            builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance()).toBox());
+        }
+
+        CustomPipelines.replayExportSettings = builder.build();
 
         try {
             VideoRenderer renderer = new VideoRenderer(settings, replayHandler, timeline);

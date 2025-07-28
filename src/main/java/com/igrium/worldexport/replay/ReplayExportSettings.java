@@ -5,14 +5,16 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Builder
 @Getter
-public class ReplaySettings {
+public class ReplayExportSettings {
 
     /**
      * Replay output file/folder.
@@ -31,6 +33,20 @@ public class ReplaySettings {
      */
     @Builder.Default @NonNull
     private ChunkSectionBox bounds = ChunkSectionBox.ZERO;
+
+    /**
+     * An optional, additional bounding box to use to cull entity exports.
+     */
+    @Nullable @Getter
+    private Box entityBounds;
+
+    /**
+     * Get the bounding box that entities should be culled to.
+     * @return <code>entityBounds</code> if not null, otherwise <code>bounds.toBox()</code>
+     */
+    public Box entityBounds() {
+        return entityBounds != null ? entityBounds : bounds.toBox();
+    }
 
     /**
      * An offset to apply to the export

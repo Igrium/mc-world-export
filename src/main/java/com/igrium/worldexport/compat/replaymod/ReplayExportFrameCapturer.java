@@ -3,8 +3,7 @@ package com.igrium.worldexport.compat.replaymod;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
-import com.igrium.worldexport.replay.ReplaySettings;
-import com.igrium.worldexport.util.ExceptionUtils;
+import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
 import com.replaymod.render.frame.BitmapFrame;
@@ -33,13 +32,13 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     @Getter
     private final RenderInfo renderInfo;
-    private final ReplaySettings settings;
+    private final ReplayExportSettings settings;
 
     @Getter
     @Nullable
     private ReplayCapture replayCapture;
 
-    public ReplayExportFrameCapturer(@NonNull RenderInfo renderInfo, @NonNull ReplaySettings settings) {
+    public ReplayExportFrameCapturer(@NonNull RenderInfo renderInfo, @NonNull ReplayExportSettings settings) {
         this.renderInfo = renderInfo;
         this.settings = settings;
     }
