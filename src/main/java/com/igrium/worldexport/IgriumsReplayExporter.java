@@ -50,6 +50,10 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         }
     }
 
+    public void initReplayMod() {
+
+    }
+
     public ReplayCapture startRecording(World world, ReplaySettings settings) {
         activeRecording = new ReplayCapture(world, settings);
         activeRecording.beginCapture();

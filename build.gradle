@@ -17,6 +17,10 @@ repositories {
         name = "Terraformers"
         url = "https://maven.terraformersmc.com/"
     }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
 }
 
 dependencies {
@@ -32,7 +36,9 @@ dependencies {
 
     // For debugging exported replays
     modImplementation "com.github.igrium:craftui:db770015ca"
+//    modCompileOnly "com.github.igrium:craftui:db770015ca"
 
+    modImplementation "maven.modrinth:replaymod:${replaymod_version}"
 }
 
 processResources {

@@ -20,7 +20,8 @@
 		]
 	},
 	"mixins": [
-		"worldexport.mixins.json"
+		"worldexport.mixins.json",
+		"worldexport.replaymod.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.14.6",

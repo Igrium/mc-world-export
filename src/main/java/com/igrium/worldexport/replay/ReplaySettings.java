@@ -4,11 +4,27 @@ import com.igrium.worldexport.math.ChunkSectionBox;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.math.BlockPos;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Builder
 @Getter
 public class ReplaySettings {
+
+    /**
+     * Replay output file/folder.
+     */
+    @Builder.Default @NonNull
+    private Path exportPath = FabricLoader.getInstance().getGameDir().resolve("ReplayTest");
+
+    /**
+     * If set, output the replay into a zip file instead of spitting it into a folder.
+     */
+    @Builder.Default
+    private boolean exportZip = true;
 
     /**
      * The world-space bounds of the exported area.
