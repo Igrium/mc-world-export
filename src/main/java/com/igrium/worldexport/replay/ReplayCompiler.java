@@ -31,7 +31,9 @@ public class ReplayCompiler {
         CompiledReplay replay = new CompiledReplay();
         return compileWorld(replay)
                 .thenApply(this::compileEntities)
-                .thenCompose(this::compileTextures).thenApply(r -> {
+                .thenCompose(this::compileTextures)
+                .thenApply(this::packMtls)
+                .thenApply(r -> {
             LOGGER.info("Compiled replay export in {}ms", Util.getMeasuringTimeMs() - startTime);
             return r;
         });
@@ -57,11 +59,15 @@ public class ReplayCompiler {
         LOGGER.info("Extracting textures...");
         return replayCapture.getAllTextures().thenApply(map -> {
             replay.getTextures().putAll(map);
-            for (var mtlLibEntry : replayCapture.getMaterialHolder().getMtlLibs().entrySet()) {
-                replay.getMtlLibs().put(mtlLibEntry.getKey(), List.copyOf(mtlLibEntry.getValue().values()));
-            }
             return replay;
         });
+    }
+
+    private CompiledReplay packMtls(CompiledReplay replay) {
+        for (var mtlLibEntry : replayCapture.getMaterialHolder().getMtlLibs().entrySet()) {
+            replay.getMtlLibs().put(mtlLibEntry.getKey(), List.copyOf(mtlLibEntry.getValue().values()));
+        }
+        return replay;
     }
 
 

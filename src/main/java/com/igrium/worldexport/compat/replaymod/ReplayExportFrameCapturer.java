@@ -2,6 +2,7 @@ package com.igrium.worldexport.compat.replaymod;
 
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
+import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplaySettings;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
@@ -12,18 +13,19 @@ import com.replaymod.render.utils.ByteBufferPool;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class ExportFrameCapturer implements FrameCapturer<BitmapFrame> {
+public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExportFrameCapturer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayExportFrameCapturer.class);
 
     private int framesDone;
 
@@ -35,7 +37,7 @@ public class ExportFrameCapturer implements FrameCapturer<BitmapFrame> {
     @Nullable
     private ReplayCapture replayCapture;
 
-    public ExportFrameCapturer(@NonNull RenderInfo renderInfo, @NonNull ReplaySettings settings) {
+    public ReplayExportFrameCapturer(@NonNull RenderInfo renderInfo, @NonNull ReplaySettings settings) {
         this.renderInfo = renderInfo;
         this.settings = settings;
     }
@@ -82,6 +84,19 @@ public class ExportFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     public CompletableFuture<?> save() {
         ReplayCompiler compiler = new ReplayCompiler(replayCapture);
-        return CompletableFuture.completedFuture(null);
+
+        return compiler.compile().thenCompose(replay -> {
+            CompletableFuture<?> result;
+            if (settings.isExportZip()) {
+                Path exportPath = settings.getExportPath();
+                if (!exportPath.toString().endsWith(".zip"))
+                    exportPath = exportPath.resolveSibling(exportPath.getFileName() + ".zip");
+
+                result = ReplayIO.saveReplayZip(exportPath, replay, Util.getMainWorkerExecutor());
+            } else {
+                result = ReplayIO.saveReplayAsync(settings.getExportPath(), replay, Util.getMainWorkerExecutor());
+            }
+            return result;
+        });
     }
 }

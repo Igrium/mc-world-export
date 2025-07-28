@@ -65,7 +65,7 @@ public class ReplayExporter implements RenderInfo {
     private final Timeline timeline;
 
     @Getter
-    private final CapturePipeline pipeline;
+    private final ReplayExportPipeline pipeline;
 
     private TimelinePlayer timelinePlayer;
     private Future<Void> timelinePlayerFuture;
@@ -92,7 +92,7 @@ public class ReplayExporter implements RenderInfo {
         this.timeline = timeline;
 
         this.gui = new GuiReplayExporter(exportInfo);
-        this.pipeline = new CapturePipeline(new ReplayCapture(null, settings));
+        this.pipeline = new ReplayExportPipeline(settings, this);
     }
 
     /**
@@ -141,7 +141,7 @@ public class ReplayExporter implements RenderInfo {
 
     public void cancel() {
         this.cancelled = true;
-        pipeline.cancel();
+        pipeline.abort();
     }
 
     public boolean hasFailed() {
