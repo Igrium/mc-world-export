@@ -4,6 +4,7 @@ import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplaySettings;
+import com.igrium.worldexport.util.ExceptionUtils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
 import com.replaymod.render.frame.BitmapFrame;
@@ -18,10 +19,11 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
 public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
 
@@ -62,11 +64,10 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
 
     @Override
     public Map<Channel, BitmapFrame> process() {
+        float tickDelta = renderInfo.updateForNextFrame();
         if (!isSetup()) {
             setup();
         }
-
-        float tickDelta = renderInfo.updateForNextFrame();
 
         // Bogus frame to satisfy encoder.
         BitmapFrame frame = new BitmapFrame(framesDone++, new Dimension(0, 0), 0, ByteBufferPool.allocate(0));
@@ -77,9 +78,20 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
      * Close the resources associated with this capturer.
      */
     @Override
-    public void close() {
+    public void close() throws IOException {
         if (replayCapture != null)
             replayCapture.finish();
+
+        LOGGER.info("Saving replay to {}", settings.getExportPath());
+        try {
+            save().get(20, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            LOGGER.error("Replay export interrupted.");
+        } catch (ExecutionException e) {
+            throw new IOException("Error compiling replay:", e);
+        } catch (TimeoutException e) {
+            throw new IOException("Replay export timed out.");
+        }
     }
 
     public CompletableFuture<?> save() {

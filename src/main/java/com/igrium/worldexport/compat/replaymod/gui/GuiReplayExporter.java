@@ -1,5 +1,6 @@
-package com.igrium.worldexport.compat.replaymod;
+package com.igrium.worldexport.compat.replaymod.gui;
 
+import com.igrium.worldexport.compat.replaymod.ExportInfo;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;

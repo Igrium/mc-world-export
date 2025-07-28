@@ -3,7 +3,9 @@
   "package": "com.igrium.worldexport.compat.replaymod.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "MixinReplayMod"
+    "MixinGuiExportSettings",
+    "MixinReplayMod",
+    "MixinVideoRenderer"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Tolerate;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -15,6 +16,8 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +28,8 @@ import java.util.function.Predicate;
  * Manages the capturing entity movements.
  */
 public class EntityCapture {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityCapture.class);
+
     private final Map<EntityType<?>, ModelAdapter<?, ?>> modelAdapters = new HashMap<>();
 
     /**
@@ -80,9 +85,16 @@ public class EntityCapture {
      * @param tick The frame index in the replay file.
      */
     public void captureFrame(World world, int tick) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        client.getEntityRenderDispatcher().configure(world, client.gameRenderer.getCamera(), client.targetedEntity);
+
         var entities = world.getOtherEntities(null, bounds, entityPredicate);
         for (var entity : entities) {
-            captureEntity(entity, tick);
+            try {
+                captureEntity(entity, tick);
+            } catch (Exception e) {
+                LOGGER.error("Error capturing pose for entity {} on tick {}:", entity.getName(), tick, e);
+            }
         }
     }
 
