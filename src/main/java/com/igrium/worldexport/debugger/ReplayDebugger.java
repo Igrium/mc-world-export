@@ -98,6 +98,9 @@ public final class ReplayDebugger extends CraftApp {
         // MENU BAR
         if (ImGui.beginMenuBar()) {
             if (ImGui.beginMenu("File")) {
+                if (ImGui.menuItem("Open Replay"))
+                    showFileSelector();
+
                 if (ImGui.menuItem("Open Unpacked Replay"))
                     showFolderSelector();
 
@@ -129,6 +132,12 @@ public final class ReplayDebugger extends CraftApp {
                 .thenAccept(opt -> opt.ifPresent(s -> loadReplayFolder(Paths.get(s))));
     }
 
+    private void showFileSelector() {
+        String gameDir = FabricLoader.getInstance().getGameDir().toString();
+        FileDialogs.showOpenDialog(gameDir, new FileDialogs.FileFilter("Zip Files", "zip"))
+                .thenAccept(opt -> opt.ifPresent(s -> loadReplayZip(Paths.get(s))));
+    }
+
     public void openReplay(CompiledReplay replay) {
         setSelectedMaterial(MaterialSelectionReference.EMPTY);
         selectedModelParts.clear();
@@ -140,6 +149,18 @@ public final class ReplayDebugger extends CraftApp {
         LOGGER.info("Opening replay from {}", replayRoot);
         long startTime = Util.getMeasuringTimeMs();
         ReplayIO.loadReplayAsync(replayRoot, Util.getMainWorkerExecutor())
+                .thenAcceptAsync(this::openReplay, MinecraftClient.getInstance())
+                .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMeasuringTimeMs() - startTime))
+                .exceptionally(e -> {
+                    LOGGER.error("Error opening replay.", e);
+                    return null;
+                });
+    }
+
+    public void loadReplayZip(Path zipFile) {
+        LOGGER.info("Opening replay from {}", zipFile);
+        long startTime = Util.getMeasuringTimeMs();
+        ReplayIO.loadReplayZip(zipFile, Util.getMainWorkerExecutor())
                 .thenAcceptAsync(this::openReplay, MinecraftClient.getInstance())
                 .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMeasuringTimeMs() - startTime))
                 .exceptionally(e -> {

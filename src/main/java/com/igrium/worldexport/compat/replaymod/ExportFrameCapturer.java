@@ -1,0 +1,87 @@
+package com.igrium.worldexport.compat.replaymod;
+
+import com.igrium.worldexport.replay.ReplayCapture;
+import com.igrium.worldexport.replay.ReplayCompiler;
+import com.igrium.worldexport.replay.ReplaySettings;
+import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
+import com.replaymod.render.capturer.RenderInfo;
+import com.replaymod.render.frame.BitmapFrame;
+import com.replaymod.render.rendering.Channel;
+import com.replaymod.render.rendering.FrameCapturer;
+import com.replaymod.render.utils.ByteBufferPool;
+import lombok.Getter;
+import lombok.NonNull;
+import net.minecraft.client.MinecraftClient;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+public class ExportFrameCapturer implements FrameCapturer<BitmapFrame> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExportFrameCapturer.class);
+
+    private int framesDone;
+
+    @Getter
+    private final RenderInfo renderInfo;
+    private final ReplaySettings settings;
+
+    @Getter
+    @Nullable
+    private ReplayCapture replayCapture;
+
+    public ExportFrameCapturer(@NonNull RenderInfo renderInfo, @NonNull ReplaySettings settings) {
+        this.renderInfo = renderInfo;
+        this.settings = settings;
+    }
+
+    public void setup() {
+        if (replayCapture != null) {
+            throw new IllegalStateException("Capture has already been setup.");
+        }
+
+        replayCapture = new ReplayCapture(MinecraftClient.getInstance().world, settings);
+        replayCapture.beginCapture();
+    }
+
+    public boolean isSetup() {
+        return replayCapture != null;
+    }
+
+    @Override
+    public boolean isDone() {
+        return framesDone >= renderInfo.getTotalFrames();
+    }
+
+    @Override
+    public Map<Channel, BitmapFrame> process() {
+        if (!isSetup()) {
+            setup();
+        }
+
+        float tickDelta = renderInfo.updateForNextFrame();
+
+        // Bogus frame to satisfy encoder.
+        BitmapFrame frame = new BitmapFrame(framesDone++, new Dimension(0, 0), 0, ByteBufferPool.allocate(0));
+        return Collections.singletonMap(Channel.BRGA, frame);
+    }
+
+    /**
+     * Close the resources associated with this capturer.
+     */
+    @Override
+    public void close() {
+        if (replayCapture != null)
+            replayCapture.finish();
+    }
+
+    public CompletableFuture<?> save() {
+        ReplayCompiler compiler = new ReplayCompiler(replayCapture);
+        return CompletableFuture.completedFuture(null);
+    }
+}

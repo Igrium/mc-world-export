@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -24,6 +26,30 @@ public class ReplayIO {
     private static final Gson GSON = new Gson();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayIO.class);
+
+    public record ZipFileRoot(FileSystem fileSystem, Path root) implements Closeable {
+
+        @Override
+        public void close() throws IOException {
+            fileSystem.close();
+        }
+    }
+
+    public static ZipFileRoot openZipFile(Path zipFile, boolean create) throws IOException {
+        Map<String, String> env = new HashMap<>();
+        if (create) {
+            env.put("create", "true");
+        }
+        FileSystem fs = FileSystems.newFileSystem(zipFile, env);
+
+        Iterator<Path> roots = fs.getRootDirectories().iterator();
+        if (!roots.hasNext()) {
+            throw new IOException("File system has no root directories.");
+        }
+        Path root = roots.next();
+
+        return new ZipFileRoot(fs, root);
+    }
 
     public static CompletableFuture<?> saveReplayAsync(Path root, CompiledReplay replay, Executor executor) {
         try {
@@ -37,6 +63,23 @@ public class ReplayIO {
                 .thenRun(() -> saveMtls(root, replay));
     }
 
+    public static CompletableFuture<?> saveReplayZip(Path zipFile, CompiledReplay replay, Executor executor) {
+        ZipFileRoot zip;
+        try {
+            zip = openZipFile(zipFile, true);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        return saveReplayAsync(zip.root, replay, executor).whenComplete((rex, ex) -> {
+            try {
+                zip.close();
+            } catch (IOException e) {
+                throw ExceptionUtils.sneakyThrow(e); // Will get handled by the completablefuture.
+            }
+        });
+    }
+
     public static CompletableFuture<CompiledReplay> loadReplayAsync(Path root, Executor executor) {
         CompiledReplay replay = new CompiledReplay();
         return loadWorldAsync(root, replay, executor)
@@ -45,6 +88,25 @@ public class ReplayIO {
                 .thenRun(() -> loadMtls(root, replay))
                 .thenApply(v -> replay);
     }
+
+    public static CompletableFuture<CompiledReplay> loadReplayZip(Path zipFile, Executor executor) {
+        ZipFileRoot zip;
+        try {
+            zip = openZipFile(zipFile, false);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+
+        return loadReplayAsync(zip.root, executor).whenComplete((res, ex) -> {
+            try {
+                zip.close();
+            } catch (IOException e) {
+                throw ExceptionUtils.sneakyThrow(e); // Will get handled by the completablefuture.
+            }
+        });
+    }
+
+
 
     /**
      * Maps world mesh names to their metadata. All meshes must be present, even with empty metadata.

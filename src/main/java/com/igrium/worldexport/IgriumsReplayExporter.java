@@ -69,8 +69,8 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         ReplayCompiler compiler = new ReplayCompiler(activeRecording);
         return compiler.compile().thenCompose(r -> {
             activeRecording = null;
-            return ReplayIO.saveReplayAsync(
-                    FabricLoader.getInstance().getGameDir().resolve("ReplayTest"), r, Util.getIoWorkerExecutor());
+            return ReplayIO.saveReplayZip(
+                    FabricLoader.getInstance().getGameDir().resolve("ReplayTest.zip"), r, Util.getIoWorkerExecutor());
         }).exceptionally(e -> {
             LOGGER.error("Error saving replay: ", e);
             return null;
