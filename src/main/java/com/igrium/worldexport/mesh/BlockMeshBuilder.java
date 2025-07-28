@@ -48,7 +48,7 @@ public class BlockMeshBuilder {
         vertexConsumer.setEnableNormals(false);
 
         if (offset != null) {
-            vertexConsumer.matrices.translate(-offset.getX(), -offset.getY(), -offset.getZ());
+            vertexConsumer.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
         }
 
         for (BlockPos pos : blocks) {

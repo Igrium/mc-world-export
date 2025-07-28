@@ -175,7 +175,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         CustomPipelines.replaySettings = ReplaySettings.builder()
                 .exportPath(outputFile.toPath())
                 .bounds(ChunkSectionBox.fromRadius(center, getViewDistance()))
-                .offset(center.getMinPos())
+                .offset(center.getMinPos().multiply(-1))
                 .build();
 
         try {
