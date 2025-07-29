@@ -4,6 +4,4 @@ The replay exporter exports the following custom properties with various materia
 
 - `glint: bool` Signals the importer to apply an enchantment glint shader.
 
-- `renderMode: 'dithered' | 'blended'` Specifies whether to use a dithered blending mode or an alpha blend. If unset, decision is left to the importer.
-
-
+- `renderMode: 'dithered' | 'blended'` Specifies whether to use a dithered blending mode or an alpha blend. Default: 'dithered'

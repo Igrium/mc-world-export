@@ -26,9 +26,14 @@ def import_entities(context: ReplayImportContext):
     with open(json_path, 'r') as file:
         entity_json: dict[str, dict[str, str]] = json.load(file)
     
+    i = 1
+    num_ents = len(entity_json)
     for name, parents in entity_json.items():
+        print(f"Importing entity {i}/{num_ents} ({name})")
         entity = CapturedEntity(name)
         entity.parents = parents
         
         entity.load(dir, context)
         entity.apply_animation(context)
+        
+        i += 1

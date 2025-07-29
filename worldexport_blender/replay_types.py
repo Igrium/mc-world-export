@@ -1,5 +1,14 @@
+import bpy
+
 from dataclasses import dataclass, field
-from bpy.types import Context, Collection
+from bpy.types import Context, Collection, ShaderNodeTree
+
+class PrefabDatablocks:
+    mul_vertex_color: ShaderNodeTree
+
+    def clear_unused(self):
+        if self.mul_vertex_color and self.mul_vertex_color.users == 0:
+            bpy.data.node_groups.remove(self.mul_vertex_color)
 
 @dataclass
 class ReplayImportSettings:
@@ -29,6 +38,8 @@ class ReplayImportContext:
     bl_context: Context
     world_collection: Collection
     entity_collection: Collection
+    
+    prefabs: PrefabDatablocks
     
     settings: ReplayImportSettings = field(default_factory=lambda: ReplayImportSettings())
     
