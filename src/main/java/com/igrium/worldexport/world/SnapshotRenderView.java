@@ -24,7 +24,7 @@ public class SnapshotRenderView implements BlockRenderView {
 
     @Override
     public float getBrightness(Direction direction, boolean shaded) {
-        return 15;
+        return world.getBrightness(direction, shaded);
     }
 
     @Override

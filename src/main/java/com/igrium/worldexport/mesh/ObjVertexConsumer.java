@@ -66,6 +66,11 @@ public class ObjVertexConsumer implements VertexConsumer {
 
     @Override
     public ObjVertexConsumer color(int red, int green, int blue, int alpha) {
+        return color(red / 255f, green / 255f, blue / 255f, alpha / 255f);
+    }
+
+    @Override
+    public ObjVertexConsumer color(float red, float green, float blue, float alpha) {
         colorCache[head] = new float[]{red, green, blue};
         return this;
     }
