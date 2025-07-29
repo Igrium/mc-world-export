@@ -26,6 +26,7 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
         temp_dir = None
         replay_root = file
     
+    existing_meshes = set(bpy.data.meshes)
     existing_tex = set(bpy.data.images)
     existing_mats = set(bpy.data.materials)
     
@@ -43,15 +44,30 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     world_importer.import_world(replay_root)
     entity_loader.import_entities(context)
     
+    new_meshes = set(bpy.data.meshes) - existing_meshes
     new_mats = set(bpy.data.materials) - existing_mats
     new_tex = set(bpy.data.images) - existing_tex
+    
+    materials.merge_duplicate_materials(new_meshes)
     
     if settings.process_materials:
         materials.process_materials(new_mats)
         
+    # Cleanup excess datablocks
+    orphaned_meshes = [m for m in new_meshes if m.users == 0]
+    bpy.data.batch_remove(orphaned_meshes)
+    
+    orphaned_mats = [m for m in new_mats if m.users == 0]
+    bpy.data.batch_remove(orphaned_mats)
+    
+    orphaned_tex = [t for t in new_tex if t.users == 0]
+    bpy.data.batch_remove(orphaned_tex)
+    
     if temp_dir:
         
         for tex in new_tex:
-            tex.pack()
+            if tex not in orphaned_tex:
+                tex.pack()
         
         temp_dir.cleanup()
+        
