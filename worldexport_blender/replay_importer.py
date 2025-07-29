@@ -50,9 +50,6 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     
     materials.merge_duplicate_materials(new_meshes)
     
-    if settings.process_materials:
-        materials.process_materials(new_mats)
-        
     # Cleanup excess datablocks
     orphaned_meshes = [m for m in new_meshes if m.users == 0]
     bpy.data.batch_remove(orphaned_meshes)
@@ -63,8 +60,11 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     orphaned_tex = [t for t in new_tex if t.users == 0]
     bpy.data.batch_remove(orphaned_tex)
     
+    if settings.process_materials:
+        materials.process_materials(replay_root, filter(lambda m: m not in orphaned_mats, new_mats))
+    
+    
     if temp_dir:
-        
         for tex in new_tex:
             if tex not in orphaned_tex:
                 tex.pack()
