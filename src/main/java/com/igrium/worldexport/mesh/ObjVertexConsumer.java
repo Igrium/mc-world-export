@@ -6,7 +6,6 @@ import lombok.Setter;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 /**
@@ -54,7 +53,7 @@ public class ObjVertexConsumer implements VertexConsumer {
     @Override
     public ObjVertexConsumer vertex(float x, float y, float z) {
         isInitialized = true;
-        tryEndVertex();
+        tryEndFace();
         head++;
         posCache.set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
         vertCache[head] = new float[]{posCache.x(), posCache.y(), posCache.z()};
@@ -98,11 +97,11 @@ public class ObjVertexConsumer implements VertexConsumer {
         return this;
     }
 
-    public void end() {
-        tryEndVertex();
+    public void pushFace() {
+        tryEndFace();
     }
 
-    private void tryEndVertex() {
+    private void tryEndFace() {
         if (head >= 3) {
             int objHead = baseObj.getNumVertices();
             int[] indices = new int[4];

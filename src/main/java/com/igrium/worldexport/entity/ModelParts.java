@@ -101,7 +101,7 @@ public class ModelParts {
         for (var cuboid : getCuboids(modelPart)) {
             cuboid.renderCuboid(MeshUtils.IDENTITY_ENTRY, vertexConsumer, 255, 0, Integer.MAX_VALUE);
         }
-        vertexConsumer.end();
+        vertexConsumer.pushFace();
         return targetMesh;
     }
 

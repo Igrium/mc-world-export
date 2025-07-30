@@ -76,9 +76,9 @@ public class BlockMeshBuilder {
             matrixStack.push();
             matrixStack.translate(pos.getX(), pos.getY(), pos.getZ());
             blockRenderManager.renderBlock(state, pos, world, matrixStack, vertexConsumer, true, random);
+            vertexConsumer.pushFace(); // Make sure the right material is applied to the last face rendered
             matrixStack.pop();
         }
-        vertexConsumer.end();
     }
 
     /**
