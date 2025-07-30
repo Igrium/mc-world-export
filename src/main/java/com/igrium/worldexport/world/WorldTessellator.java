@@ -16,9 +16,13 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasTexture;
 import net.minecraft.screen.PlayerScreenHandler;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -26,6 +30,8 @@ import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.BlockRenderView;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +49,7 @@ public class WorldTessellator {
 
     public static final String WORLD = "world";
     public static final String WORLD_TRANS = "world_trans";
+    public static final String GRASS_MAT = "grass_block";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WorldTessellator.class);
 
@@ -109,7 +116,11 @@ public class WorldTessellator {
     }
 
     public String getDefaultMaterialName(BlockState state) {
-        return state.isTransparent() ? WORLD_TRANS : WORLD;
+        if (state.isOf(Blocks.GRASS_BLOCK)) {
+            return GRASS_MAT;
+        } else {
+            return state.isTransparent() ? WORLD_TRANS : WORLD;
+        }
     }
 
     /**
@@ -128,12 +139,27 @@ public class WorldTessellator {
         worldTrans.mtl().setMapKd("world.png");
         worldTrans.mtl().setMapD("world.png");
         worldTrans.properties().put("vertexTint", ReplayMtl.Property.of(true));
-
         mtls.add(worldTrans);
 
-        // TODO: Figure out how to define tint.
+        // Grass material
+        ReplayMtl grassBlock = new ReplayMtl(Mtls.create(GRASS_MAT));
+        grassBlock.mtl().setMapKd("world.png");
+        grassBlock.properties().put("vertexTint", ReplayMtl.Property.of(true));
 
+        Vector2f overlayOffset = getGrassOverlayOffset(new Vector2f());
+        grassBlock.properties().put("grassOverlayU", ReplayMtl.Property.of(overlayOffset.x));
+        grassBlock.properties().put("grassOverlayV", ReplayMtl.Property.of(overlayOffset.y));
+        mtls.add(grassBlock);
         return mtls;
+    }
+
+    @SuppressWarnings("deprecation")
+    private Vector2f getGrassOverlayOffset(Vector2f dest) {
+        var atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
+        Sprite sideSprite = atlas.getSprite(Identifier.ofVanilla("block/grass_block_side"));
+        Sprite overlaySprite = atlas.getSprite(Identifier.ofVanilla("block/grass_block_side_overlay"));
+
+        return dest.set(overlaySprite.getMinU() - sideSprite.getMinU(), overlaySprite.getMinV() - sideSprite.getMinV());
     }
 
     /**

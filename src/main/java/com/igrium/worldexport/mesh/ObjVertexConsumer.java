@@ -32,9 +32,6 @@ public class ObjVertexConsumer implements VertexConsumer {
     @Getter @Setter
     private boolean enableColors = true;
 
-    @Getter @Setter
-    private @Nullable String material;
-
     private boolean isInitialized;
 
     public final MatrixStack matrices = new MatrixStack();
