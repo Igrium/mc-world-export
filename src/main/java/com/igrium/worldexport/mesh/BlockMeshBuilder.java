@@ -45,10 +45,13 @@ public class BlockMeshBuilder {
 
 
         ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
+        DuplicateCheckingVertexConsumer duplicateChecker = new DuplicateCheckingVertexConsumer(vertexConsumer);
+
         vertexConsumer.setEnableNormals(false);
 
         if (offset != null) {
             vertexConsumer.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
+            duplicateChecker.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
         }
 
         for (BlockPos pos : blocks) {
@@ -72,11 +75,14 @@ public class BlockMeshBuilder {
                 targetMesh.setActiveGroupNames(List.of(id.toString()));
             }
 
+            // Special case needed for grass rendering
+            var vc = state.isOf(Blocks.GRASS_BLOCK) ? duplicateChecker : vertexConsumer;
+
             targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
             matrixStack.push();
             matrixStack.translate(pos.getX(), pos.getY(), pos.getZ());
-            blockRenderManager.renderBlock(state, pos, world, matrixStack, vertexConsumer, true, random);
-            vertexConsumer.pushFace(); // Make sure the right material is applied to the last face rendered
+            blockRenderManager.renderBlock(state, pos, world, matrixStack, vc, true, random);
+            vc.pushFace();
             matrixStack.pop();
         }
     }

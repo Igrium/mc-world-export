@@ -116,11 +116,7 @@ public class WorldTessellator {
     }
 
     public String getDefaultMaterialName(BlockState state) {
-        if (state.isOf(Blocks.GRASS_BLOCK)) {
-            return GRASS_MAT;
-        } else {
-            return state.isTransparent() ? WORLD_TRANS : WORLD;
-        }
+        return state.isTransparent() ? WORLD_TRANS : WORLD;
     }
 
     /**
