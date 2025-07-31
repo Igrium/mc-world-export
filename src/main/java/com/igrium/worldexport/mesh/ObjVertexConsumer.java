@@ -3,132 +3,60 @@ package com.igrium.worldexport.mesh;
 import de.javagl.obj.Obj;
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.Vec3d;
-import org.joml.Vector3f;
+import org.joml.Vector2fc;
+import org.joml.Vector3fc;
 
-/**
- * A vertex consumer that feeds vertices into an OBJ.
- */
-public class ObjVertexConsumer implements VertexConsumer {
+public class ObjVertexConsumer extends FaceVertexConsumer {
 
     @Getter
-    private final Obj baseObj;
+    private final Obj obj;
 
-    private final Vector3f posCache = new Vector3f();
-
-    @Getter
-    private boolean enableNormals = true;
-
-    public void setEnableNormals(boolean enableNormals) {
-        if (isInitialized) {
-            throw new IllegalStateException("Can't toggle normals after verts have been written");
-        }
-        this.enableNormals = enableNormals;
-    }
+    private boolean initialized;
 
     @Getter @Setter
     private boolean enableColors = true;
 
-    private boolean isInitialized;
+    @Getter
+    private boolean enableNormals = false;
 
-    public final MatrixStack matrices = new MatrixStack();
-
-    float[][] vertCache = new float[4][];
-    float[][] colorCache = new float[4][];
-    float[][] normalCache = new float[4][];
-    float[][] texCache = new float[4][];
-    private int head = -1;
-
-    public ObjVertexConsumer(Obj baseObj, Vec3d offset) {
-        this.baseObj = baseObj;
-        matrices.translate(offset.x, offset.y, offset.z);
+    public void setEnableNormals(boolean enableNormals) {
+        if (initialized) {
+            throw new IllegalStateException("Can't toggle normals after faces have been written.");
+        }
+        this.enableNormals = enableNormals;
     }
 
-    public ObjVertexConsumer(Obj baseObj) {
-        this.baseObj = baseObj;
+    public ObjVertexConsumer(Obj obj) {
+        this.obj = obj;
     }
 
     @Override
-    public ObjVertexConsumer vertex(float x, float y, float z) {
-        isInitialized = true;
-        tryEndFace();
-        head++;
-        posCache.set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
-        vertCache[head] = new float[]{posCache.x(), posCache.y(), posCache.z()};
-        return this;
-    }
+    protected void handleFace(Vector3fc[] vertices, Vector3fc[] colors, Vector3fc[] normals, Vector2fc[] texCoords) {
+        initialized = true;
+        int objHead = obj.getNumVertices();
+        int[] indices = new int[4];
 
-    @Override
-    public ObjVertexConsumer color(int red, int green, int blue, int alpha) {
-        return color(red / 255f, green / 255f, blue / 255f, alpha / 255f);
-    }
+        for (int i = 0; i < 4; i++) {
+            indices[i] = objHead + i;
 
-    @Override
-    public ObjVertexConsumer color(float red, float green, float blue, float alpha) {
-        colorCache[head] = new float[]{red, green, blue};
-        return this;
-    }
-
-    @Override
-    public ObjVertexConsumer texture(float u, float v) {
-        texCache[head] = new float[]{u, v};
-        return this;
-    }
-
-    @Override
-    public ObjVertexConsumer overlay(int u, int v) {
-        return this;
-    }
-
-    @Override
-    public ObjVertexConsumer light(int u, int v) {
-        return this;
-    }
-
-    @Override
-    public ObjVertexConsumer normal(float x, float y, float z) {
-        if (!enableNormals)
-            return this;
-        Vector3f vec = new Vector3f(x, y, z).mulDirection(matrices.peek().getPositionMatrix());
-        vec = vec.normalize();
-        normalCache[head] = new float[]{vec.x(), vec.y(), vec.z()};
-        return this;
-    }
-
-    public void pushFace() {
-        tryEndFace();
-    }
-
-    private void tryEndFace() {
-        if (head >= 3) {
-            int objHead = baseObj.getNumVertices();
-            int[] indices = new int[4];
-
-            for (int i = 0; i < 4; i++) {
-                indices[i] = objHead + i;
-                // Per Blender standard, colors get stored with the vertex.
-                if (enableColors) {
-                    baseObj.addVertex(new ColoredVertex(vertCache[i][0], vertCache[i][1], vertCache[i][2],
-                            colorCache[i][0], colorCache[i][1], colorCache[i][2]));
-                } else {
-                    baseObj.addVertex(vertCache[i][0], vertCache[i][1], vertCache[i][2]);
-                }
-
-                if (enableNormals) {
-                    baseObj.addNormal(normalCache[i][0], normalCache[i][1], normalCache[i][2]);
-                }
-                baseObj.addTexCoord(texCache[i][0], 1 - texCache[i][1]);
+            // Per Blender standard, colors get stored with the vertex.
+            if (enableColors) {
+                obj.addVertex(new ColoredVertex(vertices[i], colors[i]));
+            } else {
+                obj.addVertex(vertices[i].x(), vertices[i].y(), vertices[i].z());
             }
-
 
             if (enableNormals) {
-                baseObj.addFace(indices, indices, indices);
-            } else {
-                baseObj.addFace(indices, indices, null);
+                obj.addNormal(normals[i].x(), normals[i].y(), normals[i].z());
             }
-            head = -1;
+
+            obj.addTexCoord(texCoords[i].x(), 1 - texCoords[i].y());
+        }
+
+        if (enableNormals) {
+            obj.addFace(indices, indices, indices);
+        } else {
+            obj.addFace(indices, indices, null);
         }
     }
 }
