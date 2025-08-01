@@ -12,6 +12,7 @@ import org.joml.Vector3f;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public class ModelParts {
 
@@ -67,10 +68,27 @@ public class ModelParts {
      * @apiNote The parent part <em>is</em> included in the enumeration.
      */
     public static void forEachPart(ModelPart part, String rootName, BiConsumer<String, ModelPart> partConsumer) {
+        forEachPart(part, rootName, partConsumer, p -> true);
+    }
+
+    /**
+     * Iterate over a model part and all its children.
+     *
+     * @param part         Root part.
+     * @param rootName     Name of the root part.
+     * @param partConsumer A consumer that accepts child part path and object.
+     * @param predicate    A predicate to test whether iteration should continue over a given part.
+     *                     The first part to return false will have itself and its children excluded from iteration.
+     * @apiNote The parent part <em>is</em> included in the enumeration.
+     */
+    public static void forEachPart(ModelPart part, String rootName, BiConsumer<String, ModelPart> partConsumer, Predicate<ModelPart> predicate) {
+        if (!predicate.test(part))
+            return;
+
         partConsumer.accept(rootName, part);
         for (var childEntry : getChildren(part).entrySet()) {
             String childPath = rootName + "/" + childEntry.getKey();
-            forEachPart(childEntry.getValue(), childPath, partConsumer);
+            forEachPart(childEntry.getValue(), childPath, partConsumer, predicate);
         }
     }
 

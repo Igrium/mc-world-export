@@ -91,6 +91,8 @@ public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends Bip
                 return mtl;
             });
 
+            renderAccessor().invokeSetVisible(armorModel, slot);
+
             // Create part meshes
             ModelParts.forEachPart(armorModel.getRootPart(), "root", (path, part) -> {
                 String armorPath = Registries.ITEM.getId(stack.getItem()) + "." + path;
@@ -105,7 +107,7 @@ public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends Bip
 
                 // Bogus frame to make sure it stays visible
                 capture.addFrame(armorPath, tick, AnimationCurve.CurveFormat.POS, POS_IDENTITY, null, null);
-            });
+            }, p -> p.visible);
         }
     }
 
