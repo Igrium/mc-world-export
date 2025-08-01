@@ -75,7 +75,7 @@ public class ReplayCompiler {
         String name = baseName;
         int conflictIndex = 1;
         while (existing.contains(name)) {
-            name = baseName + String.format("%03d", conflictIndex);
+            name = baseName + "." + String.format("%03d", conflictIndex);
             conflictIndex++;
         }
         return name;

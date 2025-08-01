@@ -1,5 +1,6 @@
 package com.igrium.worldexport.entity;
 
+import com.igrium.worldexport.event.EntityCaptureEvents;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
@@ -99,6 +100,9 @@ public class EntityCapture {
     }
 
     private <T extends Entity> void captureEntity(T entity, int tick) {
+        if (!EntityCaptureEvents.BEFORE_CAPTURE_ENTITY.invoker().beforeCaptureEntity(this, entity, tick)) {
+            return;
+        }
         var modelAdapter = getModelAdapter(entity);
         captureModelAdapter(modelAdapter, entity, tick);
     }

@@ -2,12 +2,15 @@ package com.igrium.worldexport;
 
 import com.igrium.worldexport.command.ProfileDiffsCommand;
 import com.igrium.worldexport.command.WorldCaptureCommand;
+import com.igrium.worldexport.compat.replaymod.ReplayModHooks;
+import com.igrium.worldexport.compat.replaymod.ReplayModInterop;
 import com.igrium.worldexport.debugger.ReplayDebugger;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplayExportSettings;
+import com.replaymod.core.ReplayMod;
 import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -48,10 +51,10 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         if (FabricLoader.getInstance().isModLoaded("craftui")) {
             ReplayDebugger.registerMenuButton();
         }
-    }
 
-    public void initReplayMod() {
-
+        if (FabricLoader.getInstance().isModLoaded("replaymod")) {
+            ReplayModHooks.onInit(ReplayModInterop::onInitReplayMod);
+        }
     }
 
     public ReplayCapture startRecording(World world, ReplayExportSettings settings) {
