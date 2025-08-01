@@ -29,13 +29,6 @@ def load_obj_python(context: Context, filepath: str, use_split_objects=False, us
 def convert_coords(x: float, y: float, z: float):
     return (x, -z, y)
 
-def tick_to_frame(tick: int, context: Context) -> float:
-    scene = context.scene
-    if (scene == None):
-        return tick
-    
-    return (tick * scene.render.fps) / scene.render.fps_base
-
 def add_vis_keyframe(obj: Object, visible: bool, frame: float):
     obj.hide_viewport = not visible
     obj.hide_render = not visible

@@ -46,7 +46,7 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     
     context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection, prefab_datablcks)
     
-    world_importer.import_world(replay_root)
+    world_importer.import_world(context)
     entity_loader.import_entities(context)
     
     new_meshes = set(bpy.data.meshes) - existing_meshes
