@@ -4,6 +4,7 @@ import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.WorldMaterialFactory;
+import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
@@ -127,19 +128,19 @@ public class WorldTessellator {
         List<ReplayMtl> mtls = new ArrayList<>(2);
 
         ReplayMtl world = new ReplayMtl(Mtls.create(WORLD));
-        world.mtl().setMapKd("world.png");
+        world.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         world.properties().put("vertexTint", ReplayMtl.Property.of(true));
         mtls.add(world);
 
         ReplayMtl worldTrans = new ReplayMtl(Mtls.create(WORLD_TRANS));
-        worldTrans.mtl().setMapKd("world.png");
-        worldTrans.mtl().setMapD("world.png");
+        worldTrans.mtl().setMapKd(ReplayCapture.WORLD_TEX);
+        worldTrans.mtl().setMapD(ReplayCapture.WORLD_TEX);
         worldTrans.properties().put("vertexTint", ReplayMtl.Property.of(true));
         mtls.add(worldTrans);
 
         // Grass material
         ReplayMtl grassBlock = new ReplayMtl(Mtls.create(GRASS_MAT));
-        grassBlock.mtl().setMapKd("world.png");
+        grassBlock.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         grassBlock.properties().put("vertexTint", ReplayMtl.Property.of(true));
 
         Vector2f overlayOffset = getGrassOverlayOffset(new Vector2f());

@@ -134,6 +134,11 @@ public class ReplayCapture {
     }
 
     /**
+     * The replay texture name of the world atlas texture.
+     */
+    public static String WORLD_TEX = "world.png";
+
+    /**
      * Capture the base world and begin tessellating base meshes.
      */
     public void beginCapture() {
@@ -158,7 +163,7 @@ public class ReplayCapture {
         gameTick = 0;
 
 
-        materialHolder.getTextures().put("world.png", worldTessellator.getDefaultWorldTexture());
+        materialHolder.getTextures().put(WORLD_TEX, worldTessellator.getDefaultWorldTexture());
         materialHolder.putMtlLib("world.mtl", worldTessellator.getDefaultWorldMtls());
 
         activeCaptures.add(this);

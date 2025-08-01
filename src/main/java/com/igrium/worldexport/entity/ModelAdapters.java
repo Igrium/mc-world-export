@@ -2,11 +2,14 @@ package com.igrium.worldexport.entity;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.igrium.worldexport.entity.models.ItemModelAdapter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.render.entity.ItemEntityRenderer;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ItemEntity;
 import org.jetbrains.annotations.Nullable;
 
 public class ModelAdapters {
@@ -47,20 +50,7 @@ public class ModelAdapters {
 
     // The amount of effort it takes to juggle all these generics is INSANE
 
-//    @SuppressWarnings("unchecked")
-//    public static <T extends Entity> ModelAdapter<? super T, ?> createModelAdapter(EntityType<T> entityType) {
-//        var factory = getFactory(entityType);
-//        if (factory != null) {
-//            return factory.get();
-//        } else if (LivingEntity.class.isAssignableFrom(entityType.getBaseClass())) {
-//            EntityRenderer<?, ?> renderer = ((AccessorEntityRenderDispatcher) MinecraftClient.getInstance()
-//                    .getEntityRenderDispatcher()).getRenderers().get(entityType);
-//
-//            if (renderer instanceof LivingEntityRenderer livingRenderer) {
-//                return modelAdapterFromRenderer(livingRenderer);
-//            }
-//        }
-//        // TODO: Dynamic model adapter generation
-//        return new BasicModelAdapter<>();
-//    }
+    static {
+        register(EntityType.ITEM, r -> new ItemModelAdapter((ItemEntityRenderer) r));
+    }
 }

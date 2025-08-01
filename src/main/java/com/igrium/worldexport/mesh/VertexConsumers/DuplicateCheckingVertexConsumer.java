@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.VertexConsumers;
 
 import lombok.Getter;
 import org.joml.Vector2fc;
@@ -15,7 +15,6 @@ import java.util.Map;
  * @implNote <code>consumer.handleFace</code> is called directly, so offsets in the base consumer won't apply.
  */
 public class DuplicateCheckingVertexConsumer extends FaceVertexConsumer {
-
 
     private record QuadVerts(Vector3fc a, Vector3fc b, Vector3fc c, Vector3fc d) {
         static QuadVerts fromArray(Vector3fc[] array) {

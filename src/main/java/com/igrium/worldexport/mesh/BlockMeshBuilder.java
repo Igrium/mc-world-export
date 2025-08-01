@@ -1,6 +1,8 @@
 package com.igrium.worldexport.mesh;
 
 import com.google.common.collect.AbstractIterator;
+import com.igrium.worldexport.mesh.VertexConsumers.DuplicateCheckingVertexConsumer;
+import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import de.javagl.obj.Obj;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;

@@ -40,6 +40,8 @@ public class TextureExtractor {
         int width = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_WIDTH);
         int height = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_HEIGHT);
 
+        // TODO: Because NativeImage isn't garbage collected, pulling textures like this can cause a memory leak.
+        // We do it somewhat rarely though, so it's probably fine.
         NativeImage image = new NativeImage(width, height, false);
         image.loadFromTextureImage(0, false);
 

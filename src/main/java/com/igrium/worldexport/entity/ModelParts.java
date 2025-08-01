@@ -2,7 +2,7 @@ package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.mesh.MeshUtils;
-import com.igrium.worldexport.mesh.ObjVertexConsumer;
+import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import com.igrium.worldexport.mixin.AccessorModelPart;
 import de.javagl.obj.Obj;
 import net.minecraft.client.model.ModelPart;
