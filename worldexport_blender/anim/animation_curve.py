@@ -4,36 +4,24 @@ import struct
 from typing import BinaryIO, Callable, TypeAlias
 from bpy.types import Action
 from ..replay_importer import ReplayImportContext
-
-# class OrdinalEnum(Enum):
-#     """Extension of Enum that lets you look up members by their ordinal index."""
-#     @classmethod
-#     def from_ordinal(cls: Type[T], ordinal: int) -> T:
-#         members = list(cls)
-#         try:
-#             return members[ordinal]
-#         except IndexError:
-#             raise ValueError(f"{ordinal!r} is not a valid ordinal for {cls.__name__}")
-
-#     @property
-#     def ordinal(self) -> int:
-#         """The zero‑based position of this member in the enum definition."""
-#         return list(self.__class__).index(self)
     
 class CurveFormat(IntEnum):
-    POS = 0
-    POS_ROT = 1
-    POS_ROT_SCALE = 2
+    NO_DATA = 0
+    POS = 1
+    POS_ROT = 2
+    POS_ROT_SCALE = 3
     
     def num_channels(self):
-        if self == CurveFormat.POS:
+        if self == CurveFormat.NO_DATA:
+            return 0
+        elif self == CurveFormat.POS:
             return 3
         elif self == CurveFormat.POS_ROT:
             return 7
         elif self == CurveFormat.POS_ROT_SCALE:
             return 10
         else:
-            raise TypeError("Not a valid curve format index: " + self)
+            raise TypeError("Not a valid curve format index: " + str(self))
 
     
 VectorOperator: TypeAlias = Callable[[float, float, float], tuple[float, float, float]]
@@ -42,6 +30,7 @@ QuaternionOperator: TypeAlias = Callable[[float, float, float, float], tuple[flo
 class AnimationCurve:
     format: CurveFormat = CurveFormat.POS_ROT_SCALE
     tick_offset: int = 0
+    length: int = 0
     
     pos_x: list[float]
     pos_y: list[float]
@@ -70,6 +59,9 @@ class AnimationCurve:
         self.scale_y = []
         self.scale_z = []
     
+    def has_position(self):
+        return self.format == CurveFormat.POS or self.format == CurveFormat.POS_ROT or self.format == CurveFormat.POS_ROT_SCALE
+    
     def has_rotation(self):
         return self.format == CurveFormat.POS_ROT or self.format == CurveFormat.POS_ROT_SCALE
     
@@ -81,17 +73,18 @@ class AnimationCurve:
         self.format = CurveFormat(struct.unpack('>b', f.read(1))[0])
         self.tick_offset = struct.unpack('>i', f.read(4))[0]
         length: int = struct.unpack('>i', f.read(4))[0]
+        self.length = length
         
         def read_channel(curve: list[float]):
             data = f.read(length * 4)
             floats = struct.unpack(f'>{length}f', data)
             curve.extend(floats)
     
-        
-        read_channel(self.pos_x)
-        read_channel(self.pos_y)
-        read_channel(self.pos_z,)
-        
+        if self.has_position():
+            read_channel(self.pos_x)
+            read_channel(self.pos_y)
+            read_channel(self.pos_z)
+            
         if self.has_rotation():
             read_channel(self.rot_w)
             read_channel(self.rot_x)
@@ -140,9 +133,10 @@ class AnimationCurve:
 
         arrays: dict[tuple[str, int], list[float]] = {}
         
-        arrays[(pos_path, 0)] = to_key_array(pos_xp)
-        arrays[(pos_path, 1)] = to_key_array(pos_yp)
-        arrays[(pos_path, 2)] = to_key_array(pos_zp)
+        if self.has_position():
+            arrays[(pos_path, 0)] = to_key_array(pos_xp)
+            arrays[(pos_path, 1)] = to_key_array(pos_yp)
+            arrays[(pos_path, 2)] = to_key_array(pos_zp)
         
         if self.has_rotation():
             arrays[(rot_path, 0)] = to_key_array(rot_wp)

@@ -202,6 +202,7 @@ public class CurveViewerWindow {
 
     private static String curveFormatName(AnimationCurve.CurveFormat format) {
         return switch(format) {
+            case EMPTY -> "No Data";
             case POS -> "Position Only";
             case POS_ROT -> "Position/Rotation";
             case POS_ROT_SCALE -> "Position/Rotation/Scale";

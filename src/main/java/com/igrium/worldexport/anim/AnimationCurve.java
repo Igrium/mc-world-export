@@ -25,6 +25,10 @@ public class AnimationCurve {
     @Getter
     public enum CurveFormat {
         /**
+         * The curve stores no data and only exists to keep an entity visible.
+         */
+        EMPTY(0),
+        /**
          * The curve only stores position data.
          */
         POS(3),
@@ -45,6 +49,10 @@ public class AnimationCurve {
             this.numChannels = numChannels;
         }
 
+        public boolean hasPosition() {
+            return this == POS || this == POS_ROT || this == POS_ROT_SCALE;
+        }
+
         public boolean hasRotation() {
             return this == POS_ROT || this == POS_ROT_SCALE;
         }
@@ -56,6 +64,8 @@ public class AnimationCurve {
 
 
     // Important implementation detail: each in-use list must always be the same length.
+    private int size;
+
     private final FloatList xPosChannel = new FloatArrayList();
     private final FloatList yPosChannel = new FloatArrayList();
     private final FloatList zPosChannel = new FloatArrayList();
@@ -155,7 +165,7 @@ public class AnimationCurve {
      * The number of frames in this animation.
      */
     public int size() {
-        return xPosChannel.size();
+        return size;
     }
 
     public boolean isEmpty() {
@@ -164,6 +174,10 @@ public class AnimationCurve {
 
     public int numChannels() {
         return format.getNumChannels();
+    }
+
+    public boolean hasPosition() {
+        return format.hasPosition();
     }
 
     public boolean hasRotation() {
@@ -178,9 +192,17 @@ public class AnimationCurve {
         if (other.isEmpty())
             return;
 
-        xPosChannel.addAll(other.xPosChannel);
-        yPosChannel.addAll(other.yPosChannel);
-        zPosChannel.addAll(other.zPosChannel);
+        if (hasPosition()) {
+            if (other.hasPosition()) {
+                xPosChannel.addAll(other.xPosChannel);
+                yPosChannel.addAll(other.yPosChannel);
+                zPosChannel.addAll(other.zPosChannel);
+            } else {
+                pad(xPosChannel, other.size());
+                pad(yPosChannel, other.size());
+                pad(zPosChannel, other.size());
+            }
+        }
 
         if (hasRotation()) {
             if (other.hasRotation()) {
@@ -208,6 +230,7 @@ public class AnimationCurve {
             }
         }
 
+        size += other.size;
     }
 
     private static void pad(FloatList list, int amount) {
@@ -216,7 +239,7 @@ public class AnimationCurve {
 
     private static void pad(FloatList list, float value, int amount) {
         float[] array = new float[amount];
-        Arrays.fill(array, amount);
+        Arrays.fill(array, value);
         list.addElements(list.size(), array);
     }
 
@@ -231,12 +254,15 @@ public class AnimationCurve {
      */
     public void addFrame(@Nullable Vector3fc pos, @Nullable Quaternionfc rot, @Nullable Vector3fc scale) {
         int lastFrame = size() - 1;
-        if (pos == null) {
-            pos = lastFrame >= 0 ? getPosition(lastFrame, new Vector3f()) : new Vector3f();
+
+        if (hasPosition()) {
+            if (pos == null) {
+                pos = lastFrame >= 0 ? getPosition(lastFrame, new Vector3f()) : new Vector3f();
+            }
+            xPosChannel.add(pos.x());
+            yPosChannel.add(pos.y());
+            zPosChannel.add(pos.z());
         }
-        xPosChannel.add(pos.x());
-        yPosChannel.add(pos.y());
-        zPosChannel.add(pos.z());
 
         if (hasRotation()) {
             if (rot == null) {
@@ -257,6 +283,7 @@ public class AnimationCurve {
             zScaleChannel.add(scale.z());
         }
 
+        size++;
     }
 
     public void addFrame(Matrix4fc transform) {
@@ -267,7 +294,7 @@ public class AnimationCurve {
 
     public void setFrame(int frame, @Nullable Vector3fc pos, @Nullable Quaternionfc rot, @Nullable Vector3fc scale)
             throws IndexOutOfBoundsException {
-        if (pos != null) {
+        if (hasPosition() && pos != null) {
             setPosition(frame, pos);
         }
         if (hasRotation() && rot != null) {
@@ -287,6 +314,7 @@ public class AnimationCurve {
 
     public Vector3f getPosition(int frame, Vector3f dest) throws IndexOutOfBoundsException {
         assertInBounds(frame);
+        assertHasPosition();
 
         dest.x = xPosChannel.getFloat(frame);
         dest.y = yPosChannel.getFloat(frame);
@@ -296,10 +324,17 @@ public class AnimationCurve {
 
     public void setPosition(int frame, Vector3fc position) throws IndexOutOfBoundsException {
         assertInBounds(frame);
+        assertHasPosition();
 
         xPosChannel.set(frame, position.x());
         yPosChannel.set(frame, position.y());
         zPosChannel.set(frame, position.z());
+    }
+
+    private void assertHasPosition() {
+        if (!hasPosition()) {
+            throw new IllegalStateException("This animation curve does not have position data.");
+        }
     }
 
     public Quaternionf getRotation(int frame, Quaternionf dest) throws IndexOutOfBoundsException {
@@ -377,11 +412,14 @@ public class AnimationCurve {
             dest.rotate(getRotation(frame, new Quaternionf()));
         }
 
-        float posX = xPosChannel.getFloat(frame);
-        float posY = yPosChannel.getFloat(frame);
-        float posZ = zPosChannel.getFloat(frame);
+        if (hasPosition()) {
+            float posX = xPosChannel.getFloat(frame);
+            float posY = yPosChannel.getFloat(frame);
+            float posZ = zPosChannel.getFloat(frame);
 
-        dest.translate(posX, posY, posZ);
+            dest.translate(posX, posY, posZ);
+        }
+
 
         return dest;
     }
@@ -408,9 +446,11 @@ public class AnimationCurve {
         out.writeInt(frameOffset);
         out.writeInt(size());
 
-        writeChannel(xPosChannel, out);
-        writeChannel(yPosChannel, out);
-        writeChannel(zPosChannel, out);
+        if (hasPosition()) {
+            writeChannel(xPosChannel, out);
+            writeChannel(yPosChannel, out);
+            writeChannel(zPosChannel, out);
+        }
 
         if (hasRotation()) {
             writeChannel(wRotChannel, out);
@@ -437,10 +477,13 @@ public class AnimationCurve {
         setFormat(CurveFormat.values()[in.readByte()]);
         frameOffset = in.readInt();
         int length = in.readInt();
+        size = length;
 
-        readChannel(xPosChannel, in, length);
-        readChannel(yPosChannel, in, length);
-        readChannel(zPosChannel, in, length);
+        if (hasPosition()) {
+            readChannel(xPosChannel, in, length);
+            readChannel(yPosChannel, in, length);
+            readChannel(zPosChannel, in, length);
+        }
 
         if (hasRotation()) {
             readChannel(wRotChannel, in, length);
@@ -456,13 +499,13 @@ public class AnimationCurve {
         }
     }
 
-    private static void readChannel(FloatList curve, DataInput in, int length) throws IOException {
-        // Create a separate buffer so we don't constantly grow the curve array unnecessarily.
+    private static void readChannel(FloatList channel, DataInput in, int length) throws IOException {
+        // Create a separate buffer so we don't constantly grow the channel array unnecessarily.
         float[] buffer = new float[length];
         for (int i = 0; i < length; i++) {
             buffer[i] = in.readFloat();
         }
-        curve.addElements(curve.size(), buffer);
+        channel.addElements(channel.size(), buffer);
     }
 
     public static String nameFromCurveIndex(int index) {

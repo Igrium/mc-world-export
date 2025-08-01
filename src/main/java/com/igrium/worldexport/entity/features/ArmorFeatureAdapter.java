@@ -106,12 +106,10 @@ public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends Bip
                 });
 
                 // Bogus frame to make sure it stays visible
-                capture.addFrame(armorPath, tick, AnimationCurve.CurveFormat.POS, POS_IDENTITY, null, null);
+                capture.addFrame(armorPath, tick, AnimationCurve.CurveFormat.EMPTY, null, null, null);
             }, p -> p.visible);
         }
     }
-
-    private static final Vector3f POS_IDENTITY = new Vector3f();
 
     @SuppressWarnings("unchecked")
     private AccessorArmorFeatureRenderer<S, M, A> renderAccessor() {
