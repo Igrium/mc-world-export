@@ -8,8 +8,11 @@
     "defaultRequire": 1
   },
   "client": [
+    "AccessorArmorFeatureRenderer",
     "AccessorEntityRenderDispatcher",
     "AccessorEntityRenderer",
+    "AccessorEquipmentRenderer",
+    "AccessorFeatureRenderer",
     "AccessorLivingEntityRenderer",
     "AccessorModelPart",
     "MixinClientWorld"

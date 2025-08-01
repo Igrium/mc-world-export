@@ -1,12 +1,16 @@
 package com.igrium.worldexport.mixin;
 
 import net.minecraft.client.render.entity.LivingEntityRenderer;
+import net.minecraft.client.render.entity.feature.FeatureRenderer;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.render.entity.state.LivingEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
+
+import java.util.List;
 
 @Mixin(LivingEntityRenderer.class)
 public interface AccessorLivingEntityRenderer<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> {
@@ -19,4 +23,10 @@ public interface AccessorLivingEntityRenderer<T extends LivingEntity, S extends 
 
     @Invoker("isVisible")
     boolean invokeIsVisible(S state);
+
+    @Accessor("features")
+    List<FeatureRenderer<S, M>> getFeatures();
+
+    @Invoker("shouldRenderFeatures")
+    boolean invokeShouldRenderFeatures(S state);
 }

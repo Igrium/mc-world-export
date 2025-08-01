@@ -1,13 +1,13 @@
 package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
+import com.igrium.worldexport.entity.features.FeatureAdapter;
+import com.igrium.worldexport.entity.features.FeatureAdapters;
 import com.igrium.worldexport.mixin.AccessorLivingEntityRenderer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
-import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.tex.TextureExtractor;
-import de.javagl.obj.Mtl;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
@@ -29,14 +29,14 @@ import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
@@ -61,6 +61,12 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         return new LivingModelAdapter<>((LivingEntityRenderer) renderer);
     }
 
+    private final List<FeatureAdapter<S, ?>> features = new ArrayList<>();
+
+    protected final void addFeature(@NonNull FeatureAdapter<S, ?> feature) {
+        features.add(feature);
+    }
+
     /**
      * The model gets set each capture based on the vanilla renderer's model.
      */
@@ -76,9 +82,15 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     public LivingModelAdapter(LivingEntityRenderer<? super T, S, M> renderer) {
         super(renderer);
         this.renderer = renderer;
+
+        for (var feature : getRendererAccessor(renderer).getFeatures()) {
+            var adapter = FeatureAdapters.create(feature);
+            if (adapter != null)
+                addFeature(adapter);
+        }
     }
 
-    public LivingModelAdapter(LivingEntityRenderer<T, S, M> renderer, AnimationCurve.@NotNull CurveFormat curveFormat) {
+    public LivingModelAdapter(LivingEntityRenderer<T, S, M> renderer, @NonNull AnimationCurve.CurveFormat curveFormat) {
         this(renderer);
         this.curveFormat = curveFormat;
     }
@@ -167,6 +179,12 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
                 return ModelParts.modelPartToMesh(part, obj);
             });
         });
+
+        if (getRendererAccessor(renderer).invokeShouldRenderFeatures(state)) {
+            for (var feature : features) {
+                feature.capture(capture, materials, state, state.yawDegrees, state.pitch, tick);
+            }
+        }
     }
 
     @Override
