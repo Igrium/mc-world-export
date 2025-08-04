@@ -32,6 +32,10 @@ class AnimationCurve:
     tick_offset: int = 0
     length: int = 0
     
+    @property
+    def end_tick(self):
+        return self.tick_offset + self.length
+    
     pos_x: list[float]
     pos_y: list[float]
     pos_z: list[float]

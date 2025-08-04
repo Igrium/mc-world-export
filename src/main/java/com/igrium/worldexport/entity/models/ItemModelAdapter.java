@@ -38,6 +38,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
     public ItemModelAdapter(ItemEntityRenderer renderer) {
         super(renderer);
         this.renderer = renderer;
+
     }
 
     @Override

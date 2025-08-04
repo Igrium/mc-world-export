@@ -5,7 +5,7 @@ from typing import BinaryIO, Literal
 from bpy.types import Context, Object
 from bpy_extras.io_utils import axis_conversion
 
-from . import import_obj
+from .mesh import import_obj
 
 def load_obj(filepath: str, use_split_objects=True, use_split_groups=False,
                import_vertex_groups=False, validate_meshes=True):
@@ -17,13 +17,11 @@ def load_obj(filepath: str, use_split_objects=True, use_split_groups=False,
 
 def load_obj_python(context: Context, filepath: str, use_split_objects=False, use_split_groups=False,
                import_vertex_groups=False, validate_meshes=True):
-    existing = set(bpy.data.objects)
     # bpy.ops.wm.obj_import(filepath=filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
     #                       import_vertex_groups=import_vertex_groups, validate_meshes=validate_meshes)
-    import_obj.load(context, filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
+    return import_obj.load(context, filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
                     use_groups_as_vgroups=import_vertex_groups, global_matrix=axis_conversion('-Z', 'Y').to_4x4())
-    new = set(bpy.data.objects)
-    return new - existing
+
 
 
 def convert_coords(x: float, y: float, z: float):

@@ -23,6 +23,7 @@ from bpy_extras.io_utils import unpack_list
 from bpy_extras.image_utils import load_image
 from bpy_extras.wm_utils.progress_report import ProgressReport
 
+from bpy.types import Object
 
 def line_value(line_split):
     """
@@ -551,7 +552,7 @@ def create_mesh(new_objects,
                 unique_smooth_groups,
                 vertex_groups,
                 dataname,
-                ):
+                ) -> Object:
     """
     Takes all the data gathered and generates a mesh, adding the new object to new_objects
     deals with ngons, sharp edges and assigning materials
@@ -771,6 +772,7 @@ def create_mesh(new_objects,
         group = ob.vertex_groups.new(name=group_name.decode('utf-8', "replace"))
         group.add(group_indices, 1.0, 'REPLACE')
 
+    return ob
 
 def create_nurbs(context_nurbs, vert_loc, new_objects):
     """
@@ -894,7 +896,7 @@ def load(context,
          use_groups_as_vgroups=False,
          relpath=None,
          global_matrix=None
-         ):
+         ) -> dict[str, Object]:
     """
     Called by the user interface or another script.
     load_obj(path) - should give acceptable results.
@@ -1236,7 +1238,8 @@ def load(context,
     if bpy.ops.object.select_all.poll():
         bpy.ops.object.select_all(action='DESELECT')
 
-    new_objects = []  # put new objects here
+    new_objects: list[Object] = []  # put new objects here
+    new_object_mapping: dict[str, Object] = {}
 
     # Split the mesh by objects/materials, may
     SPLIT_OB_OR_GROUP = bool(use_split_objects or use_split_groups)
@@ -1245,7 +1248,7 @@ def load(context,
         verts_loc_split, faces_split, unique_materials_split, dataname, use_vnor, use_vtex = data
         # Create meshes from the data, warning 'vertex_groups' wont support splitting
         #~ print(dataname, use_vnor, use_vtex)
-        create_mesh(new_objects,
+        ob = create_mesh(new_objects,
                     use_edges,
                     verts_loc_split,
                     verts_nor if use_vnor else [],
@@ -1256,6 +1259,9 @@ def load(context,
                     vertex_groups,
                     dataname,
                     )
+        
+        if ob:
+            new_object_mapping[dataname] = ob
 
     # nurbs support
     for context_nurbs in nurbs:
@@ -1300,4 +1306,4 @@ def load(context,
     # progress.leave_substeps("Done.")
     # progress.leave_substeps("Finished importing: %r" % filepath)
 
-    return {'FINISHED'}
+    return new_object_mapping

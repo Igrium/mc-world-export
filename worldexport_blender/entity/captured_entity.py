@@ -2,7 +2,7 @@ import bpy
 import struct
 import json
 import os.path
-from .. import import_obj
+from ..mesh import import_obj
 from .. import common
 from ..anim.animation_curve import AnimationCurve
 from ..replay_types import ReplayImportSettings, ReplayImportContext
@@ -26,6 +26,10 @@ class CapturedEntity:
     armature: Object | None
     
     mesh: Object | None
+    
+    part_meshes: dict[str, Object] = {}
+    """A collection of all the mesh objects created as a result of model parts needing to be split.
+    """
     
     def __init__(self, name: str) -> None:
         self.name = name
@@ -52,7 +56,7 @@ class CapturedEntity:
         if not os.path.exists(path):
             return
         
-        imported = common.load_obj_python(context.bl_context, path, import_vertex_groups=True)
+        imported = set(common.load_obj_python(context.bl_context, path, import_vertex_groups=True).values())
         if (imported):
             self.mesh = imported.pop()
             if self.armature:
@@ -150,6 +154,11 @@ class CapturedEntity:
                         existing.extend(vals)
                     else:
                         flattened_curves[ref] = vals
+                
+                curve_start = curve.tick_offset
+                curve_end = curve.tick_offset + curve.length
+                
+                # TODO: Don't create visibility keyframes 
             
 
         # Apply anim curves
