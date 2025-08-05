@@ -52,23 +52,23 @@ def split_mesh_by_vgroups(obj: Object, should_split: Callable[[str], bool]) -> d
             continue
         
         bm_new = bmesh.new()
-        # old_to_new_verts: dict[BMVert, BMVert] = {}
+        old_to_new_verts: dict[BMVert, BMVert] = {}
         
-        # for f in faces_to_extract:
-        #     new_face_verts: list[BMVert] = []
-        #     for v in f.verts:
-        #         if v not in old_to_new_verts:
-        #             v_new = bm_new.verts.new(v.co)
-        #             v_new.normal = v.normal
-        #             old_to_new_verts[v] = v_new
-        #         new_face_verts.append(old_to_new_verts[v])
-        #     try:
-        #         bm_new.faces.new(new_face_verts)
-        #     except ValueError:
-        #         print("ValueError: face already exists")
-        #         pass
+        for f in faces_to_extract:
+            new_face_verts: list[BMVert] = []
+            for v in f.verts:
+                if v not in old_to_new_verts:
+                    v_new = bm_new.verts.new(v.co)
+                    v_new.normal = v.normal
+                    old_to_new_verts[v] = v_new
+                new_face_verts.append(old_to_new_verts[v])
+            try:
+                bm_new.faces.new(new_face_verts)
+            except ValueError:
+                print("ValueError: face already exists")
+                pass
         
-        bmesh.ops.split(bm, geom=faces_to_extract, dest=bm_new)
+        # bmesh.ops.split(bm, geom=faces_to_extract, dest=bm_new)
             
         bm_new.verts.index_update()
         bm_new.verts.ensure_lookup_table()

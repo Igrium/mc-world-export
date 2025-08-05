@@ -1,7 +1,9 @@
 import bpy
 
 from dataclasses import dataclass, field
+from abc import abstractmethod
 from bpy.types import Context, Collection, ShaderNodeTree
+from typing import Protocol, TypeVar, Generic, Iterable, Mapping
 
 class PrefabDatablocks:
     mul_vertex_color: ShaderNodeTree
@@ -59,3 +61,13 @@ class ReplayImportContext:
             return tick * scene.render.fps / float(scene.render.fps_base * 20)
         else:
             return tick
+
+class CurveLike(Protocol):
+    tick_offset: int
+    length: int
+
+
+class AnimationProvider(Protocol):
+    @abstractmethod
+    def get_curves(self) -> Mapping[str, Iterable[CurveLike]]:
+        ...

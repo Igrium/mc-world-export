@@ -4,6 +4,7 @@ import struct
 from typing import BinaryIO, Callable, TypeAlias
 from bpy.types import Action
 from ..replay_importer import ReplayImportContext
+from ..replay_types import CurveLike
     
 class CurveFormat(IntEnum):
     NO_DATA = 0
@@ -27,10 +28,10 @@ class CurveFormat(IntEnum):
 VectorOperator: TypeAlias = Callable[[float, float, float], tuple[float, float, float]]
 QuaternionOperator: TypeAlias = Callable[[float, float, float, float], tuple[float, float, float, float]]
 
-class AnimationCurve:
+class AnimationCurve(CurveLike):
     format: CurveFormat = CurveFormat.POS_ROT_SCALE
-    tick_offset: int = 0
-    length: int = 0
+    tick_offset = 0
+    length = 0
     
     @property
     def end_tick(self):

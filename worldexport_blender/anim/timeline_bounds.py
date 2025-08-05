@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Iterable, Tuple
-from ..anim.animation_curve import AnimationCurve
-from .captured_entity import CapturedEntity
+from typing import Iterable, Tuple, Callable
+from ..replay_types import CurveLike, AnimationProvider
+
 
 @dataclass
 class TimelineRange:
@@ -24,7 +24,7 @@ class TimelineRange:
         return TimelineRange(start_tick, end_tick - start_tick)
     
     @staticmethod
-    def from_curve(curve: AnimationCurve):
+    def from_curve(curve: CurveLike):
         return TimelineRange(curve.tick_offset, curve.length)
     
 def get_range_bounds(ranges: Iterable[TimelineRange]) -> TimelineRange:
@@ -48,33 +48,30 @@ def get_range_bounds(ranges: Iterable[TimelineRange]) -> TimelineRange:
 
 
     
-def get_part_bounds(curves: Iterable[AnimationCurve]) -> TimelineRange:
+def get_part_bounds(curves: Iterable[CurveLike]) -> TimelineRange:
     """Return a timeline range that spans all ticks where a model part is visible.
 
     Args:
         curves (Iterable[AnimationCurve]): All the model part's curves
 
     """
-    return get_range_bounds((TimelineRange(curve.tick_offset, curve.length) for curve in curves))
+    return get_range_bounds(TimelineRange.from_curve(curve) for curve in curves)
 
-
-def get_entity_bounds(entity: CapturedEntity) -> TimelineRange:
+def get_entity_bounds(ent_curves: Iterable[Iterable[CurveLike]]):
     """Return a timeline range that spans all ticks where an entity is visible.
 
     Args:
-        entity (CapturedEntity): Entity to use
+        ent_curves (Iterable[Iterable[CurveLike]]): Entity's model part curves.
     """
-    return get_range_bounds(get_part_bounds(c) for c in entity.curves.values())
+    return get_range_bounds(get_part_bounds(c) for c in ent_curves)
 
-def get_animation_bounds(entities: Iterable[CapturedEntity]) -> TimelineRange:
-    """Return a timeline range that spans all ticks where any entity is visible.
+def get_animation_bounds(entities: Iterable[AnimationProvider]):
+    """Return a timeline range that spans all ticks where any entity is visible
 
     Args:
-        entities (Iterable[CapturedEntity]): All entities in animation
+        entities (Iterable[AnimationProvider]): The entities to get curves from.
     """
-    return get_range_bounds(get_entity_bounds(e) for e in entities)
-
-
+    return get_range_bounds(get_entity_bounds(e.get_curves().values()) for e in entities) 
 
 def merge_ranges(ranges: Iterable[TimelineRange]):
     """Merge any overlapping ranges into one
