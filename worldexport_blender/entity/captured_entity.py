@@ -91,8 +91,8 @@ class CapturedEntity(AnimationProvider):
         if (imported):
             self.mesh = imported.pop()
             # split parts
-            # split_parts = self.get_split_parts()
-            split_parts = set()
+            split_parts = self.get_split_parts()
+            # split_parts = set()
             self.part_meshes = mesh_utils.split_mesh_by_vgroups(self.mesh, lambda p: p in split_parts)
             
             context.entity_collection.objects.link(self.mesh)
