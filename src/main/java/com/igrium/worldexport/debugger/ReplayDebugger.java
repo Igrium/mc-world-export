@@ -134,7 +134,7 @@ public final class ReplayDebugger extends CraftApp {
 
     private void showFileSelector() {
         String gameDir = FabricLoader.getInstance().getGameDir().toString();
-        FileDialogs.showOpenDialog(gameDir, new FileDialogs.FileFilter("Zip Files", "zip"))
+        FileDialogs.showOpenDialog(gameDir)
                 .thenAccept(opt -> opt.ifPresent(s -> loadReplayZip(Paths.get(s))));
     }
 

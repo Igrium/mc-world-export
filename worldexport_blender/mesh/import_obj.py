@@ -11,6 +11,8 @@ Run this script from "File->Import" menu and then load the desired OBJ file.
 Note, This loads mesh objects and materials only, nurbs and curves are not supported.
 
 http://wiki.blender.org/index.php/Scripts/Manual/Import/wavefront_obj
+
+Modified for Igrium's Replay Exporter
 """
 
 import array
@@ -1272,8 +1274,8 @@ def load(context,
 
     # Create new obj
     for obj in new_objects:
-        collection.objects.link(obj)
-        obj.select_set(True)
+        # collection.objects.link(obj)
+        # obj.select_set(True)
 
         # we could apply this anywhere before scaling.
         obj.matrix_world = global_matrix

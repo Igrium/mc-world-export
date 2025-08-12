@@ -92,8 +92,9 @@ class CapturedEntity(AnimationProvider):
             self.mesh = imported.pop()
             # split parts
             split_parts = self.get_split_parts()
-            # split_parts = set()
-            self.part_meshes = mesh_utils.split_mesh_by_vgroups(self.mesh, lambda p: p in split_parts)
+            if (split_parts):
+                print(split_parts)
+                self.part_meshes = mesh_utils.split_vertex_groups(self.mesh, lambda p: p in split_parts)
             
             context.entity_collection.objects.link(self.mesh)
             for m in self.part_meshes.values():
@@ -106,7 +107,7 @@ class CapturedEntity(AnimationProvider):
                     if self.armature.type == 'ARMATURE':
                         mod = m.modifiers.new('Armature', 'ARMATURE')
                         mod.object = self.armature # type: ignore
-                    
+                                
     
     def gen_armature(self, context: ReplayImportContext):
         # TODO: Actually implement armature shit
