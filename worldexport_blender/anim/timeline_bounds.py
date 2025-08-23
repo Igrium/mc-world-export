@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Iterable, Tuple, Callable
 from ..replay_types import CurveLike, AnimationProvider
-
+from typing import Self
 
 @dataclass
 class TimelineRange:
@@ -18,6 +18,17 @@ class TimelineRange:
         """The last tick in the range, exclusive
         """
         return self.start_tick + self.length
+    
+    def contains(self, other: 'TimelineRange'):
+        """Ensure that another `TimelineRange` fits completely within the bounds of this `TimelineRange`.
+
+        Args:
+            other (TimelineRange): The other timeline range
+
+        Returns:
+            bool: `True` if it fits.
+        """
+        return self.start_tick <= other.start_tick and other.length <= self.length
 
     @staticmethod
     def min_max(start_tick: int, end_tick: int):
@@ -84,7 +95,7 @@ def merge_ranges(ranges: Iterable[TimelineRange]):
     """
     res = _merge_overlap([[r.start_tick, r.end_tick] for r in ranges])
     return [TimelineRange.min_max(l[0], l[1]) for l in res]
-    
+
 # Max exclusive
 def _merge_overlap(arr: list[list[int]]) -> list[list[int]]:
     # Sort intervals based on start values
