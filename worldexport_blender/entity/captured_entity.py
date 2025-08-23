@@ -182,14 +182,15 @@ class CapturedEntity(AnimationProvider):
         flattened_curves: dict[tuple[str, int], list[float]] = {}
         
         # Assemble keyframes from all replay curves into one array.
-        for name, curve_list in self.curves.items():
-            if name == ROOT_NAME:
+        for part_name, curve_list in self.curves.items():
+            if part_name == ROOT_NAME:
                 data_prefix = ''
                 transform_operator = common.convert_coords
             else:
-                data_prefix = f'pose.bones["{name}"].'
+                data_prefix = f'pose.bones["{part_name}"].'
                 transform_operator = None
-                
+            
+            
             for curve in curve_list:
                 for ref, vals in curve.to_key_arrays(data_prefix, context, transform_operator).items():
                     existing = flattened_curves.get(ref)
@@ -197,12 +198,22 @@ class CapturedEntity(AnimationProvider):
                         existing.extend(vals)
                     else:
                         flattened_curves[ref] = vals
-                
-                curve_start = curve.tick_offset
-                curve_end = curve.tick_offset + curve.length
-                
+                        
                 # TODO: Don't create visibility keyframes 
             
+            # Part visibility
+            part_mesh = self.part_meshes.get(part_name)
+            if part_mesh:
+                bounds = timeline_bounds.merge_ranges((TimelineRange.from_curve(c) for c in curve_list))
+                for r in bounds:
+                    start_frame = context.tick_to_frame(r.start_tick)
+                    end_frame = start_frame + context.tick_to_frame(r.length)
+                    
+                    common.add_vis_keyframe(part_mesh, False, start_frame - 1)
+                    common.add_vis_keyframe(part_mesh, True, start_frame)
+                    common.add_vis_keyframe(part_mesh, False, end_frame)
+                    
+                    
 
         # Apply anim curves
         for (data_path, index), keys in flattened_curves.items():

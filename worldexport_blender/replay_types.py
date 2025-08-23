@@ -53,9 +53,7 @@ class ReplayImportContext:
 
         Returns:
             float: Scene frame. Might be a non-integer.
-        """
-        # return tick
-        
+        """        
         scene = self.bl_context.scene
         if self.settings.use_scene_framerate and scene != None:
             return tick * scene.render.fps / float(scene.render.fps_base * 20)

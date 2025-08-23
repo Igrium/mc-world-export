@@ -10,18 +10,6 @@ from bpy.types import Context, Operator, Panel, StringProperty, BoolProperty, En
 from bpy_extras.io_utils import ImportHelper
 
 
-def read_some_data(context, filepath, use_some_setting):
-    print("running read_some_data...")
-    f = open(filepath, "r", encoding="utf-8")
-    data = f.read()
-    f.close()
-
-    # would normally load the data here
-    print(data)
-
-    return {'FINISHED'}
-
-
 # ImportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
 from bpy_extras.io_utils import ImportHelper
