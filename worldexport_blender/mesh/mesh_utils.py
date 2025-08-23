@@ -1,6 +1,6 @@
 import bpy
 import bmesh
-from bmesh.types import BMesh, BMVert
+from bmesh.types import BMFace
 
 from bpy.types import Object, Mesh
 from typing import Callable, cast
@@ -45,10 +45,13 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
     # bm_new_map: dict[int, BMesh] = {}
     result: dict[str, Object] = {}
     
+    to_delete: list[BMFace] = []
+    
     for vg, vg_verts in vg_assignment.items():
         bm.faces.ensure_lookup_table()
         extract_faces = [f for f in bm.faces if all(v.index in vg_verts for v in f.verts)]
         if not extract_faces:
+            print(f"Vertex group {group_names[vg]} has no faces!")
             continue
         
         bm_new = bm.copy()
@@ -56,7 +59,7 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
         
         retain_faces = [bm_new.faces[f.index] for f in bm.faces if f not in extract_faces]
         
-        bmesh.ops.delete(bm, geom=extract_faces, context='FACES')
+        to_delete.extend(extract_faces)
         bmesh.ops.delete(bm_new, geom=retain_faces, context='FACES')
         
         name = group_names[vg]
@@ -75,5 +78,8 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
         
         result[name] = obj_new
     
-    bm.to_mesh(mesh)    
+    bmesh.ops.delete(bm, geom=to_delete, context='FACES')
+    
+    bm.to_mesh(mesh)
+    bm.free()
     return result

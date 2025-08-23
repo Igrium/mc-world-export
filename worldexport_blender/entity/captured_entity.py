@@ -95,10 +95,14 @@ class CapturedEntity(AnimationProvider):
             if (split_parts):
                 print(split_parts)
                 self.part_meshes = mesh_utils.split_vertex_groups(self.mesh, lambda p: p in split_parts)
+                print(self.part_meshes)
             
-            context.entity_collection.objects.link(self.mesh)
             for m in self.part_meshes.values():
                 context.entity_collection.objects.link(m)
+            
+            if self.mesh and len(self.mesh.data.vertices) > 0: # type: ignore
+                context.entity_collection.objects.link(self.mesh)
+
             
             if self.armature:
                 for m in [self.mesh] + list(self.part_meshes.values()):
@@ -110,7 +114,6 @@ class CapturedEntity(AnimationProvider):
                                 
     
     def gen_armature(self, context: ReplayImportContext):
-        # TODO: Actually implement armature shit
         
         if (len(self.curves) == 1):
             empty_obj = bpy.data.objects.new(self.name, None)
@@ -211,6 +214,9 @@ class CapturedEntity(AnimationProvider):
             keyframe_points.add(len(keys) // 2)
             keyframe_points.foreach_set('co', keys)
             keyframe_points.foreach_set('interpolation', [1] * (len(keys) // 2))
+        
+        # Visibility keyframes
+        
             
         
 def read_anim_file(f: BinaryIO, curves: dict[str, list[AnimationCurve]]):
