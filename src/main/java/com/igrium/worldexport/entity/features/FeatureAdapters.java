@@ -2,6 +2,8 @@ package com.igrium.worldexport.entity.features;
 
 import net.minecraft.client.render.entity.feature.ArmorFeatureRenderer;
 import net.minecraft.client.render.entity.feature.FeatureRenderer;
+import net.minecraft.client.render.entity.feature.HeldItemFeatureRenderer;
+import net.minecraft.client.render.entity.feature.PlayerHeldItemFeatureRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,5 +37,7 @@ public class FeatureAdapters {
     static {
         // TODO: Find a type safe(r) way to do this. I'm tired of all this generic bullshit.
         REGISTRY.put(ArmorFeatureRenderer.class, ArmorFeatureAdapter::create);
+        REGISTRY.put(HeldItemFeatureRenderer.class, HeldItemFeatureAdapter::create);
+        REGISTRY.put(PlayerHeldItemFeatureRenderer.class, HeldItemFeatureAdapter::create);
     }
 }

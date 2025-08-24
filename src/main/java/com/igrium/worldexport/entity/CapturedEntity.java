@@ -104,7 +104,7 @@ public class CapturedEntity {
         return curve;
     }
 
-    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, Vector3fc pos, @Nullable Quaternionfc rot, @Nullable Vector3fc scale) {
+    public void addFrame(String modelPart, int tick, AnimationCurve.CurveFormat format, @Nullable Vector3fc pos, @Nullable Quaternionfc rot, @Nullable Vector3fc scale) {
         AnimationCurve curve = getOrCreateCurve(modelPart, tick, format);
         int index = tick - curve.getFrameOffset();
         if (index >= curve.size()) {

@@ -13,6 +13,8 @@
     "AccessorEntityRenderer",
     "AccessorEquipmentRenderer",
     "AccessorFeatureRenderer",
+    "AccessorItemRenderState",
+    "AccessorLayerRenderState",
     "AccessorLivingEntityRenderer",
     "AccessorModelPart",
     "MixinClientWorld"
