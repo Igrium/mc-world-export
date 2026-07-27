@@ -18,8 +18,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.Util;
-import net.minecraft.world.World;
+import net.minecraft.Util;
+import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +57,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         }
     }
 
-    public ReplayCapture startRecording(World world, ReplayExportSettings settings) {
+    public ReplayCapture startRecording(Level world, ReplayExportSettings settings) {
         activeRecording = new ReplayCapture(world, settings);
         activeRecording.beginCapture();
         return activeRecording;
@@ -73,7 +73,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         return compiler.compile().thenCompose(r -> {
             activeRecording = null;
             return ReplayIO.saveReplayZip(
-                    FabricLoader.getInstance().getGameDir().resolve("ReplayTest.zip"), r, Util.getIoWorkerExecutor());
+                    FabricLoader.getInstance().getGameDir().resolve("ReplayTest.zip"), r, Util.ioPool());
         }).exceptionally(e -> {
             LOGGER.error("Error saving replay: ", e);
             return null;

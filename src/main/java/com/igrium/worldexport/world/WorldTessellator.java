@@ -16,20 +16,20 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.Sprite;
-import net.minecraft.client.texture.SpriteAtlasTexture;
-import net.minecraft.screen.PlayerScreenHandler;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.BlockRenderView;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockAndTintGetter;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -58,7 +58,7 @@ public class WorldTessellator {
     private final WorldCapture worldCapture;
 
     @Getter
-    private final BlockRenderView baseWorld;
+    private final BlockAndTintGetter baseWorld;
 
     @Getter @Setter @NonNull
     private WorldMaterialFactory materialFactory = this::getDefaultMaterialName;
@@ -76,7 +76,7 @@ public class WorldTessellator {
     private boolean mergeDoubleVertices;
 
     @Getter @Setter @NonNull
-    private Executor executor = Util.getMainWorkerExecutor();
+    private Executor executor = Util.backgroundExecutor();
 
     /**
      * Called once a chunk has finished tessellating. Must be thread-safe.
@@ -88,13 +88,13 @@ public class WorldTessellator {
         return getWorldCapture().getBounds();
     }
 
-    private final Map<ChunkSectionPos, Obj> baseWorldMeshes = new ConcurrentHashMap<>();
-    private final Map<ChunkSectionPos, ReadableObj> baseWorldMeshesUnmodifiable = Collections.unmodifiableMap(baseWorldMeshes);
+    private final Map<SectionPos, Obj> baseWorldMeshes = new ConcurrentHashMap<>();
+    private final Map<SectionPos, ReadableObj> baseWorldMeshesUnmodifiable = Collections.unmodifiableMap(baseWorldMeshes);
 
     private final Map<ChunkPos, CompletableFuture<?>> baseTessellationJobs = new ConcurrentHashMap<>();
     private final Map<ChunkPos, CompletableFuture<?>> baseTessellationJobsUnmodifiable = Collections.unmodifiableMap(baseTessellationJobs);
 
-    public WorldTessellator(WorldCapture worldCapture, BlockRenderView baseWorld) {
+    public WorldTessellator(WorldCapture worldCapture, BlockAndTintGetter baseWorld) {
         this.worldCapture = worldCapture;
         this.baseWorld = baseWorld;
     }
@@ -104,7 +104,7 @@ public class WorldTessellator {
      * @return An unmodifiable map of all base meshes.
      * @implNote Some meshes may be skipped for performance reasons if they received an update prior to tessellation.
      */
-    public Map<ChunkSectionPos, ReadableObj> getBaseWorldMeshes() {
+    public Map<SectionPos, ReadableObj> getBaseWorldMeshes() {
         return baseWorldMeshesUnmodifiable;
     }
 
@@ -117,7 +117,7 @@ public class WorldTessellator {
     }
 
     public String getDefaultMaterialName(BlockState state) {
-        return state.isTransparent() ? WORLD_TRANS : WORLD;
+        return state.propagatesSkylightDown() ? WORLD_TRANS : WORLD;
     }
 
     /**
@@ -152,11 +152,11 @@ public class WorldTessellator {
 
     @SuppressWarnings("deprecation")
     private Vector2f getGrassOverlayOffset(Vector2f dest) {
-        var atlas = MinecraftClient.getInstance().getBakedModelManager().getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
-        Sprite sideSprite = atlas.getSprite(Identifier.ofVanilla("block/grass_block_side"));
-        Sprite overlaySprite = atlas.getSprite(Identifier.ofVanilla("block/grass_block_side_overlay"));
+        var atlas = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS);
+        TextureAtlasSprite sideSprite = atlas.getSprite(ResourceLocation.withDefaultNamespace("block/grass_block_side"));
+        TextureAtlasSprite overlaySprite = atlas.getSprite(ResourceLocation.withDefaultNamespace("block/grass_block_side_overlay"));
 
-        return dest.set(overlaySprite.getMinU() - sideSprite.getMinU(), overlaySprite.getMinV() - sideSprite.getMinV());
+        return dest.set(overlaySprite.getU0() - sideSprite.getU0(), overlaySprite.getV0() - sideSprite.getV0());
     }
 
     /**
@@ -165,18 +165,18 @@ public class WorldTessellator {
      */
     @SuppressWarnings("deprecation") // Not actually deprecated
     public CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
-        return TextureExtractor.pullAtlasTextureAsync(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+        return TextureExtractor.pullAtlasTextureAsync(TextureAtlas.LOCATION_BLOCKS)
                 .thenApply(NativeImageReplayTexture::new);
     }
 
-    private void tessellateBaseChunk(ChunkPos cPos, Random random) {
+    private void tessellateBaseChunk(ChunkPos cPos, RandomSource random) {
         if (!worldCapture.getCopiedBaseWorld().containsKey(cPos))
             return;
 
         SectionColumnRenderRegion renderRegion = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), cPos, baseWorld);
 
-        for (int y = renderRegion.getBottomSectionCoord(); y < renderRegion.getTopSectionCoord(); y++) {
-            ChunkSectionPos sPos = ChunkSectionPos.from(cPos, y);
+        for (int y = renderRegion.getMinSectionY(); y < renderRegion.getMaxSectionY(); y++) {
+            SectionPos sPos = SectionPos.of(cPos, y);
 
             // Skip if the section already has updates by the time we get to tessellating it.
             // Sections may still have their base meshes discarded due to updates later on, but this is a
@@ -211,7 +211,7 @@ public class WorldTessellator {
                 }
             }
             return CompletableFuture.runAsync(() -> {
-                tessellateBaseChunk(cPos, Random.createLocal());
+                tessellateBaseChunk(cPos, RandomSource.createNewThreadLocalInstance());
                 if (onChunkTessellated != null) {
                     onChunkTessellated.accept(cPos);
                 }
@@ -251,7 +251,7 @@ public class WorldTessellator {
      * Queue every section within the bounds to be tessellated.
      */
     public void tessellateBaseWorld() {
-        ThreadLocal<Random> randoms = ThreadLocal.withInitial(Random::createLocal);
+        ThreadLocal<RandomSource> randoms = ThreadLocal.withInitial(RandomSource::createNewThreadLocalInstance);
         ChunkSectionBox bounds = worldCapture.getBounds();
 
         // Iterate over each chunk within the bounds
@@ -265,8 +265,8 @@ public class WorldTessellator {
         }
     }
 
-    private void tessellateSectionFrame(int tick, Collection<BlockPos> blocks, BlockRenderView renderView, BlockUpdateCache cache,
-                                        Random random, Consumer<WorldMesh> meshConsumer) {
+    private void tessellateSectionFrame(int tick, Collection<BlockPos> blocks, BlockAndTintGetter renderView, BlockUpdateCache cache,
+                                        RandomSource random, Consumer<WorldMesh> meshConsumer) {
         // blocks which need to be split 'cause they're replaced later
         Int2ObjectMap<Set<BlockPos>> overrideMap = new Int2ObjectAVLTreeMap<>();
         Set<BlockPos> blocksWithoutOverrides = new HashSet<>();
@@ -301,7 +301,7 @@ public class WorldTessellator {
      * @return A list of all the different meshes generated for various keyframes.
      * @implNote If the base mesh hasn't finished building, could have unexpected results.
      */
-    public List<WorldMesh> tessellateSectionMeshes(ChunkSectionPos sPos, BlockUpdateCache cache, Random random) {
+    public List<WorldMesh> tessellateSectionMeshes(SectionPos sPos, BlockUpdateCache cache, RandomSource random) {
         Int2ObjectSortedMap<Set<BlockPos>> updates = cache.getSectionUpdates(sPos);
         if (updates.isEmpty()) {
             // If no updates, return pre-tessellated base mesh.
@@ -328,7 +328,7 @@ public class WorldTessellator {
         }
 
         // Blocks present in the first frame that get updated later
-        SectionColumnRenderRegion baseRenderView = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), sPos.toChunkPos(), baseWorld);
+        SectionColumnRenderRegion baseRenderView = SectionColumnRenderRegion.build(worldCapture.getCopiedBaseWorld(), sPos.chunk(), baseWorld);
         if (!overwrittenBlocks.isEmpty()) {
             tessellateSectionFrame(0, overwrittenBlocks, baseRenderView, cache, random, list::add);
         }
@@ -353,9 +353,9 @@ public class WorldTessellator {
 
     public List<WorldMesh> tessellateChunkMeshes(ChunkPos cPos, BlockUpdateCache cache) {
         List<WorldMesh> list = new ArrayList<>();
-        Random random = Random.createLocal();
+        RandomSource random = RandomSource.createNewThreadLocalInstance();
         for (int y = getBounds().minY(); y < getBounds().maxY(); y++) {
-            ChunkSectionPos sPos = ChunkSectionPos.from(cPos, y);
+            SectionPos sPos = SectionPos.of(cPos, y);
             try {
                 list.addAll(tessellateSectionMeshes(sPos, cache, random));
             } catch (Exception e) {

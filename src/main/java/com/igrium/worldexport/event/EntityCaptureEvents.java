@@ -3,7 +3,7 @@ package com.igrium.worldexport.event;
 import com.igrium.worldexport.entity.EntityCapture;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 
 public class EntityCaptureEvents {
     private EntityCaptureEvents() {

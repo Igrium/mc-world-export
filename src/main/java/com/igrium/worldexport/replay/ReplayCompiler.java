@@ -1,6 +1,6 @@
 package com.igrium.worldexport.replay;
 
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +27,14 @@ public class ReplayCompiler {
             LOGGER.warn("Replay capture is not finished. Compilation could exhibit unwanted behavior.");
         }
 
-        long startTime = Util.getMeasuringTimeMs();
+        long startTime = Util.getMillis();
         CompiledReplay replay = new CompiledReplay();
         return compileWorld(replay)
                 .thenApply(this::compileEntities)
                 .thenCompose(this::compileTextures)
                 .thenApply(this::packMtls)
                 .thenApply(r -> {
-            LOGGER.info("Compiled replay export in {}ms", Util.getMeasuringTimeMs() - startTime);
+            LOGGER.info("Compiled replay export in {}ms", Util.getMillis() - startTime);
             return r;
         });
     }

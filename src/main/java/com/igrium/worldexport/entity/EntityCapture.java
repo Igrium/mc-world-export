@@ -7,15 +7,15 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Tolerate;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.world.World;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.core.Vec3i;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class EntityCapture {
      * The world-space bounds of the export.
      */
     @Getter @Setter @NonNull
-    private Box bounds;
+    private AABB bounds;
 
     /**
      * A predicate to determine if any given entity should be exported.
@@ -49,7 +49,7 @@ public class EntityCapture {
      * An offset to apply to each entity after exporting the replay file.
      */
     @Getter @Setter @NonNull
-    private Vec3d globalOffset = Vec3d.ZERO;
+    private Vec3 globalOffset = Vec3.ZERO;
 
     /**
      * Any textures that entities require will be added to this map.
@@ -59,7 +59,7 @@ public class EntityCapture {
 
     @Tolerate
     public void setGlobalOffset(Vec3i offset) {
-        this.globalOffset = new Vec3d(offset.getX(), offset.getY(), offset.getZ());
+        this.globalOffset = new Vec3(offset.getX(), offset.getY(), offset.getZ());
     }
 
     /**
@@ -68,7 +68,7 @@ public class EntityCapture {
     @Getter
     private final Map<Entity, CapturedEntity> entities = new HashMap<>();
 
-    public EntityCapture(@NotNull Box bounds) {
+    public EntityCapture(@NotNull AABB bounds) {
         this.bounds = bounds;
     }
 
@@ -85,11 +85,11 @@ public class EntityCapture {
      * @param world World to get entities from.
      * @param tick The frame index in the replay file.
      */
-    public void captureFrame(World world, int tick) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        client.getEntityRenderDispatcher().configure(world, client.gameRenderer.getCamera(), client.targetedEntity);
+    public void captureFrame(Level world, int tick) {
+        Minecraft client = Minecraft.getInstance();
+        client.getEntityRenderDispatcher().prepare(world, client.gameRenderer.getMainCamera(), client.crosshairPickEntity);
 
-        var entities = world.getOtherEntities(null, bounds, entityPredicate);
+        var entities = world.getEntities((Entity) null, bounds, entityPredicate);
         for (var entity : entities) {
             try {
                 captureEntity(entity, tick);
@@ -113,7 +113,7 @@ public class EntityCapture {
         modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
     }
 
-    public static String getEntityTexturePath(Identifier id) {
+    public static String getEntityTexturePath(ResourceLocation id) {
         String path = id.getPath();
         if (!path.endsWith(".png"))
             path += ".png";

@@ -1,9 +1,10 @@
+// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package com.igrium.worldexport.world;
 
 import it.unimi.dsi.fastutil.ints.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.Direction;
 
 import java.util.*;
 
@@ -15,7 +16,7 @@ import java.util.*;
  */
 public class BlockUpdateCache {
     // All the blocks that are updated on a given frame, sorted by which section they're in.
-    private final Map<ChunkSectionPos, Int2ObjectSortedMap<Set<BlockPos>>> sortedKeyframes = new HashMap<>();
+    private final Map<SectionPos, Int2ObjectSortedMap<Set<BlockPos>>> sortedKeyframes = new HashMap<>();
 
     // All the frames that a given block is updated on.
     private final Map<BlockPos, IntSortedSet> blockUpdates = new HashMap<>();
@@ -31,7 +32,7 @@ public class BlockUpdateCache {
     private void generateInternal(WorldCapture capture) {
         // For each block
         for (var entry : capture.getBlockUpdates().entrySet()) {
-            ChunkSectionPos sPos = ChunkSectionPos.from(entry.getKey());
+            SectionPos sPos = SectionPos.of(entry.getKey());
 
             // The keyframe set for this section.
             var blockKeyframes = sortedKeyframes.computeIfAbsent(sPos, cPos -> new Int2ObjectAVLTreeMap<>());
@@ -100,7 +101,7 @@ public class BlockUpdateCache {
      * @param sPos The section in question.
      * @return A map of keyframe ticks and all the blocks in the section that were updated that tick.
      */
-    public Int2ObjectSortedMap<Set<BlockPos>> getSectionUpdates(ChunkSectionPos sPos) {
+    public Int2ObjectSortedMap<Set<BlockPos>> getSectionUpdates(SectionPos sPos) {
         var map = sortedKeyframes.get(sPos);
         return map != null ? map : Int2ObjectSortedMaps.emptyMap();
     }
@@ -130,7 +131,7 @@ public class BlockUpdateCache {
             if (index == 0) {
                 val = centerPos;
             } else if (index <= 6) {
-                val = centerPos.offset(Direction.values()[index - 1]);
+                val = centerPos.relative(Direction.values()[index - 1]);
             } else {
                 throw new IndexOutOfBoundsException(index);
             }
@@ -139,9 +140,9 @@ public class BlockUpdateCache {
         }
     }
 
-    private static boolean isBlockInSection(BlockPos bPos, ChunkSectionPos cPos) {
-        return ChunkSectionPos.getSectionCoord(bPos.getX()) == cPos.getX()
-                && ChunkSectionPos.getSectionCoord(bPos.getY()) == cPos.getY()
-                && ChunkSectionPos.getSectionCoord(bPos.getZ()) == cPos.getZ();
+    private static boolean isBlockInSection(BlockPos bPos, SectionPos cPos) {
+        return SectionPos.blockToSectionCoord(bPos.getX()) == cPos.getX()
+                && SectionPos.blockToSectionCoord(bPos.getY()) == cPos.getY()
+                && SectionPos.blockToSectionCoord(bPos.getZ()) == cPos.getZ();
     }
 }

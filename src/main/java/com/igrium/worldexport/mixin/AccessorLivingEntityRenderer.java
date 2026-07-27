@@ -1,11 +1,11 @@
 package com.igrium.worldexport.mixin;
 
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -15,18 +15,18 @@ import java.util.List;
 @Mixin(LivingEntityRenderer.class)
 public interface AccessorLivingEntityRenderer<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> {
 
-    @Invoker("setupTransforms")
-    void invokeSetupTransforms(S state, MatrixStack matrices, float bodyYaw, float baseHeight);
+    @Invoker("setupRotations")
+    void invokeSetupRotations(S state, PoseStack matrices, float bodyYaw, float baseHeight);
 
     @Invoker("scale")
-    void invokeScale(S state, MatrixStack matrices);
+    void invokeScale(S state, PoseStack matrices);
 
-    @Invoker("isVisible")
-    boolean invokeIsVisible(S state);
+    @Invoker("isBodyVisible")
+    boolean invokeIsBodyVisible(S state);
 
-    @Accessor("features")
-    List<FeatureRenderer<S, M>> getFeatures();
+    @Accessor("layers")
+    List<RenderLayer<S, M>> getLayers();
 
-    @Invoker("shouldRenderFeatures")
-    boolean invokeShouldRenderFeatures(S state);
+    @Invoker("shouldRenderLayers")
+    boolean invokeShouldRenderLayers(S state);
 }

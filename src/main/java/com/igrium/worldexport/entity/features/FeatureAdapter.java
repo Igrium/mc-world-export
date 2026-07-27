@@ -1,29 +1,29 @@
 package com.igrium.worldexport.entity.features;
 
 import com.igrium.worldexport.entity.CapturedEntity;
-import com.igrium.worldexport.mixin.AccessorFeatureRenderer;
+import com.igrium.worldexport.mixin.AccessorRenderLayer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import lombok.Getter;
-import net.minecraft.client.render.entity.feature.FeatureRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRendererContext;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.render.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
 
 public abstract class FeatureAdapter<S extends EntityRenderState, M extends EntityModel<? super S>> {
 
     public interface Factory<S extends EntityRenderState, T extends FeatureAdapter<S, ?>> {
-        T create(FeatureRenderer<S, ?> renderer);
+        T create(RenderLayer<S, ?> renderer);
     }
 
     @Getter
-    private final FeatureRenderer<S, M> renderer;
+    private final RenderLayer<S, M> renderer;
 
-    public FeatureAdapter(FeatureRenderer<S, M> renderer) {
+    public FeatureAdapter(RenderLayer<S, M> renderer) {
         this.renderer = renderer;
     }
 
-    public FeatureRendererContext<S, M> getContext() {
-        return renderAccessor(renderer).getContext();
+    public RenderLayerParent<S, M> getContext() {
+        return renderAccessor(renderer).getRenderer();
     }
 
     public M getContextModel() {
@@ -36,8 +36,8 @@ public abstract class FeatureAdapter<S extends EntityRenderState, M extends Enti
      * Utility method to cast to AccessorFeatureRenderer while maintaining generics.
      */
     @SuppressWarnings("unchecked")
-    public static <S extends EntityRenderState, M extends EntityModel<? super S>> AccessorFeatureRenderer<S, M> renderAccessor(
-            FeatureRenderer<S, M> renderer) {
-        return (AccessorFeatureRenderer<S, M>) renderer;
+    public static <S extends EntityRenderState, M extends EntityModel<? super S>> AccessorRenderLayer<S, M> renderAccessor(
+            RenderLayer<S, M> renderer) {
+        return (AccessorRenderLayer<S, M>) renderer;
     }
 }

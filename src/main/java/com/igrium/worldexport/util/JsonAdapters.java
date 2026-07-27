@@ -3,8 +3,12 @@ package com.igrium.worldexport.util;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Position;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
 
@@ -13,9 +17,9 @@ public class JsonAdapters {
         @Override
         public void write(JsonWriter out, T value) throws IOException {
             out.beginArray();
-            out.value(value.getX());
-            out.value(value.getY());
-            out.value(value.getZ());
+            out.value(value.x());
+            out.value(value.y());
+            out.value(value.z());
             out.endArray();
         }
 
@@ -32,11 +36,11 @@ public class JsonAdapters {
         abstract T create(double x, double y, double z);
     }
 
-    public static class Vec3dAdapter extends AbstractPositionAdapter<Vec3d> {
+    public static class Vec3dAdapter extends AbstractPositionAdapter<Vec3> {
 
         @Override
-        Vec3d create(double x, double y, double z) {
-            return new Vec3d(x, y, z);
+        Vec3 create(double x, double y, double z) {
+            return new Vec3(x, y, z);
         }
     }
 
@@ -79,25 +83,25 @@ public class JsonAdapters {
         }
     }
 
-    public static class ChunkSectionPosAdapter extends AbstractVec3iAdapter<ChunkSectionPos> {
+    public static class ChunkSectionPosAdapter extends AbstractVec3iAdapter<SectionPos> {
 
         @Override
-        protected ChunkSectionPos create(int x, int y, int z) {
-            return ChunkSectionPos.from(x, y, z);
+        protected SectionPos create(int x, int y, int z) {
+            return SectionPos.of(x, y, z);
         }
     }
 
-    public static class IdentifierJsonAdapter extends TypeAdapter<Identifier> {
+    public static class IdentifierJsonAdapter extends TypeAdapter<ResourceLocation> {
 
         @Override
-        public void write(JsonWriter out, Identifier value) throws IOException {
+        public void write(JsonWriter out, ResourceLocation value) throws IOException {
             out.value(value.toString());
         }
 
         @Override
-        public Identifier read(JsonReader in) throws IOException {
+        public ResourceLocation read(JsonReader in) throws IOException {
             String str = in.nextString();
-            return Identifier.of(str);
+            return ResourceLocation.parse(str);
         }
     }
 }

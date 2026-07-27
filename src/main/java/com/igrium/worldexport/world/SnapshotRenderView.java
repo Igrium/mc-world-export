@@ -1,40 +1,40 @@
 package com.igrium.worldexport.world;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.BlockRenderView;
-import net.minecraft.world.biome.ColorResolver;
-import net.minecraft.world.chunk.light.LightingProvider;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.ColorResolver;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.jetbrains.annotations.Nullable;
 
-public class SnapshotRenderView implements BlockRenderView {
+public class SnapshotRenderView implements BlockAndTintGetter {
 
     private final WorldCapture worldCapture;
-    private final BlockRenderView world;
+    private final BlockAndTintGetter world;
     private final int tick;
 
-    public SnapshotRenderView(WorldCapture worldCapture, BlockRenderView world, int tick) {
+    public SnapshotRenderView(WorldCapture worldCapture, BlockAndTintGetter world, int tick) {
         this.worldCapture = worldCapture;
         this.world = world;
         this.tick = tick;
     }
 
     @Override
-    public float getBrightness(Direction direction, boolean shaded) {
-        return world.getBrightness(direction, shaded);
+    public float getShade(Direction direction, boolean shaded) {
+        return world.getShade(direction, shaded);
     }
 
     @Override
-    public LightingProvider getLightingProvider() {
-        return world.getLightingProvider();
+    public LevelLightEngine getLightEngine() {
+        return world.getLightEngine();
     }
 
     @Override
-    public int getColor(BlockPos pos, ColorResolver colorResolver) {
-        return world.getColor(pos, colorResolver);
+    public int getBlockTint(BlockPos pos, ColorResolver colorResolver) {
+        return world.getBlockTint(pos, colorResolver);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class SnapshotRenderView implements BlockRenderView {
     }
 
     @Override
-    public int getBottomY() {
+    public int getMinY() {
         return worldCapture.getBounds().minY() * 16;
     }
 }

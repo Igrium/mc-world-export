@@ -23,10 +23,10 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import lombok.Getter;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.util.crash.CrashReport;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.CrashReport;
+import net.minecraft.core.SectionPos;
 import org.apache.logging.log4j.LogManager;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +44,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     private final Timeline timeline;
     private final AbstractGuiScreen<?> screen;
 
-    private final MinecraftClient client = MinecraftClient.getInstance();
+    private final Minecraft client = Minecraft.getInstance();
 
     private int minLowerDepth = 0;
     private int maxLowerDepth = 16;
@@ -172,11 +172,11 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         });
 
-        minLowerDepth = client.world.getBottomSectionCoord();
-        maxLowerDepth = client.world.getTopSectionCoord();
+        minLowerDepth = client.level.getMinSectionY();
+        maxLowerDepth = client.level.getMaxSectionY();
 
         setOutputFile(generateOutputFile());
-        setViewDistance(client.options.getClampedViewDistance());
+        setViewDistance(client.options.getEffectiveRenderDistance());
         setEntityDistance(0);
         setLowerDepth(minLowerDepth);
     }
@@ -187,13 +187,13 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
                 outputFile, false, false, false, false, false, null, 360, 180, false, false, false, RenderSettings.AntiAliasing.NONE,
                 "", "", false);
 
-        ClientPlayerEntity player = client.player;
-        ChunkSectionPos center = player != null ? ChunkSectionPos.from(player.getBlockPos()) : ChunkSectionPos.from(0,0,0);
+        LocalPlayer player = client.player;
+        SectionPos center = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0,0,0);
 
         var builder = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
                 .bounds(ChunkSectionBox.fromRadius(center, getViewDistance()))
-                .offset(center.getMinPos().multiply(-1));
+                .offset(center.origin().multiply(-1));
 
         if (getEntityDistance() > 0) {
             builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance()).toBox());
@@ -205,7 +205,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             VideoRenderer renderer = new VideoRenderer(settings, replayHandler, timeline);
             renderer.renderVideo();
         } catch (Throwable e) {
-            Utils.error(LogManager.getLogger("Replay Export"), this, CrashReport.create(e, "Exporting Replay"), () -> {});
+            Utils.error(LogManager.getLogger("Replay Export"), this, CrashReport.forThrowable(e, "Exporting Replay"), () -> {});
             screen.display();
         }
 

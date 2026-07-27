@@ -11,18 +11,18 @@ import com.igrium.worldexport.tex.ReplayMtl;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.ItemEntityRenderer;
-import net.minecraft.client.render.entity.state.ItemEntityRenderState;
-import net.minecraft.client.render.entity.state.ItemStackEntityRenderState;
-import net.minecraft.client.render.item.ItemRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.ItemEntityRenderer;
+import net.minecraft.client.renderer.entity.state.ItemEntityRenderState;
+import net.minecraft.client.renderer.entity.state.ItemClusterRenderState;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.RandomSource;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -33,7 +33,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
 
     private final ItemEntityRenderer renderer;
 
-    private final Random random = Random.create();
+    private final RandomSource random = RandomSource.create();
 
     public ItemModelAdapter(ItemEntityRenderer renderer) {
         super(renderer);
@@ -42,21 +42,21 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
     }
 
     @Override
-    public void capture(ItemEntity entity, ItemEntityRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3d offset, int tick) {
-        Vec3d pos = entity.getPos().add(offset);
+    public void capture(ItemEntity entity, ItemEntityRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
+        Vec3 pos = entity.position().add(offset);
         capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
 
-        if (state.itemRenderState.isEmpty())
+        if (state.item.isEmpty())
             return;
 
-        String partName = state.renderedAmount > 1 ? "item_" + state.renderedAmount : "item";
+        String partName = state.count > 1 ? "item_" + state.count : "item";
 
         float baseYOffset = 0.25f;
-        float bobbing = MathHelper.sin(state.age / 10.0F + state.uniqueOffset) * 0.1f + 0.1f;
-        float itemScaleY = state.itemRenderState.getTransformation().scale.y();
+        float bobbing = Mth.sin(state.ageInTicks / 10.0F + state.bobOffset) * 0.1f + 0.1f;
+        float itemScaleY = state.item.transform().scale.y();
 
         Vector3f localPos = new Vector3f(0, bobbing + baseYOffset * itemScaleY, 0);
-        float rotation = ItemEntity.getRotation(state.age, state.uniqueOffset);
+        float rotation = ItemEntity.getSpin(state.ageInTicks, state.bobOffset);
         Quaternionf rot = new Quaternionf().rotateY(rotation);
 
         capture.addFrame(partName, tick, AnimationCurve.CurveFormat.POS_ROT, localPos, rot, null);
@@ -69,13 +69,13 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             obj.setMtlFileNames(Collections.singleton("entities.mtl"));
             obj.setActiveMaterialGroupName(ITEM_MTL); // TODO: Enable glint if needed
 
-            MatrixStack matrices = new MatrixStack();
+            PoseStack matrices = new PoseStack();
             ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
             WrappedVertexConsumerProvider vertices = new WrappedVertexConsumerProvider(objConsumer);
-            vertices.getBlacklist().add(RenderLayer.getGlint());
-            vertices.getBlacklist().add(RenderLayer.getEntityGlint());
+            vertices.getBlacklist().add(RenderType.glint());
+            vertices.getBlacklist().add(RenderType.entityGlint());
 
-            ItemEntityRenderer.renderStack(matrices, vertices, 255, state, random);
+            ItemEntityRenderer.renderMultipleFromCount(matrices, vertices, 255, state, random);
             objConsumer.pushFace();
 
             return obj;

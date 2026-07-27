@@ -2,11 +2,11 @@ package com.igrium.worldexport.tex;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.texture.AbstractTexture;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.texture.AbstractTexture;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.opengl.GL11C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +27,15 @@ public class TextureExtractor {
      * Therefore, modifying it could cause unexpected side effects.
      */
     public static NativeImage pullTexture(AbstractTexture texture) {
-        if (texture instanceof NativeImageBackedTexture) {
-            return ((NativeImageBackedTexture) texture).getImage();
+        if (texture instanceof DynamicTexture) {
+            return ((DynamicTexture) texture).getPixels();
         }
 
         if (!RenderSystem.isOnRenderThread()) {
             throw new IllegalStateException("Texture can only be retrieved on the render thread!");
         }
 
-        texture.bindTexture();
+        texture.bind();
         // AbstractTexture doesn't save the texture's width/height post-init, so we need to retrieve it from the GPU.
         int width = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_WIDTH);
         int height = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_HEIGHT);
@@ -43,7 +43,7 @@ public class TextureExtractor {
         // TODO: Because NativeImage isn't garbage collected, pulling textures like this can cause a memory leak.
         // We do it somewhat rarely though, so it's probably fine.
         NativeImage image = new NativeImage(width, height, false);
-        image.loadFromTextureImage(0, false);
+        image.downloadTexture(0, false);
 
         return image;
     }
@@ -52,33 +52,33 @@ public class TextureExtractor {
         return supplyOnRenderThread(() -> pullTexture(texture));
     }
 
-    public static AbstractTexture getTexture(Identifier texID) {
-        return MinecraftClient.getInstance().getTextureManager().getTexture(texID);
+    public static AbstractTexture getTexture(ResourceLocation texID) {
+        return Minecraft.getInstance().getTextureManager().getTexture(texID);
     }
 
 
-    public static NativeImage pullTexture(Identifier texID) {
+    public static NativeImage pullTexture(ResourceLocation texID) {
         LOGGER.info("Fetching texture from GPU: {}", texID);
         AbstractTexture texture = getTexture(texID);
         return pullTexture(texture);
     }
 
-    public static CompletableFuture<NativeImage> pullTextureAsync(Identifier texID) {
+    public static CompletableFuture<NativeImage> pullTextureAsync(ResourceLocation texID) {
         return supplyOnRenderThread(() -> pullTexture(texID));
     }
 
 
-    public static AbstractTexture getAtlasTexture(Identifier atlasID) {
+    public static AbstractTexture getAtlasTexture(ResourceLocation atlasID) {
         // TODO: Do we actually need a separate function for getting atlas textures?
-        return MinecraftClient.getInstance().getBakedModelManager().getAtlas(atlasID);
+        return Minecraft.getInstance().getModelManager().getAtlas(atlasID);
     }
 
-    public static NativeImage pullAtlasTexture(Identifier atlasID) {
+    public static NativeImage pullAtlasTexture(ResourceLocation atlasID) {
         AbstractTexture atlas = getAtlasTexture(atlasID);
         return pullTexture(atlas);
     }
 
-    public static CompletableFuture<NativeImage> pullAtlasTextureAsync(Identifier atlasID) {
+    public static CompletableFuture<NativeImage> pullAtlasTextureAsync(ResourceLocation atlasID) {
         return supplyOnRenderThread(() -> pullAtlasTexture(atlasID));
     }
 

@@ -1,6 +1,6 @@
 package com.igrium.worldexport.tex;
 
-import net.minecraft.client.texture.NativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;

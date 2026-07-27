@@ -1,9 +1,9 @@
 package com.igrium.worldexport.util;
 
 import com.igrium.worldexport.world.SimpleSectionColumn;
-import net.minecraft.block.BlockState;
-import net.minecraft.world.chunk.ChunkSection;
-import net.minecraft.world.chunk.PalettedContainer;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.PalettedContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,18 +71,18 @@ public class ChunkDiffs {
      * @param diffConsumer Called for every diff found.
      */
     public static void diff(SimpleSectionColumn first, SimpleSectionColumn second, Consumer<Diff<BlockState>> diffConsumer) {
-        if (first.countVerticalSections() != second.countVerticalSections()) {
+        if (first.getSectionsCount() != second.getSectionsCount()) {
             throw new IllegalArgumentException("Both columns should have the same number of sections (and should start on the same Y index)");
         }
 
 
-        for (int i = 0; i < first.countVerticalSections(); i++) {
-            ChunkSection sec1 = first.getSection(i);
-            ChunkSection sec2 = second.getSection(i);
+        for (int i = 0; i < first.getSectionsCount(); i++) {
+            LevelChunkSection sec1 = first.getSection(i);
+            LevelChunkSection sec2 = second.getSection(i);
 
-            int sectionY = first.sectionIndexToCoord(i);
+            int sectionY = first.getSectionYFromSectionIndex(i);
 
-            diff(sec1.getBlockStateContainer(), sec2.getBlockStateContainer(), diff ->
+            diff(sec1.getStates(), sec2.getStates(), diff ->
                     diffConsumer.accept(new Diff<>(diff.firstVal, diff.secondVal, diff.x, diff.y + sectionY, diff.z)));
         }
     }

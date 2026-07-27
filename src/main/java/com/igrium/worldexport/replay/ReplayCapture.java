@@ -5,13 +5,13 @@ import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
 import lombok.Getter;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +51,7 @@ public class ReplayCapture {
     /**
      * Event listener for <code>ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE</code>
      */
-    public static void globalEndClientTick(MinecraftClient client) {
+    public static void globalEndClientTick(Minecraft client) {
         // Duplicate to avoid concurrent modification if capture decides to end.
         for (var cap : activeCaptures.toArray(ReplayCapture[]::new)) {
             cap.onEndTick();
@@ -61,7 +61,7 @@ public class ReplayCapture {
     /**
      * Event listener for <code>ClientBlockUpdatedEvent</code>
      */
-    public static void globalClientBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, World world) {
+    public static void globalClientBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, Level world) {
         for (var cap : activeCaptures) {
             cap.onUpdateBlock(pos, newState, world);
         }
@@ -70,7 +70,7 @@ public class ReplayCapture {
     /**
      * Event listener for <code>ClientChunkEvents.CHUNK_LOAD</code>
      */
-    public static void globalClientChunkLoad(ClientWorld world, WorldChunk chunk) {
+    public static void globalClientChunkLoad(ClientLevel world, LevelChunk chunk) {
         for (var cap : activeCaptures) {
             cap.onLoadChunk(world, chunk);
         }
@@ -79,14 +79,14 @@ public class ReplayCapture {
     /**
      * Event listener for <code>ClientWorldEvents.SET_WORLD</code>
      */
-    public static void globalClientWorldChange(MinecraftClient client, World world) {
+    public static void globalClientWorldChange(Minecraft client, Level world) {
         for (var cap : activeCaptures.toArray(ReplayCapture[]::new)) {
             cap.finish();
         }
     }
 
     @Getter
-    private final World world;
+    private final Level world;
 
     @Getter
     private final ReplayExportSettings settings;
@@ -113,11 +113,11 @@ public class ReplayCapture {
     private int gameTick;
     private int replayTick;
 
-    public ReplayCapture(World world, ReplayExportSettings settings) {
+    public ReplayCapture(Level world, ReplayExportSettings settings) {
         this.world = world;
         this.settings = settings;
 
-        executor = Util.getMainWorkerExecutor(); // Make our own as to not starve this.
+        executor = Util.backgroundExecutor(); // Make our own as to not starve this.
 
         worldCapture = new WorldCapture(settings.getBounds());
 
@@ -147,18 +147,18 @@ public class ReplayCapture {
             return;
         }
 
-        if (!MinecraftClient.getInstance().isOnThread()) {
+        if (!Minecraft.getInstance().isSameThread()) {
             throw new IllegalStateException("beginCapture can only be called from the primary client thread.");
         }
 
-        long captureStart = Util.getMeasuringTimeMs();
+        long captureStart = Util.getMillis();
         worldCapture.captureBaseWorld(world);
-        LOGGER.info("Cloned base world in {}ms", Util.getMeasuringTimeMs() - captureStart);
+        LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
 
-        long meshStartTime = Util.getMeasuringTimeMs();
+        long meshStartTime = Util.getMillis();
         worldTessellator.tessellateBaseWorld();
         worldTessellator.awaitBaseTessellationFinished().thenRun(() -> {
-            LOGGER.info("Finished tessellating base world in {}ms", Util.getMeasuringTimeMs() - meshStartTime);
+            LOGGER.info("Finished tessellating base world in {}ms", Util.getMillis() - meshStartTime);
         });
         gameTick = 0;
 
@@ -179,13 +179,13 @@ public class ReplayCapture {
         gameTick++;
     }
 
-    public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, World world) {
+    public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, Level world) {
         if (world == this.world) {
             worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
         }
     }
 
-    public void onLoadChunk(World world, WorldChunk chunk) {
+    public void onLoadChunk(Level world, LevelChunk chunk) {
         if (world == this.world) {
             worldCapture.onChunkLoaded(chunk, replayTick);
         }
@@ -221,7 +221,7 @@ public class ReplayCapture {
             return;
         }
 
-        if (!MinecraftClient.getInstance().isOnThread()) {
+        if (!Minecraft.getInstance().isSameThread()) {
             throw new IllegalStateException("finish() can only be called on the primary client thread.");
         }
 

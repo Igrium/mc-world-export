@@ -4,19 +4,19 @@ import com.google.common.collect.AbstractIterator;
 import com.igrium.worldexport.mesh.VertexConsumers.DuplicateCheckingVertexConsumer;
 import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import de.javagl.obj.Obj;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.block.BlockRenderManager;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.BlockRenderView;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.BlockRenderDispatcher;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockAndTintGetter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
@@ -40,10 +40,10 @@ public class BlockMeshBuilder {
      * @param random          Random instance to pass to <code>BlockRenderManager</code>
      */
     public static void build(
-            Obj targetMesh, Iterable<BlockPos> blocks, @Nullable BlockPos offset, BlockRenderView world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, Random random) {
-        BlockRenderManager blockRenderManager = MinecraftClient.getInstance().getBlockRenderManager();
-        MatrixStack matrixStack = new MatrixStack();
+            Obj targetMesh, Iterable<BlockPos> blocks, @Nullable BlockPos offset, BlockAndTintGetter world,
+            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random) {
+        BlockRenderDispatcher blockRenderManager = Minecraft.getInstance().getBlockRenderer();
+        PoseStack matrixStack = new PoseStack();
 
 
         ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
@@ -63,29 +63,29 @@ public class BlockMeshBuilder {
 //            vertexConsumer.setMaterial(materialFactory.getMaterial(state));
             if (!fluidState.isEmpty()) {
                 targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
-                vertexConsumer.matrices.push();
+                vertexConsumer.matrices.pushPose();
                 vertexConsumer.matrices.translate(pos.getX() >> 4 << 4, pos.getY() >> 4 << 4, pos.getZ() >> 4 << 4);
-                blockRenderManager.renderFluid(pos, world, vertexConsumer, state, fluidState);
-                vertexConsumer.matrices.pop();
+                blockRenderManager.renderLiquid(pos, world, vertexConsumer, state, fluidState);
+                vertexConsumer.matrices.popPose();
             }
 
-            if (state.getRenderType() == BlockRenderType.INVISIBLE || state.getBlock() == Blocks.AIR)
+            if (state.getRenderShape() == RenderShape.INVISIBLE || state.getBlock() == Blocks.AIR)
                 continue;
 
             if (splitBlocks) {
-                Identifier id = Registries.BLOCK.getId(state.getBlock());
+                ResourceLocation id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
                 targetMesh.setActiveGroupNames(List.of(id.toString()));
             }
 
             // Special case needed for grass rendering
-            var vc = state.isOf(Blocks.GRASS_BLOCK) ? duplicateChecker : vertexConsumer;
+            var vc = state.is(Blocks.GRASS_BLOCK) ? duplicateChecker : vertexConsumer;
 
             targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
-            matrixStack.push();
+            matrixStack.pushPose();
             matrixStack.translate(pos.getX(), pos.getY(), pos.getZ());
-            blockRenderManager.renderBlock(state, pos, world, matrixStack, vc, true, random);
+            blockRenderManager.renderBatched(state, pos, world, matrixStack, vc, true, random);
             vc.pushFace();
-            matrixStack.pop();
+            matrixStack.popPose();
         }
     }
 
@@ -103,14 +103,14 @@ public class BlockMeshBuilder {
      * @param predicate       If set, only tessellate block positions that match this predicate (doesn't affect culling)
      */
     public static void buildRange(
-            Obj targetMesh, BlockPos minPos, BlockPos maxPos, @Nullable BlockPos offset, BlockRenderView world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, Random random, @Nullable Predicate<? super BlockPos> predicate) {
+            Obj targetMesh, BlockPos minPos, BlockPos maxPos, @Nullable BlockPos offset, BlockAndTintGetter world,
+            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<? super BlockPos> predicate) {
 
         Iterable<BlockPos> iter;
         if (predicate != null) {
-            iter = filteredIterable(BlockPos.iterate(minPos, maxPos), predicate);
+            iter = filteredIterable(BlockPos.betweenClosed(minPos, maxPos), predicate);
         } else {
-            iter = BlockPos.iterate(minPos, maxPos);
+            iter = BlockPos.betweenClosed(minPos, maxPos);
         }
 
         build(targetMesh, iter, offset, world, splitBlocks, materialFactory, random);
@@ -130,16 +130,16 @@ public class BlockMeshBuilder {
      * @param predicate       If set, only tessellate block positions that match this predicate (doesn't affect culling)
      */
     public static void buildSection(
-            Obj targetMesh, ChunkSectionPos section, @Nullable BlockPos offset, BlockRenderView world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, Random random, @Nullable Predicate<? super BlockPos> predicate) {
+            Obj targetMesh, SectionPos section, @Nullable BlockPos offset, BlockAndTintGetter world,
+            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<? super BlockPos> predicate) {
 
-        int minX = section.getMinX();
-        int minY = section.getMinY();
-        int minZ = section.getMinZ();
+        int minX = section.minBlockX();
+        int minY = section.minBlockY();
+        int minZ = section.minBlockZ();
 
-        int maxX = section.getMaxX();
-        int maxY = section.getMaxY();
-        int maxZ = section.getMaxZ();
+        int maxX = section.maxBlockX();
+        int maxY = section.maxBlockY();
+        int maxZ = section.maxBlockZ();
 
 
         buildRange(targetMesh, new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ), offset, world,

@@ -3,13 +3,13 @@ package com.igrium.worldexport.entity;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.igrium.worldexport.entity.models.ItemModelAdapter;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.ItemEntityRenderer;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.ItemEntityRenderer;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.item.ItemEntity;
 import org.jetbrains.annotations.Nullable;
 
 public class ModelAdapters {
@@ -32,7 +32,7 @@ public class ModelAdapters {
 
     public static <T extends Entity> ModelAdapter<T, ?> createModelAdapter(T entity) {
         var factory = getFactory(getEntityType(entity));
-        var renderer = MinecraftClient.getInstance().getEntityRenderDispatcher().getRenderer(entity);
+        var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity);
 
         if (factory != null) {
             return factory.get(renderer);

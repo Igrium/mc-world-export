@@ -5,9 +5,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
@@ -38,13 +38,13 @@ public class ReplayExportSettings {
      * An optional, additional bounding box to use to cull entity exports.
      */
     @Nullable @Getter
-    private Box entityBounds;
+    private AABB entityBounds;
 
     /**
      * Get the bounding box that entities should be culled to.
      * @return <code>entityBounds</code> if not null, otherwise <code>bounds.toBox()</code>
      */
-    public Box entityBounds() {
+    public AABB entityBounds() {
         return entityBounds != null ? entityBounds : bounds.toBox();
     }
 
@@ -52,7 +52,7 @@ public class ReplayExportSettings {
      * An offset to apply to the export
      */
     @Builder.Default @NonNull
-    private BlockPos offset = BlockPos.ORIGIN;
+    private BlockPos offset = BlockPos.ZERO;
 
     /**
      * If true, blocks will be assigned OBJ groups based on their type.

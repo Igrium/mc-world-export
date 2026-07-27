@@ -12,8 +12,8 @@ import com.replaymod.render.rendering.FrameCapturer;
 import com.replaymod.render.utils.ByteBufferPool;
 import lombok.Getter;
 import lombok.NonNull;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
             throw new IllegalStateException("Capture has already been setup.");
         }
 
-        replayCapture = new ReplayCapture(MinecraftClient.getInstance().world, settings);
+        replayCapture = new ReplayCapture(Minecraft.getInstance().level, settings);
         replayCapture.beginCapture();
     }
 
@@ -103,9 +103,9 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
                 if (!exportPath.toString().endsWith(".zip"))
                     exportPath = exportPath.resolveSibling(exportPath.getFileName() + ".zip");
 
-                result = ReplayIO.saveReplayZip(exportPath, replay, Util.getMainWorkerExecutor());
+                result = ReplayIO.saveReplayZip(exportPath, replay, Util.backgroundExecutor());
             } else {
-                result = ReplayIO.saveReplayAsync(settings.getExportPath(), replay, Util.getMainWorkerExecutor());
+                result = ReplayIO.saveReplayAsync(settings.getExportPath(), replay, Util.backgroundExecutor());
             }
             return result;
         });

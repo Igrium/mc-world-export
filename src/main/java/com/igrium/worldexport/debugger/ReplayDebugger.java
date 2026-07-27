@@ -16,11 +16,11 @@ import lombok.Setter;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
-import net.minecraft.util.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,14 +39,14 @@ public final class ReplayDebugger extends CraftApp {
     public static void registerMenuButton() {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen tScreen) {
-                Screens.getButtons(screen).add(ButtonWidget
-                        .builder(Text.translatable("menu.worldexport.replaydebugger"), (b) -> open(client))
+                Screens.getButtons(screen).add(Button
+                        .builder(Component.translatable("menu.worldexport.replaydebugger"), (b) -> open(client))
                         .build());
             }
         });
     }
 
-    public static CraftAppScreen<ReplayDebugger> open(MinecraftClient client) {
+    public static CraftAppScreen<ReplayDebugger> open(Minecraft client) {
         var screen = new CraftAppScreen<>(new ReplayDebugger());
         client.setScreen(screen);
         return screen;
@@ -93,7 +93,7 @@ public final class ReplayDebugger extends CraftApp {
     private final CurveViewerWindow curveViewer = new CurveViewerWindow(this);
 
     @Override
-    protected void render(MinecraftClient minecraftClient) {
+    protected void render(Minecraft minecraftClient) {
         ImGui.begin("Outliner", ImGuiWindowFlags.MenuBar);
         // MENU BAR
         if (ImGui.beginMenuBar()) {
@@ -147,10 +147,10 @@ public final class ReplayDebugger extends CraftApp {
 
     public void loadReplayFolder(Path replayRoot) {
         LOGGER.info("Opening replay from {}", replayRoot);
-        long startTime = Util.getMeasuringTimeMs();
-        ReplayIO.loadReplayAsync(replayRoot, Util.getMainWorkerExecutor())
-                .thenAcceptAsync(this::openReplay, MinecraftClient.getInstance())
-                .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMeasuringTimeMs() - startTime))
+        long startTime = Util.getMillis();
+        ReplayIO.loadReplayAsync(replayRoot, Util.backgroundExecutor())
+                .thenAcceptAsync(this::openReplay, Minecraft.getInstance())
+                .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMillis() - startTime))
                 .exceptionally(e -> {
                     LOGGER.error("Error opening replay.", e);
                     return null;
@@ -159,10 +159,10 @@ public final class ReplayDebugger extends CraftApp {
 
     public void loadReplayZip(Path zipFile) {
         LOGGER.info("Opening replay from {}", zipFile);
-        long startTime = Util.getMeasuringTimeMs();
-        ReplayIO.loadReplayZip(zipFile, Util.getMainWorkerExecutor())
-                .thenAcceptAsync(this::openReplay, MinecraftClient.getInstance())
-                .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMeasuringTimeMs() - startTime))
+        long startTime = Util.getMillis();
+        ReplayIO.loadReplayZip(zipFile, Util.backgroundExecutor())
+                .thenAcceptAsync(this::openReplay, Minecraft.getInstance())
+                .thenRun(() -> LOGGER.info("Opened replay in {}ms", Util.getMillis() - startTime))
                 .exceptionally(e -> {
                     LOGGER.error("Error opening replay.", e);
                     return null;

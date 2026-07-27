@@ -5,7 +5,7 @@ import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import com.igrium.worldexport.mixin.AccessorModelPart;
 import de.javagl.obj.Obj;
-import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.geom.ModelPart;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -93,11 +93,11 @@ public class ModelParts {
     }
 
     public static Vector3f getPosition(ModelPart part, Vector3f dest) {
-        return dest.set(part.pivotX / 16, part.pivotY / 16, part.pivotZ / 16);
+        return dest.set(part.x / 16, part.y / 16, part.z / 16);
     }
 
     public static Quaternionf getRotation(ModelPart part, Quaternionf dest) {
-        return dest.rotationZYX(part.roll, part.yaw, part.pitch);
+        return dest.rotationZYX(part.zRot, part.yRot, part.xRot);
     }
 
     public static Vector3f getScale(ModelPart part, Vector3f dest) {
@@ -117,7 +117,7 @@ public class ModelParts {
         vertexConsumer.setEnableNormals(false);
 
         for (var cuboid : getCuboids(modelPart)) {
-            cuboid.renderCuboid(MeshUtils.IDENTITY_ENTRY, vertexConsumer, 255, 0, Integer.MAX_VALUE);
+            cuboid.compile(MeshUtils.IDENTITY_ENTRY, vertexConsumer, 255, 0, Integer.MAX_VALUE);
         }
         vertexConsumer.pushFace();
         return targetMesh;
@@ -128,7 +128,7 @@ public class ModelParts {
         return ((AccessorModelPart)(Object) part).getChildren();
     }
 
-    private static List<ModelPart.Cuboid> getCuboids(ModelPart part) {
-        return ((AccessorModelPart)(Object) part).getCuboids();
+    private static List<ModelPart.Cube> getCuboids(ModelPart part) {
+        return ((AccessorModelPart)(Object) part).getCubes();
     }
 }

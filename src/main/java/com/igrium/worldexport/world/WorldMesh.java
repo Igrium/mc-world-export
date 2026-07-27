@@ -6,7 +6,7 @@ import de.javagl.obj.Obj;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -30,12 +30,12 @@ public record WorldMesh(Obj obj, Meta meta) {
 
         @NonNull
         @JsonAdapter(JsonAdapters.Vec3dAdapter.class)
-        private Vec3d offset = Vec3d.ZERO;
+        private Vec3 offset = Vec3.ZERO;
 
         public boolean isEmpty() {
             return startTick == null
                     && endTick == null
-                    && offset.equals(Vec3d.ZERO);
+                    && offset.equals(Vec3.ZERO);
         }
 
     }
@@ -50,12 +50,12 @@ public record WorldMesh(Obj obj, Meta meta) {
         meta.endTick = endTick;
     }
 
-    public WorldMesh(Obj obj, Vec3d offset) {
+    public WorldMesh(Obj obj, Vec3 offset) {
         this(obj);
         meta.offset = offset;
     }
 
-    public WorldMesh(Obj obj, Vec3d offset, @Nullable Integer startTick, @Nullable Integer endTick) {
+    public WorldMesh(Obj obj, Vec3 offset, @Nullable Integer startTick, @Nullable Integer endTick) {
         this(obj, offset);
         meta.startTick = startTick;
         meta.endTick = endTick;

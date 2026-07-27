@@ -10,20 +10,20 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.SectionPos;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 public class WorldCaptureCommand
 {
-    private static final SimpleCommandExceptionType NO_RECORDING = new SimpleCommandExceptionType(Text.translatable("command.worldcapture.save.norecording"));
+    private static final SimpleCommandExceptionType NO_RECORDING = new SimpleCommandExceptionType(Component.translatable("command.worldcapture.save.norecording"));
     private static final DynamicCommandExceptionType SAVE_FAILED = new DynamicCommandExceptionType(
-            arg -> Text.translatable("command.worldcapture.save.failed", arg));
+            arg -> Component.translatable("command.worldcapture.save.failed", arg));
 
-    public static void register(CommandDispatcher<FabricClientCommandSource> commandDispatcher, CommandRegistryAccess commandRegistryAccess) {
+    public static void register(CommandDispatcher<FabricClientCommandSource> commandDispatcher, CommandBuildContext commandRegistryAccess) {
         commandDispatcher.register(literal("worldcapture").then(
                 literal("start").then(
                         argument("radius", IntegerArgumentType.integer()).executes(WorldCaptureCommand::start)
@@ -35,7 +35,7 @@ public class WorldCaptureCommand
 
     public static int start(CommandContext<FabricClientCommandSource> context) {
         int radius = IntegerArgumentType.getInteger(context, "radius");
-        ChunkSectionPos center = ChunkSectionPos.from(context.getSource().getPosition());
+        SectionPos center = SectionPos.of(context.getSource().getPosition());
         ChunkSectionBox bounds = ChunkSectionBox.fromRadius(center, radius);
         ReplayExportSettings settings = ReplayExportSettings.builder()
                 .bounds(bounds)
@@ -43,7 +43,7 @@ public class WorldCaptureCommand
 
         IgriumsReplayExporter.getInstance().startRecording(context.getSource().getWorld(), settings);
 
-        context.getSource().sendFeedback(Text.literal("Capturing " + bounds.count() + " sections..."));
+        context.getSource().sendFeedback(Component.literal("Capturing " + bounds.count() + " sections..."));
         return 1;
     }
 
@@ -52,9 +52,9 @@ public class WorldCaptureCommand
             throw NO_RECORDING.create();
         }
 
-        context.getSource().sendFeedback(Text.literal("Saving recording..."));
+        context.getSource().sendFeedback(Component.literal("Saving recording..."));
         IgriumsReplayExporter.getInstance().saveRecording().thenRun(() -> {
-            context.getSource().sendFeedback(Text.literal("Saved recording. Check console for details."));
+            context.getSource().sendFeedback(Component.literal("Saved recording. Check console for details."));
         });
 
         return 1;

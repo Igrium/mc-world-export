@@ -3,10 +3,10 @@ package com.igrium.worldexport.entity;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +30,7 @@ public abstract class ModelAdapter<T extends Entity, S extends EntityRenderState
     }
 
     public S getAndUpdateRenderState(T entity) {
-        return renderer.getAndUpdateRenderState(entity, 1);
+        return renderer.createRenderState(entity, 1);
     }
 
     /**
@@ -43,6 +43,6 @@ public abstract class ModelAdapter<T extends Entity, S extends EntityRenderState
      * @param offset   An offset to apply to the position of the entity. Used when the replay is not centered on 0,0,0.
      * @param tick     The current tick index in the replay.
      */
-    public abstract void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3d offset, int tick);
+    public abstract void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick);
 
 }

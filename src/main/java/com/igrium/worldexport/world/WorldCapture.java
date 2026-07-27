@@ -6,15 +6,15 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps;
 import lombok.Getter;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.world.World;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +48,8 @@ public class WorldCapture {
     @Getter
     private final Map<BlockPos, Int2ObjectSortedMap<BlockUpdate>> blockUpdates = new ConcurrentHashMap<>();
 
-    private final Set<ChunkSectionPos> sectionsWithUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private final Set<ChunkSectionPos> sectionsWithUpdatesUnmodifiable = Collections.unmodifiableSet(sectionsWithUpdates);
+    private final Set<SectionPos> sectionsWithUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<SectionPos> sectionsWithUpdatesUnmodifiable = Collections.unmodifiableSet(sectionsWithUpdates);
 
     public WorldCapture(ChunkSectionBox bounds) {
         this.bounds = bounds;
@@ -62,12 +62,12 @@ public class WorldCapture {
      * @param world World to extract chunks from.
      * @implNote Somewhat expensive operation. Should only be called at the start of capture.
      */
-    public void captureBaseWorld(World world) {
-        var biomeRegistry = world.getRegistryManager().getOrThrow(RegistryKeys.BIOME);
+    public void captureBaseWorld(Level world) {
+        var biomeRegistry = world.registryAccess().lookupOrThrow(Registries.BIOME);
 
         for (int z = bounds.minZ(); z < bounds.maxZ(); z++) {
             for (int x = bounds.minX(); x < bounds.maxX(); x++) {
-                Chunk chunk = world.getChunk(x, z);
+                ChunkAccess chunk = world.getChunk(x, z);
                 if (chunk == null)
                     continue;
 
@@ -82,12 +82,12 @@ public class WorldCapture {
      * @param chunk Chunk that was loaded.
      * @param tick The current tick.
      */
-    public void onChunkLoaded(WorldChunk chunk, int tick) {
+    public void onChunkLoaded(LevelChunk chunk, int tick) {
         ChunkPos cPos = chunk.getPos();
         if (!bounds.isInBounds(cPos))
             return;
 
-        var biomeRegistry = chunk.getWorld().getRegistryManager().getOrThrow(RegistryKeys.BIOME);
+        var biomeRegistry = chunk.getLevel().registryAccess().lookupOrThrow(Registries.BIOME);
         SimpleSectionColumn newVal = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
         SimpleSectionColumn oldVal = copiedBaseWorld.putIfAbsent(cPos, newVal);
 
@@ -96,7 +96,7 @@ public class WorldCapture {
             List<ChunkDiffs.Diff<BlockState>> diffs = ChunkDiffs.diff(oldVal, newVal);
 
             for (var diff : diffs) {
-                BlockPos globalPos = cPos.getBlockPos(diff.x(), diff.y(), diff.z());
+                BlockPos globalPos = cPos.getBlockAt(diff.x(), diff.y(), diff.z());
                 addBlockUpdate(globalPos, diff.secondVal(), tick);
             }
         }
@@ -112,7 +112,7 @@ public class WorldCapture {
         Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(new BlockPos(pos),
                 p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
         map.put(update.tick, update);
-        sectionsWithUpdates.add(ChunkSectionPos.from(pos));
+        sectionsWithUpdates.add(SectionPos.of(pos));
     }
 
     /**
@@ -130,7 +130,7 @@ public class WorldCapture {
      * Find all chunk sections that have an update in them.
      * @return An unmodifiable set of all sections with an update.
      */
-    public Set<ChunkSectionPos> getSectionsWithUpdates() {
+    public Set<SectionPos> getSectionsWithUpdates() {
         return sectionsWithUpdatesUnmodifiable;
     }
 
@@ -139,7 +139,7 @@ public class WorldCapture {
      * @param sPos Section to check.
      * @return <code>true</code> if the section has any updates.
      */
-    public boolean sectionHasUpdates(ChunkSectionPos sPos) {
+    public boolean sectionHasUpdates(SectionPos sPos) {
         return sectionsWithUpdates.contains(sPos);
     }
 
@@ -154,8 +154,8 @@ public class WorldCapture {
         if (tick < 0) {
             throw new IllegalArgumentException("Tick may not be less than 0 (" + tick + ")");
         }
-        if (!bounds.isInBounds(ChunkSectionPos.from(pos))) {
-            return Blocks.AIR.getDefaultState();
+        if (!bounds.isInBounds(SectionPos.of(pos))) {
+            return Blocks.AIR.defaultBlockState();
         }
 
         Int2ObjectSortedMap<BlockUpdate> updateMap = blockUpdates.get(pos);
@@ -172,8 +172,8 @@ public class WorldCapture {
         SimpleSectionColumn col = copiedBaseWorld.get(cPos);
         if (col != null) {
             return col.getBlockState(
-                    ChunkSectionPos.getLocalCoord(pos.getX()), pos.getY(), ChunkSectionPos.getLocalCoord(pos.getZ()));
+                    SectionPos.sectionRelative(pos.getX()), pos.getY(), SectionPos.sectionRelative(pos.getZ()));
         }
-        return Blocks.AIR.getDefaultState();
+        return Blocks.AIR.defaultBlockState();
     }
 }

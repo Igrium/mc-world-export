@@ -15,20 +15,20 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRendererContext;
-import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityPose;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
-        extends ModelAdapter<T, S> implements FeatureRendererContext<S, M> {
+        extends ModelAdapter<T, S> implements RenderLayerParent<S, M> {
 
 
     /**
@@ -83,7 +83,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         super(renderer);
         this.renderer = renderer;
 
-        for (var feature : getRendererAccessor(renderer).getFeatures()) {
+        for (var feature : getRendererAccessor(renderer).getLayers()) {
             var adapter = FeatureAdapters.create(feature);
             if (adapter != null)
                 addFeature(adapter);
@@ -96,46 +96,46 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     }
 
     @Override
-    public void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3d offset, int tick) {
+    public void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
         AccessorLivingEntityRenderer<? super T, S, M> rendererAccessor = getRendererAccessor(renderer);
 
         M model = renderer.getModel();
         setModel(model);
 
-        Vec3d pos = renderer.getPositionOffset(state).add(offset).add(entity.getPos());
+        Vec3 pos = renderer.getRenderOffset(state).add(offset).add(entity.position());
         capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
 
-        MatrixStack matrixStack = new MatrixStack();
-        matrixStack.push();
+        PoseStack matrixStack = new PoseStack();
+        matrixStack.pushPose();
 
 
-        if (state.isInPose(EntityPose.SLEEPING)) {
-            Direction direction = state.sleepingDirection;
+        if (state.hasPose(Pose.SLEEPING)) {
+            Direction direction = state.bedOrientation;
             if (direction != null) {
-                float f = state.standingEyeHeight - 0.1f;
-                matrixStack.translate(-direction.getOffsetX() * f, 0, -direction.getOffsetZ() * f);
+                float f = state.eyeHeight - 0.1f;
+                matrixStack.translate(-direction.getStepX() * f, 0, -direction.getStepZ() * f);
             }
         }
 
-        float scale = state.baseScale;
+        float scale = state.scale;
         matrixStack.scale(scale, scale, scale);
-        rendererAccessor.invokeSetupTransforms(state, matrixStack, state.bodyYaw, scale);
+        rendererAccessor.invokeSetupRotations(state, matrixStack, state.bodyRot, scale);
 
         matrixStack.scale(-1, -1, 1);
         rendererAccessor.invokeScale(state, matrixStack);
         matrixStack.translate(0, -1.501, 0); // TODO: If this causes the same problem as last time, remove it.
 
-        model.setAngles(state);
+        model.setupAnim(state);
 
-        boolean isVisible = rendererAccessor.invokeIsVisible(state);
-        boolean translucent = !isVisible && !state.invisibleToPlayer;
+        boolean isVisible = rendererAccessor.invokeIsBodyVisible(state);
+        boolean translucent = !isVisible && !state.isInvisibleToPlayer;
 
-        ModelParts.captureModelPose(model.getRootPart(), "root", curveFormat, capture, tick, true);
+        ModelParts.captureModelPose(model.root(), "root", curveFormat, capture, tick, true);
 
         // Add transform to root bone
         AnimationCurve rootCurve = capture.getCurve("root", tick);
         if (rootCurve != null) {
-            Matrix4f transform = matrixStack.peek().getPositionMatrix();
+            Matrix4f transform = matrixStack.last().pose();
             Vector3f rootPos = new Vector3f();
             Quaternionf rootRot = rootCurve.hasRotation() ? new Quaternionf() : null;
             Vector3f rootScale = rootCurve.hasScale() ? new Vector3f() : null;
@@ -152,7 +152,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         }
 
         // Extract texture
-        Identifier texId = renderer.getTexture(state);
+        ResourceLocation texId = renderer.getTextureLocation(state);
         String texName = EntityCapture.getEntityTexturePath(texId);
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
@@ -163,15 +163,15 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texPath);
             mtl.mtl().setMapD(texPath);
-            mtl.properties().put("entityType", ReplayMtl.Property.of(Registries.ENTITY_TYPE.getId(entity.getType()).toString()));
+            mtl.properties().put("entityType", ReplayMtl.Property.of(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString()));
             return mtl;
         });
 
         // TODO: Check if doing this every frame causes performance issues.
-        ModelParts.buildParentHierarchy(model.getRootPart(), "root", capture.getParents()::put);
+        ModelParts.buildParentHierarchy(model.root(), "root", capture.getParents()::put);
 
         // Add part meshes if needed.
-        ModelParts.forEachPart(model.getRootPart(), "root", (path, part) -> {
+        ModelParts.forEachPart(model.root(), "root", (path, part) -> {
             capture.getModelParts().computeIfAbsent(path, p -> {
                 Obj obj = Objs.create();
                 obj.setMtlFileNames(Collections.singleton("entities.mtl"));
@@ -180,9 +180,9 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             });
         });
 
-        if (getRendererAccessor(renderer).invokeShouldRenderFeatures(state)) {
+        if (getRendererAccessor(renderer).invokeShouldRenderLayers(state)) {
             for (var feature : features) {
-                feature.capture(capture, materials, state, state.yawDegrees, state.pitch, tick);
+                feature.capture(capture, materials, state, state.yRot, state.xRot, tick);
             }
         }
     }

@@ -1,7 +1,7 @@
 package com.igrium.worldexport.mesh.VertexConsumers;
 
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Vector2f;
 import org.joml.Vector2fc;
 import org.joml.Vector3f;
@@ -14,7 +14,7 @@ import java.util.function.Supplier;
  */
 public abstract class FaceVertexConsumer implements VertexConsumer {
 
-    public final MatrixStack matrices = new MatrixStack();
+    public final PoseStack matrices = new PoseStack();
 
     private final Vector3f[] vertCache = new Vector3f[4];
     private final Vector3f[] colorCache = new Vector3f[4];
@@ -32,43 +32,43 @@ public abstract class FaceVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public FaceVertexConsumer vertex(float x, float y, float z) {
+    public FaceVertexConsumer addVertex(float x, float y, float z) {
         tryEndFace();
         head++;
-        vertCache[head].set(x, y, z).mulPosition(matrices.peek().getPositionMatrix());
+        vertCache[head].set(x, y, z).mulPosition(matrices.last().pose());
         return this;
     }
 
     @Override
-    public FaceVertexConsumer color(int red, int green, int blue, int alpha) {
-        return color(red / 255f, green / 255f, blue / 255f, alpha / 255f);
+    public FaceVertexConsumer setColor(int red, int green, int blue, int alpha) {
+        return setColor(red / 255f, green / 255f, blue / 255f, alpha / 255f);
     }
 
     @Override
-    public FaceVertexConsumer color(float red, float green, float blue, float alpha) {
+    public FaceVertexConsumer setColor(float red, float green, float blue, float alpha) {
         colorCache[head].set(red, green, blue);
         return this;
     }
 
     @Override
-    public FaceVertexConsumer texture(float u, float v) {
+    public FaceVertexConsumer setUv(float u, float v) {
         texCache[head].set(u, v);
         return this;
     }
 
     @Override
-    public FaceVertexConsumer overlay(int u, int v) {
+    public FaceVertexConsumer setUv1(int u, int v) {
         return this;
     }
 
     @Override
-    public FaceVertexConsumer light(int u, int v) {
+    public FaceVertexConsumer setUv2(int u, int v) {
         return this;
     }
 
     @Override
-    public FaceVertexConsumer normal(float x, float y, float z) {
-        normalCache[head].set(x, y, z).mulDirection(matrices.peek().getPositionMatrix()).normalize();
+    public FaceVertexConsumer setNormal(float x, float y, float z) {
+        normalCache[head].set(x, y, z).mulDirection(matrices.last().pose()).normalize();
         return this;
     }
 

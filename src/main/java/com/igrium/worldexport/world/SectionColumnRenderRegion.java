@@ -1,33 +1,33 @@
 package com.igrium.worldexport.world;
 
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.render.chunk.ChunkRendererRegion;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.world.BlockRenderView;
-import net.minecraft.world.biome.ColorResolver;
-import net.minecraft.world.chunk.light.LightingProvider;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.client.renderer.chunk.RenderChunkRegion;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.core.SectionPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.ColorResolver;
+import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
 /**
- * A re-implementation of {@link ChunkRendererRegion} for section columns.
+ * A re-implementation of {@link RenderChunkRegion} for section columns.
  */
-public class SectionColumnRenderRegion implements BlockRenderView {
+public class SectionColumnRenderRegion implements BlockAndTintGetter {
     private final int chunkXOffset;
     private final int chunkZOffset;
 
     private final @Nullable SimpleSectionColumn[] columns;
-    private final BlockRenderView world;
+    private final BlockAndTintGetter world;
 
 
-    public SectionColumnRenderRegion(int chunkXOffset, int chunkZOffset, SimpleSectionColumn[] columns, BlockRenderView world) {
+    public SectionColumnRenderRegion(int chunkXOffset, int chunkZOffset, SimpleSectionColumn[] columns, BlockAndTintGetter world) {
         this.chunkXOffset = chunkXOffset;
         this.chunkZOffset = chunkZOffset;
         this.columns = columns;
@@ -39,18 +39,18 @@ public class SectionColumnRenderRegion implements BlockRenderView {
     }
 
     @Override
-    public float getBrightness(Direction direction, boolean shaded) {
-        return world.getBrightness(direction, shaded);
+    public float getShade(Direction direction, boolean shaded) {
+        return world.getShade(direction, shaded);
     }
 
     @Override
-    public LightingProvider getLightingProvider() {
-        return world.getLightingProvider();
+    public LevelLightEngine getLightEngine() {
+        return world.getLightEngine();
     }
 
     @Override
-    public int getColor(BlockPos pos, ColorResolver colorResolver) {
-        return world.getColor(pos, colorResolver);
+    public int getBlockTint(BlockPos pos, ColorResolver colorResolver) {
+        return world.getBlockTint(pos, colorResolver);
     }
 
     @Override
@@ -60,11 +60,11 @@ public class SectionColumnRenderRegion implements BlockRenderView {
 
     @Override
     public BlockState getBlockState(BlockPos pos) {
-        int localX = ChunkSectionPos.getLocalCoord(pos.getX());
-        int localZ = ChunkSectionPos.getLocalCoord(pos.getZ());
-        SimpleSectionColumn column = getColumn(ChunkSectionPos.getSectionCoord(pos.getX()), ChunkSectionPos.getSectionCoord(pos.getZ()));
+        int localX = SectionPos.sectionRelative(pos.getX());
+        int localZ = SectionPos.sectionRelative(pos.getZ());
+        SimpleSectionColumn column = getColumn(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
 
-        return column != null ? column.getBlockState(localX, pos.getY(), localZ) : Blocks.AIR.getDefaultState();
+        return column != null ? column.getBlockState(localX, pos.getY(), localZ) : Blocks.AIR.defaultBlockState();
     }
 
     @Override
@@ -78,8 +78,8 @@ public class SectionColumnRenderRegion implements BlockRenderView {
     }
 
     @Override
-    public int getBottomY() {
-        return world.getBottomY();
+    public int getMinY() {
+        return world.getMinY();
     }
 
     /**
@@ -96,7 +96,7 @@ public class SectionColumnRenderRegion implements BlockRenderView {
      * @param world World to deffer unsupported operations to.
      * @return The render region.
      */
-    public static SectionColumnRenderRegion build(Map<ChunkPos, SimpleSectionColumn> columns, ChunkPos cPos, BlockRenderView world) {
+    public static SectionColumnRenderRegion build(Map<ChunkPos, SimpleSectionColumn> columns, ChunkPos cPos, BlockAndTintGetter world) {
         int minChunkX = cPos.x - 1;
         int minChunkZ = cPos.z - 1;
         int maxChunkX = cPos.x + 1;

@@ -1,9 +1,9 @@
 package com.igrium.worldexport.mesh.VertexConsumers;
 
 import lombok.Getter;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.renderer.RenderType;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -11,18 +11,18 @@ import java.util.*;
 /**
  * A simple VertexConsumerProvider meant for wrapping custom vertex consumers.
  */
-public class WrappedVertexConsumerProvider implements VertexConsumerProvider {
+public class WrappedVertexConsumerProvider implements MultiBufferSource {
 
-    private final Map<RenderLayer, VertexConsumer> existingBuffers = new HashMap<>();
+    private final Map<RenderType, VertexConsumer> existingBuffers = new HashMap<>();
 
 
     public static final VertexConsumer EMPTY = new EmptyVertexConsumer();
 
     @Getter
-    private final Set<RenderLayer> whitelist = new HashSet<>();
+    private final Set<RenderType> whitelist = new HashSet<>();
 
     @Getter
-    private final Set<RenderLayer> blacklist = new HashSet<>();
+    private final Set<RenderType> blacklist = new HashSet<>();
 
     @Getter
     private final VertexConsumer base;
@@ -32,19 +32,19 @@ public class WrappedVertexConsumerProvider implements VertexConsumerProvider {
     }
 
     public WrappedVertexConsumerProvider(VertexConsumer base,
-                                         @Nullable Collection<? extends RenderLayer> whitelist,
-                                         @Nullable Collection<? extends RenderLayer> blacklist) {
+                                         @Nullable Collection<? extends RenderType> whitelist,
+                                         @Nullable Collection<? extends RenderType> blacklist) {
         this.base = base;
         if (whitelist != null) this.whitelist.addAll(whitelist);
         if (blacklist != null) this.blacklist.addAll(blacklist);
     }
 
     @Override
-    public VertexConsumer getBuffer(RenderLayer layer) {
+    public VertexConsumer getBuffer(RenderType layer) {
         return isLayerAllowed(layer) ? makeUnique(base, layer) : makeUnique(EMPTY, layer);
     }
 
-    protected boolean isLayerAllowed(RenderLayer layer) {
+    protected boolean isLayerAllowed(RenderType layer) {
         if (!whitelist.isEmpty()) {
             return whitelist.contains(layer);
         } else if (!blacklist.isEmpty()) {
@@ -64,7 +64,7 @@ public class WrappedVertexConsumerProvider implements VertexConsumerProvider {
      * @param layer The render layer to assign to.
      * @return The unique vertex consumer.
      */
-    protected VertexConsumer makeUnique(VertexConsumer consumer, RenderLayer layer) {
+    protected VertexConsumer makeUnique(VertexConsumer consumer, RenderType layer) {
         return existingBuffers.computeIfAbsent(layer, l -> new ForwardingVertexConsumer(consumer));
 
     }
@@ -72,32 +72,32 @@ public class WrappedVertexConsumerProvider implements VertexConsumerProvider {
     private static class EmptyVertexConsumer implements VertexConsumer {
 
         @Override
-        public VertexConsumer vertex(float x, float y, float z) {
+        public VertexConsumer addVertex(float x, float y, float z) {
             return this;
         }
 
         @Override
-        public VertexConsumer color(int red, int green, int blue, int alpha) {
+        public VertexConsumer setColor(int red, int green, int blue, int alpha) {
             return this;
         }
 
         @Override
-        public VertexConsumer texture(float u, float v) {
+        public VertexConsumer setUv(float u, float v) {
             return this;
         }
 
         @Override
-        public VertexConsumer overlay(int u, int v) {
+        public VertexConsumer setUv1(int u, int v) {
             return this;
         }
 
         @Override
-        public VertexConsumer light(int u, int v) {
+        public VertexConsumer setUv2(int u, int v) {
             return this;
         }
 
         @Override
-        public VertexConsumer normal(float x, float y, float z) {
+        public VertexConsumer setNormal(float x, float y, float z) {
             return this;
         }
     }

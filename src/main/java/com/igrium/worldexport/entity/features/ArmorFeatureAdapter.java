@@ -3,8 +3,8 @@ package com.igrium.worldexport.entity.features;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.ModelParts;
-import com.igrium.worldexport.mixin.AccessorArmorFeatureRenderer;
-import com.igrium.worldexport.mixin.AccessorEquipmentRenderer;
+import com.igrium.worldexport.mixin.AccessorHumanoidArmorLayer;
+import com.igrium.worldexport.mixin.AccessorEquipmentLayerRenderer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
@@ -12,70 +12,70 @@ import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
-import net.minecraft.client.render.entity.equipment.EquipmentModel;
-import net.minecraft.client.render.entity.equipment.EquipmentRenderer;
-import net.minecraft.client.render.entity.feature.ArmorFeatureRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRenderer;
-import net.minecraft.client.render.entity.model.BipedEntityModel;
-import net.minecraft.client.render.entity.state.BipedEntityRenderState;
-import net.minecraft.client.render.entity.state.EntityRenderState;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.EquippableComponent;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.resources.model.EquipmentClientInfo;
+import net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer;
+import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.equipment.Equippable;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
 import java.util.List;
 
-public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends BipedEntityModel<S>, A extends BipedEntityModel<S>> extends FeatureAdapter<S, M> {
+public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends HumanoidModel<S>, A extends HumanoidModel<S>> extends FeatureAdapter<S, M> {
 
     @SuppressWarnings({"unchecked", "rawtypes"}) // M and A are only used internally, so as long as they're self-consistent, their value doesn't matter.
-    public static <S extends EntityRenderState> FeatureAdapter<S, ?> create(FeatureRenderer<S, ?> renderer) {
-        return new ArmorFeatureAdapter<>((ArmorFeatureRenderer) renderer); // If render properly casts to ArmorFeatureRenderer, then S must be in-bounds.
+    public static <S extends EntityRenderState> FeatureAdapter<S, ?> create(RenderLayer<S, ?> renderer) {
+        return new ArmorFeatureAdapter<>((HumanoidArmorLayer) renderer); // If render properly casts to ArmorFeatureRenderer, then S must be in-bounds.
     }
 
-    private final ArmorFeatureRenderer<S, M, A> renderer;
+    private final HumanoidArmorLayer<S, M, A> renderer;
 
-    public ArmorFeatureAdapter(ArmorFeatureRenderer<S, M, A> renderer) {
+    public ArmorFeatureAdapter(HumanoidArmorLayer<S, M, A> renderer) {
         super(renderer);
         this.renderer = renderer;
     }
 
-    private static boolean hasModel(EquippableComponent component, EquipmentSlot slot) {
+    private static boolean hasModel(Equippable component, EquipmentSlot slot) {
         return component.assetId().isPresent() && component.slot() == slot;
     }
 
-    protected EquipmentRenderer getEquipmentRenderer() {
+    protected EquipmentLayerRenderer getEquipmentRenderer() {
         return renderAccessor().getEquipmentRenderer();
     }
 
     private A getModel(S state, EquipmentSlot slot) {
-        return renderAccessor().invokeGetModel(state, slot);
+        return renderAccessor().invokeGetArmorModel(state, slot);
     }
 
     @Override
     public void capture(CapturedEntity capture, MaterialHolder materials, S state, float limbAngle, float limbDistance, int tick) {
-        captureSlot(capture, materials, state.equippedChestStack, EquipmentSlot.CHEST, getModel(state, EquipmentSlot.CHEST), tick);
-        captureSlot(capture, materials, state.equippedLegsStack, EquipmentSlot.LEGS, getModel(state, EquipmentSlot.LEGS), tick);
-        captureSlot(capture, materials, state.equippedFeetStack, EquipmentSlot.FEET, getModel(state, EquipmentSlot.FEET), tick);
-        captureSlot(capture, materials, state.equippedHeadStack, EquipmentSlot.HEAD, getModel(state, EquipmentSlot.HEAD), tick);
+        captureSlot(capture, materials, state.chestEquipment, EquipmentSlot.CHEST, getModel(state, EquipmentSlot.CHEST), tick);
+        captureSlot(capture, materials, state.legsEquipment, EquipmentSlot.LEGS, getModel(state, EquipmentSlot.LEGS), tick);
+        captureSlot(capture, materials, state.feetEquipment, EquipmentSlot.FEET, getModel(state, EquipmentSlot.FEET), tick);
+        captureSlot(capture, materials, state.headEquipment, EquipmentSlot.HEAD, getModel(state, EquipmentSlot.HEAD), tick);
     }
 
     private void captureSlot(CapturedEntity capture, MaterialHolder materials, ItemStack stack, EquipmentSlot slot, A armorModel, int tick) {
-        EquippableComponent component = stack.get(DataComponentTypes.EQUIPPABLE);
+        Equippable component = stack.get(DataComponents.EQUIPPABLE);
         if (component != null && hasModel(component, slot)) {
-            EquipmentModel.LayerType layerType = slot == EquipmentSlot.LEGS ?
-                    EquipmentModel.LayerType.HUMANOID_LEGGINGS : EquipmentModel.LayerType.HUMANOID;
+            EquipmentClientInfo.LayerType layerType = slot == EquipmentSlot.LEGS ?
+                    EquipmentClientInfo.LayerType.HUMANOID_LEGGINGS : EquipmentClientInfo.LayerType.HUMANOID;
 
-            List<EquipmentModel.Layer> layers = ((AccessorEquipmentRenderer) getEquipmentRenderer()).getEquipmentModelLoader()
+            List<EquipmentClientInfo.Layer> layers = ((AccessorEquipmentLayerRenderer) getEquipmentRenderer()).getEquipmentAssets()
                     .get(component.assetId().orElseThrow()).getLayers(layerType);
 
             if (layers.isEmpty())
                 return;
 
-            Identifier texId = layers.get(0).getFullTextureId(layerType);
+            ResourceLocation texId = layers.get(0).getTextureLocation(layerType);
             String texName = texId.getNamespace() + "/" + texId.getPath();
             String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
@@ -90,11 +90,11 @@ public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends Bip
                 return mtl;
             });
 
-            renderAccessor().invokeSetVisible(armorModel, slot);
+            renderAccessor().invokeSetPartVisibility(armorModel, slot);
 
             // Create part meshes
-            ModelParts.forEachPart(armorModel.getRootPart(), "root", (path, part) -> {
-                String armorPath = Registries.ITEM.getId(stack.getItem()) + "." + path;
+            ModelParts.forEachPart(armorModel.root(), "root", (path, part) -> {
+                String armorPath = BuiltInRegistries.ITEM.getKey(stack.getItem()) + "." + path;
                 capture.getModelParts().computeIfAbsent(armorPath, p -> {
                     Obj obj = Objs.create();
                     obj.setMtlFileNames(Collections.singleton("entities.mtl"));
@@ -111,7 +111,7 @@ public class ArmorFeatureAdapter<S extends BipedEntityRenderState, M extends Bip
     }
 
     @SuppressWarnings("unchecked")
-    private AccessorArmorFeatureRenderer<S, M, A> renderAccessor() {
-        return (AccessorArmorFeatureRenderer<S, M, A>) renderer;
+    private AccessorHumanoidArmorLayer<S, M, A> renderAccessor() {
+        return (AccessorHumanoidArmorLayer<S, M, A>) renderer;
     }
 }

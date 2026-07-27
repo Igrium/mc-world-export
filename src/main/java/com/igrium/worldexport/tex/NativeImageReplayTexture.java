@@ -1,6 +1,6 @@
 package com.igrium.worldexport.tex;
 
-import net.minecraft.client.texture.NativeImage;
+import com.mojang.blaze3d.platform.NativeImage;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,6 +23,6 @@ public class NativeImageReplayTexture implements ReplayTexture {
 
     @Override
     public void writeToFile(Path file) throws IOException {
-        nativeImage.writeTo(file);
+        nativeImage.writeToFile(file);
     }
 }

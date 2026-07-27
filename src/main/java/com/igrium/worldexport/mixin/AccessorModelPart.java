@@ -1,6 +1,6 @@
 package com.igrium.worldexport.mixin;
 
-import net.minecraft.client.model.ModelPart;
+import net.minecraft.client.model.geom.ModelPart;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
@@ -12,6 +12,6 @@ public interface AccessorModelPart {
     @Accessor("children")
     Map<String, ModelPart> getChildren();
 
-    @Accessor("cuboids")
-    List<ModelPart.Cuboid> getCuboids();
+    @Accessor("cubes")
+    List<ModelPart.Cube> getCubes();
 }

@@ -3,7 +3,7 @@ package com.igrium.worldexport.mesh;
 import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.client.util.math.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -15,7 +15,7 @@ public class MeshUtils {
     /**
      * A Minecraft matrix stack entry representing an identity matrix.
      */
-    public static final MatrixStack.Entry IDENTITY_ENTRY = new MatrixStack().peek();
+    public static final PoseStack.Pose IDENTITY_ENTRY = new PoseStack().last();
 
     /**
      * Add all the data of the given OBJ into an output OBJ, assigning all its faces to a group.

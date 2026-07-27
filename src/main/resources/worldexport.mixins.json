@@ -8,15 +8,15 @@
     "defaultRequire": 1
   },
   "client": [
-    "AccessorArmorFeatureRenderer",
+      "AccessorHumanoidArmorLayer",
     "AccessorEntityRenderDispatcher",
     "AccessorEntityRenderer",
-    "AccessorEquipmentRenderer",
-    "AccessorFeatureRenderer",
-    "AccessorItemRenderState",
+      "AccessorEquipmentLayerRenderer",
+      "AccessorRenderLayer",
+      "AccessorItemStackRenderState",
     "AccessorLayerRenderState",
     "AccessorLivingEntityRenderer",
     "AccessorModelPart",
-    "MixinClientWorld"
+      "MixinClientLevel"
   ]
 }
