@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world;
 
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -37,14 +38,15 @@ public class SectionColumnRenderRegion implements BlockAndTintGetter {
         return this.columns[getIndex(chunkXOffset, chunkZOffset, x, z)];
     }
 
-    @Override
-    public float getShade(Direction direction, boolean shaded) {
-        return world.getShade(direction, shaded);
-    }
 
     @Override
     public LevelLightEngine getLightEngine() {
         return world.getLightEngine();
+    }
+
+    @Override
+    public CardinalLighting cardinalLighting() {
+        return world.cardinalLighting();
     }
 
     @Override
@@ -96,10 +98,10 @@ public class SectionColumnRenderRegion implements BlockAndTintGetter {
      * @return The render region.
      */
     public static SectionColumnRenderRegion build(Map<ChunkPos, SimpleSectionColumn> columns, ChunkPos cPos, BlockAndTintGetter world) {
-        int minChunkX = cPos.x - 1;
-        int minChunkZ = cPos.z - 1;
-        int maxChunkX = cPos.x + 1;
-        int maxChunkZ = cPos.z + 1;
+        int minChunkX = cPos.x() - 1;
+        int minChunkZ = cPos.z() - 1;
+        int maxChunkX = cPos.x() + 1;
+        int maxChunkZ = cPos.z() + 1;
         SimpleSectionColumn[] colArray = new SimpleSectionColumn[9];
 
         for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
