@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.entity.ItemEntityRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.item.ItemEntity;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,6 +52,6 @@ public class ModelAdapters {
     // The amount of effort it takes to juggle all these generics is INSANE
 
     static {
-        register(EntityType.ITEM, r -> new ItemModelAdapter((ItemEntityRenderer) r));
+        register(EntityTypes.ITEM, r -> new ItemModelAdapter((ItemEntityRenderer) r));
     }
 }

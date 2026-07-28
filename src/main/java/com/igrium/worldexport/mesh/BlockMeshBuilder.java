@@ -4,11 +4,11 @@ import com.google.common.collect.AbstractIterator;
 import com.igrium.worldexport.mesh.VertexConsumers.DuplicateCheckingVertexConsumer;
 import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import de.javagl.obj.Obj;
+import net.minecraft.client.renderer.block.*;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -16,7 +16,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.BlockAndTintGetter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
@@ -42,15 +41,29 @@ public class BlockMeshBuilder {
     public static void build(
             Obj targetMesh, Iterable<BlockPos> blocks, @Nullable BlockPos offset, BlockAndTintGetter world,
             boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random) {
-        BlockRenderDispatcher blockRenderManager = Minecraft.getInstance().getBlockRenderer();
-        PoseStack matrixStack = new PoseStack();
+
+        Minecraft mc = Minecraft.getInstance();
+        BlockStateModelSet blockModels = mc.getModelManager().getBlockStateModelSet();
+        FluidStateModelSet fluidModels = mc.getModelManager().getFluidStateModelSet();
+
+        ModelBlockRenderer renderer = new ModelBlockRenderer(true, true, mc.getBlockColors());
+        FluidRenderer fluidRenderer = new FluidRenderer(fluidModels);
+
+        var vertexConsumer = new ObjVertexConsumer(targetMesh);
+        var duplicateChecker = new DuplicateCheckingVertexConsumer(vertexConsumer);
+        // TODO: why do we need this? Presumably it's shade sharp.
+        vertexConsumer.setEnableNormals(true);
 
 
-        ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
-        DuplicateCheckingVertexConsumer duplicateChecker = new DuplicateCheckingVertexConsumer(vertexConsumer);
-
-        vertexConsumer.setEnableNormals(false);
-
+//        BlockRenderDispatcher blockRenderManager = Minecraft.getInstance().getBlockRenderer();
+//        PoseStack matrixStack = new PoseStack();
+//
+//
+//        ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
+//        DuplicateCheckingVertexConsumer duplicateChecker = new DuplicateCheckingVertexConsumer(vertexConsumer);
+//
+//        vertexConsumer.setEnableNormals(false);
+//
         if (offset != null) {
             vertexConsumer.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
             duplicateChecker.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
@@ -58,34 +71,35 @@ public class BlockMeshBuilder {
 
         for (BlockPos pos : blocks) {
             BlockState state = world.getBlockState(pos);
-            FluidState fluidState = state.getFluidState();
+            FluidState fluidState = world.getFluidState(pos);
 
-//            vertexConsumer.setMaterial(materialFactory.getMaterial(state));
             if (!fluidState.isEmpty()) {
                 targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
                 vertexConsumer.matrices.pushPose();
                 vertexConsumer.matrices.translate(pos.getX() >> 4 << 4, pos.getY() >> 4 << 4, pos.getZ() >> 4 << 4);
-                blockRenderManager.renderLiquid(pos, world, vertexConsumer, state, fluidState);
+                fluidRenderer.tesselate(world, pos, layer -> vertexConsumer, state, fluidState);
                 vertexConsumer.matrices.popPose();
             }
 
-            if (state.getRenderShape() == RenderShape.INVISIBLE || state.getBlock() == Blocks.AIR)
-                continue;
+            if (state.getRenderShape() == RenderShape.INVISIBLE || state.getBlock() == Blocks.AIR) continue;
 
             if (splitBlocks) {
                 Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
                 targetMesh.setActiveGroupNames(List.of(id.toString()));
             }
 
-            // Special case needed for grass rendering
             var vc = state.is(Blocks.GRASS_BLOCK) ? duplicateChecker : vertexConsumer;
-
+            BlockQuadOutput quadOutput = vc::putBlockBakedQuad;
             targetMesh.setActiveMaterialGroupName(materialFactory.getMaterial(state));
-            matrixStack.pushPose();
-            matrixStack.translate(pos.getX(), pos.getY(), pos.getZ());
-            blockRenderManager.renderBatched(state, pos, world, matrixStack, vc, true, random);
-            vc.pushFace();
-            matrixStack.popPose();
+            if (state.getRenderShape() == RenderShape.MODEL) {
+                renderer.tesselateBlock(
+                        quadOutput,
+                        pos.getX(), pos.getY(), pos.getZ(),
+                        world, pos, state,
+                        blockModels.get(state),
+                        state.getSeed(pos));
+                vc.pushFace();
+            }
         }
     }
 
@@ -104,7 +118,8 @@ public class BlockMeshBuilder {
      */
     public static void buildRange(
             Obj targetMesh, BlockPos minPos, BlockPos maxPos, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<? super BlockPos> predicate) {
+            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+                    super BlockPos> predicate) {
 
         Iterable<BlockPos> iter;
         if (predicate != null) {
@@ -131,7 +146,8 @@ public class BlockMeshBuilder {
      */
     public static void buildSection(
             Obj targetMesh, SectionPos section, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<? super BlockPos> predicate) {
+            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+                    super BlockPos> predicate) {
 
         int minX = section.minBlockX();
         int minY = section.minBlockY();
@@ -161,7 +177,9 @@ public class BlockMeshBuilder {
                     }
                 }
                 return endOfData();
-            };
+            }
+
+            ;
         };
     }
 }

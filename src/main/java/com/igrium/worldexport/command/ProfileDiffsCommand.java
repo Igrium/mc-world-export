@@ -4,15 +4,16 @@ import com.igrium.worldexport.util.ChunkDiffs;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
 import net.minecraft.world.level.chunk.PalettedContainer;
+import net.minecraft.world.level.chunk.PalettedContainerFactory;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.*;
 
 public class ProfileDiffsCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> commandDispatcher, CommandBuildContext commandRegistryAccess) {
@@ -21,8 +22,9 @@ public class ProfileDiffsCommand {
 
     private static int profileDiffs(CommandContext<FabricClientCommandSource> context) {
         int maxAmount = 10000;
-        PalettedContainer<BlockState> first = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
-        PalettedContainer<BlockState> second = new PalettedContainer<>(Block.BLOCK_STATE_REGISTRY, Blocks.AIR.defaultBlockState(), PalettedContainer.Strategy.SECTION_STATES);
+        PalettedContainerFactory factory = PalettedContainerFactory.create(context.getSource().getLevel().registryAccess());
+        PalettedContainer<BlockState> first = factory.createForBlockStates();
+        PalettedContainer<BlockState> second = factory.createForBlockStates();
 
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {

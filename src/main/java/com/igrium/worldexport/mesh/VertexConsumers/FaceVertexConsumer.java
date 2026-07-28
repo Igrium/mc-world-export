@@ -2,6 +2,7 @@ package com.igrium.worldexport.mesh.VertexConsumers;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.util.ARGB;
 import org.joml.Vector2f;
 import org.joml.Vector2fc;
 import org.joml.Vector3f;
@@ -51,8 +52,18 @@ public abstract class FaceVertexConsumer implements VertexConsumer {
     }
 
     @Override
+    public FaceVertexConsumer setColor(int argb) {
+        return setColor(ARGB.red(argb), ARGB.green(argb), ARGB.blue(argb), ARGB.alpha(argb));
+    }
+
+    @Override
     public FaceVertexConsumer setUv(float u, float v) {
         texCache[head].set(u, v);
+        return this;
+    }
+
+    @Override
+    public FaceVertexConsumer setLineWidth(float width) {
         return this;
     }
 

@@ -4,85 +4,41 @@ import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.ModelAdapter;
 import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
-import com.igrium.worldexport.mesh.VertexConsumers.WrappedVertexConsumerProvider;
+import com.igrium.worldexport.mixin.AccessorItemStackRenderState;
+import com.igrium.worldexport.mixin.AccessorLayerRenderState;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ReplayMtl;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 
 import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.ItemEntityRenderer;
 import net.minecraft.client.renderer.entity.state.ItemEntityRenderState;
-import net.minecraft.client.renderer.entity.state.ItemClusterRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.RandomSource;
-import org.joml.Matrix4f;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.Collections;
+import java.util.List;
 
 public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderState> {
 
-    private final ItemEntityRenderer renderer;
+    public static final String ITEM_MTL = "items";
 
     private final RandomSource random = RandomSource.create();
 
-    public ItemModelAdapter(ItemEntityRenderer renderer) {
+    public ItemModelAdapter(EntityRenderer<? super ItemEntity, ? extends ItemEntityRenderState> renderer) {
         super(renderer);
-        this.renderer = renderer;
-
     }
-
-    @Override
-    public void capture(ItemEntity entity, ItemEntityRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
-        Vec3 pos = entity.position().add(offset);
-        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
-
-        if (state.item.isEmpty())
-            return;
-
-        String partName = state.count > 1 ? "item_" + state.count : "item";
-
-        float baseYOffset = 0.25f;
-        float bobbing = Mth.sin(state.ageInTicks / 10.0F + state.bobOffset) * 0.1f + 0.1f;
-        float itemScaleY = state.item.transform().scale.y();
-
-        Vector3f localPos = new Vector3f(0, bobbing + baseYOffset * itemScaleY, 0);
-        float rotation = ItemEntity.getSpin(state.ageInTicks, state.bobOffset);
-        Quaternionf rot = new Quaternionf().rotateY(rotation);
-
-        capture.addFrame(partName, tick, AnimationCurve.CurveFormat.POS_ROT, localPos, rot, null);
-
-        setupMaterials(materials);
-
-        // Capture mesh if needed.
-        capture.getModelParts().computeIfAbsent(partName, n -> {
-            Obj obj = Objs.create();
-            obj.setMtlFileNames(Collections.singleton("entities.mtl"));
-            obj.setActiveMaterialGroupName(ITEM_MTL); // TODO: Enable glint if needed
-
-            PoseStack matrices = new PoseStack();
-            ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
-            WrappedVertexConsumerProvider vertices = new WrappedVertexConsumerProvider(objConsumer);
-            vertices.getBlacklist().add(RenderType.glint());
-            vertices.getBlacklist().add(RenderType.entityGlint());
-
-            ItemEntityRenderer.renderMultipleFromCount(matrices, vertices, 255, state, random);
-            objConsumer.pushFace();
-
-            return obj;
-        });
-    }
-
-    public static String ITEM_MTL = "items";
-    public static String ITEM_MTL_GLINT = "items_glint";
 
     /**
      * Add all the materials needed for rendering items.
@@ -95,15 +51,89 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             mtl.mtl().setMapD(ReplayCapture.WORLD_TEX);
             return mtl;
         });
+    }
 
-        materials.getOrCreateMtl("entities.mtl", ITEM_MTL_GLINT, n -> {
-            var mtl = new ReplayMtl(Mtls.create(n));
-            mtl.mtl().setMapKd(ReplayCapture.WORLD_TEX);
-            mtl.mtl().setMapD(ReplayCapture.WORLD_TEX);
+    @Override
+    public void capture(ItemEntity entity, ItemEntityRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
+        Vec3 pos = entity.position().add(offset);
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
+        if (state.item.isEmpty()) return;
 
-            mtl.properties().put("glint", ReplayMtl.Property.of(true));
-            return mtl;
+        String partName = state.count > 1 ? "item_" + state.count : "item";
+
+        AABB boundingBox = state.item.getModelBoundingBox();
+        float minOffsetY = -((float) boundingBox.minY) + 0.0625f;
+        float bobbing = Mth.sin(state.ageInTicks / 10.0F + state.bobOffset) * 0.1f + 0.1f;
+
+        Vector3f localPos = new Vector3f(0, bobbing + minOffsetY, 0);
+        float rotation = ItemEntity.getSpin(state.ageInTicks, state.bobOffset);
+        Quaternionf rot = new Quaternionf().rotateY(rotation);
+
+        capture.addFrame(partName, tick, AnimationCurve.CurveFormat.POS_ROT, localPos, rot, null);
+
+        setupMaterials(materials);
+
+        // Capture mesh if needed.
+        capture.getModelParts().computeIfAbsent(partName, n -> {
+            Obj obj = Objs.create();
+            obj.setMtlFileNames(Collections.singleton("entities.mtl"));
+            obj.setActiveMaterialGroupName(ITEM_MTL);
+
+            ObjVertexConsumer consumer = new ObjVertexConsumer(obj);
+            PoseStack matrices = new PoseStack();
+            writeItemCluster(matrices, consumer, state, random, boundingBox);
+            consumer.pushFace();
+
+            return obj;
         });
     }
 
+    private static void writeItemCluster(PoseStack poseStack, ObjVertexConsumer consumer, ItemEntityRenderState state, RandomSource random, AABB modelBoundingBox) {
+        int amount = state.count;
+        if (amount == 0) return;
+
+        random.setSeed(state.seed);
+        float modelDepth = (float) modelBoundingBox.getZsize();
+
+        if (modelDepth > 0.0625F) {
+            writeItem(poseStack, consumer, state.item);
+
+            for (int i = 1; i < amount; i++) {
+                poseStack.pushPose();
+                float xo = (random.nextFloat() * 2.0F - 1.0F) * 0.15F;
+                float yo = (random.nextFloat() * 2.0F - 1.0F) * 0.15F;
+                float zo = (random.nextFloat() * 2.0F - 1.0F) * 0.15F;
+                poseStack.translate(xo, yo, zo);
+                writeItem(poseStack, consumer, state.item);
+                poseStack.popPose();
+            }
+        } else {
+            float offsetZ = modelDepth * 1.5F;
+            poseStack.translate(0.0F, 0.0F, -(offsetZ * (amount - 1) / 2.0F));
+            writeItem(poseStack, consumer, state.item);
+            poseStack.translate(0.0F, 0.0F, offsetZ);
+
+            for (int i = 1; i < amount; i++) {
+                poseStack.pushPose();
+                float xo = (random.nextFloat() * 2.0F - 1.0F) * 0.15F * 0.5F;
+                float yo = (random.nextFloat() * 2.0F - 1.0F) * 0.15F * 0.5F;
+                poseStack.translate(xo, yo, 0.0F);
+                writeItem(poseStack, consumer, state.item);
+                poseStack.popPose();
+                poseStack.translate(0.0F, 0.0F, offsetZ);
+            }
+        }
+    }
+
+    private static void writeItem(PoseStack poseStack, ObjVertexConsumer consumer, ItemStackRenderState item) {
+        for (var layer : ((AccessorItemStackRenderState) item).getLayers()) {
+            List<BakedQuad> quads = ((AccessorLayerRenderState) layer).getModel();
+            if (quads == null)
+                continue; // TODO: Special models
+
+            for (BakedQuad quad : quads) {
+                consumer.putBakedQuad(poseStack.last(), quad, new QuadInstance());
+            }
+        }
+    }
 }

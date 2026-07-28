@@ -96,7 +96,7 @@ public class CurveViewerWindow {
             return;
 
         if (fitPlot) {
-            ImPlot.fitNextPlotAxes();
+            ImPlot.setNextAxesToFit();
             fitPlot = false;
         }
 
@@ -131,7 +131,7 @@ public class CurveViewerWindow {
 
 
     private void drawLine(String name, double[] xData, float[] yData) {
-        ImPlot.plotLine(name, xData, convertArray(yData), xData.length, 0);
+        ImPlot.plotLine(name, xData, convertArray(yData));
     }
 
     private void drawChannelTree(CompiledReplay replay) {

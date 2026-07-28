@@ -9,6 +9,7 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.PalettedContainerFactory;
 
 /**
  * A simplified, vertical column of chunk sections without all the overhead of a world chunk.
@@ -24,10 +25,10 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
      */
     private final LevelChunkSection[] sections;
 
-    public SimpleSectionColumn(int lowerSectionY, int numSections, Registry<Biome> biomeRegistry) {
+    public SimpleSectionColumn(int lowerSectionY, int numSections, PalettedContainerFactory factory) {
         this(lowerSectionY, numSections);
         for (int i = 0; i < sections.length; i++) {
-            sections[i] = new LevelChunkSection(biomeRegistry);
+            sections[i] = new LevelChunkSection(factory);
         }
     }
 
@@ -39,6 +40,7 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
 
     /**
      * Get the section at a given index.
+     *
      * @param yIndex 0-based Y index to get.
      * @return A reference to the section.
      * @throws IndexOutOfBoundsException If the index is out of range for this column.
@@ -49,6 +51,7 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
 
     /**
      * Get the block at a specific coordinate (relative to the chunk)
+     *
      * @param x Local X coord.
      * @param y Local Y coord.
      * @param z Local Z coord.
@@ -72,6 +75,7 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
 
     /**
      * Get the biome at a specific coordinate (relative to the chunk)
+     *
      * @param x Local X coord.
      * @param y Local Y coord.
      * @param z Local Z coord.
@@ -116,6 +120,7 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
 
     /**
      * Duplicate this column and all the sections in it.
+     *
      * @return Deep copy of the column.
      */
     public SimpleSectionColumn copy() {
@@ -128,6 +133,7 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
 
     /**
      * Generate a section column based on the sections in a chunk.
+     *
      * @param chunk Chunk to get sections from.
      * @return Generated column with copies of all the chunk sections.
      */
@@ -143,13 +149,14 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
     /**
      * Generate a section column based on a selection of sections in a chunk.
      *
-     * @param chunk          Chunk to get sections from.
-     * @param lowerSectionY  Minimum section Y value.
-     * @param height         Height of the column.
-     * @param biomeRegistry  Biome registry to use if new sections need to be generated.
+     * @param chunk         Chunk to get sections from.
+     * @param lowerSectionY Minimum section Y value.
+     * @param height        Height of the column.
+     * @param factory       Paletted container factory to use if new sections need to be generated.
      * @return The generated column with copies of all the chunk sections.
      */
-    public static SimpleSectionColumn fromChunk(ChunkAccess chunk, int lowerSectionY, int height, Registry<Biome> biomeRegistry) {
+    public static SimpleSectionColumn fromChunk(ChunkAccess chunk, int lowerSectionY, int height,
+                                                PalettedContainerFactory factory) {
         SimpleSectionColumn col = new SimpleSectionColumn(lowerSectionY, height);
 
         for (int i = 0; i < height; i++) {
@@ -159,9 +166,10 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
             if (chunkSectionIndex >= 0 && chunkSectionIndex < chunk.getSectionsCount()) {
                 LevelChunkSection section = chunk.getSection(chunkSectionIndex);
                 // If chunk.getSection can return null, add a null check here
-                col.sections[i] = section != null ? section.copy() : new LevelChunkSection(biomeRegistry);
+                //noinspection ConstantValue
+                col.sections[i] = section != null ? section.copy() : new LevelChunkSection(factory);
             } else {
-                col.sections[i] = new LevelChunkSection(biomeRegistry);
+                col.sections[i] = new LevelChunkSection(factory);
             }
         }
 

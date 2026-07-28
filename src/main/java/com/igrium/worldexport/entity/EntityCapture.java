@@ -87,7 +87,8 @@ public class EntityCapture {
      */
     public void captureFrame(Level world, int tick) {
         Minecraft client = Minecraft.getInstance();
-        client.getEntityRenderDispatcher().prepare(world, client.gameRenderer.getMainCamera(), client.crosshairPickEntity);
+        //noinspection DataFlowIssue
+        client.getEntityRenderDispatcher().prepare(client.gameRenderer.mainCamera(), client.crosshairPickEntity);
 
         var entities = world.getEntities((Entity) null, bounds, entityPredicate);
         for (var entity : entities) {

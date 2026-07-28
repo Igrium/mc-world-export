@@ -180,7 +180,7 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      * @return {@code true} if the coordinates overlap the box (inclusive lower bound, exclusive upper bound), {@code false} otherwise.
      */
     public boolean isInBounds(ChunkPos pos) {
-        return isInBounds(pos.x, pos.z);
+        return isInBounds(pos.x(), pos.z());
     }
 
     /**

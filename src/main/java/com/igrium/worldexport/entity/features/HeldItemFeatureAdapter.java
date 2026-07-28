@@ -4,7 +4,6 @@ import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.models.ItemModelAdapter;
 import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
-import com.igrium.worldexport.mesh.VertexConsumers.WrappedVertexConsumerProvider;
 import com.igrium.worldexport.mixin.AccessorItemStackRenderState;
 import com.igrium.worldexport.mixin.AccessorLayerRenderState;
 import com.igrium.worldexport.replay.MaterialHolder;
@@ -32,6 +31,10 @@ import java.util.Map;
 public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends EntityModel<S> & ArmedModel>
         extends FeatureAdapter<S, M> {
 
+    public HeldItemFeatureAdapter(RenderLayer<S, M> renderer) {
+        super(renderer);
+    }
+
     private record HandedModel(HumanoidArm hand, List<BakedQuad> model) {};
 
     public static final String ITEM_MAT = "items";
@@ -39,10 +42,6 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
     @SuppressWarnings({"unchecked", "rawtypes"}) // M is only used internally, so as long as it's self-consistent, its value doesn't matter.
     public static <S extends ArmedEntityRenderState> FeatureAdapter<S, ?> create(RenderLayer<S, ?> renderer) {
         return new HeldItemFeatureAdapter<>((ItemInHandLayer) renderer); // If render properly casts to ArmorFeatureRenderer, then S must be in-bounds.
-    }
-
-    public HeldItemFeatureAdapter(ItemInHandLayer<S, M> renderer) {
-        super(renderer);
     }
 
     @Override

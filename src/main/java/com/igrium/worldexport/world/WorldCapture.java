@@ -15,6 +15,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,15 +64,16 @@ public class WorldCapture {
      * @implNote Somewhat expensive operation. Should only be called at the start of capture.
      */
     public void captureBaseWorld(Level world) {
-        var biomeRegistry = world.registryAccess().lookupOrThrow(Registries.BIOME);
+        var factory = PalettedContainerFactory.create(world.registryAccess());
 
         for (int z = bounds.minZ(); z < bounds.maxZ(); z++) {
             for (int x = bounds.minX(); x < bounds.maxX(); x++) {
                 ChunkAccess chunk = world.getChunk(x, z);
+                //noinspection ConstantValue
                 if (chunk == null)
                     continue;
 
-                SimpleSectionColumn col = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
+                SimpleSectionColumn col = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), factory);
                 copiedBaseWorld.put(new ChunkPos(x, z), col);
             }
         }
@@ -87,8 +89,8 @@ public class WorldCapture {
         if (!bounds.isInBounds(cPos))
             return;
 
-        var biomeRegistry = chunk.getLevel().registryAccess().lookupOrThrow(Registries.BIOME);
-        SimpleSectionColumn newVal = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), biomeRegistry);
+        var containerFactory = PalettedContainerFactory.create(chunk.getLevel().registryAccess());
+        SimpleSectionColumn newVal = SimpleSectionColumn.fromChunk(chunk, bounds.minY(), bounds.sizeY(), containerFactory);
         SimpleSectionColumn oldVal = copiedBaseWorld.putIfAbsent(cPos, newVal);
 
         // The chunk had been previously loaded; diff it and add block updates.
@@ -168,7 +170,7 @@ public class WorldCapture {
         }
 
         // Fallback to base
-        ChunkPos cPos = new ChunkPos(pos);
+        ChunkPos cPos = ChunkPos.containing(pos);
         SimpleSectionColumn col = copiedBaseWorld.get(cPos);
         if (col != null) {
             return col.getBlockState(
