@@ -15,10 +15,11 @@ import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.Util;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         ClientBlockUpdatedEvent.EVENT.register(ReplayCapture::globalClientBlockUpdated);
         ClientChunkEvents.CHUNK_LOAD.register(ReplayCapture::globalClientChunkLoad);
 
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register(ReplayCapture::globalClientWorldChange);
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register(ReplayCapture::globalClientWorldChange);
 
         if (FabricLoader.getInstance().isModLoaded("craftui")) {
             ReplayDebugger.registerMenuButton();
@@ -57,7 +58,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         }
     }
 
-    public ReplayCapture startRecording(Level world, ReplayExportSettings settings) {
+    public ReplayCapture startRecording(ClientLevel world, ReplayExportSettings settings) {
         activeRecording = new ReplayCapture(world, settings);
         activeRecording.beginCapture();
         return activeRecording;

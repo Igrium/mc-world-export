@@ -24,7 +24,7 @@ import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Collections;
 import java.util.List;
@@ -75,7 +75,7 @@ public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends Humano
             if (layers.isEmpty())
                 return;
 
-            ResourceLocation texId = layers.get(0).getTextureLocation(layerType);
+            Identifier texId = layers.get(0).getTextureLocation(layerType);
             String texName = texId.getNamespace() + "/" + texId.getPath();
             String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 

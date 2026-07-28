@@ -1,16 +1,13 @@
 plugins {
-    id 'fabric-loom' version '1.10-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.17.16'
     id 'maven-publish'
     id 'io.freefair.lombok' version '8.14'
 }
-
 version = project.mod_version
 group = project.maven_group
-
 base {
     archivesName = project.archives_base_name
 }
-
 repositories {
     maven { url 'https://jitpack.io' }
     maven {
@@ -22,56 +19,41 @@ repositories {
         url = "https://api.modrinth.com/maven"
     }
 }
-
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "net.minecraft:minecraft:${project.minecraft_version}"
-    mappings loom.officialMojangMappings()
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation(include("de.javagl:obj:0.4.0"))
-
     // For debugging exported replays
-    modImplementation "com.github.igrium:craftui:db770015ca"
+    implementation 'com.github.Igrium:CraftUI:26.2-SNAPSHOT'
 //    modCompileOnly "com.github.igrium:craftui:db770015ca"
-
-    modImplementation "maven.modrinth:replaymod:${replaymod_version}"
+    implementation "maven.modrinth:replaymod:${replaymod_version}"
 }
-
 processResources {
     inputs.property "version", project.version
-
     filesMatching("fabric.mod.json") {
         expand "version": inputs.properties.version
     }
 }
-
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 17
+    it.options.release = 25
 }
-
 java {
     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
     // if it is present.
     // If you remove this line, sources will not be generated.
     withSourcesJar()
-
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
-
 jar {
     inputs.property "archivesName", project.base.archivesName
-
     from("LICENSE") {
         rename { "${it}_${inputs.properties.archivesName}"}
     }
 }
-
 // configure the maven publication
 publishing {
     publications {
@@ -80,7 +62,6 @@ publishing {
             from components.java
         }
     }
-
     // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
     repositories {
         // Add repositories to publish to here.

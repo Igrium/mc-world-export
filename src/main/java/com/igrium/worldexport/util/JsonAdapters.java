@@ -7,7 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Position;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
@@ -91,17 +91,17 @@ public class JsonAdapters {
         }
     }
 
-    public static class IdentifierJsonAdapter extends TypeAdapter<ResourceLocation> {
+    public static class IdentifierJsonAdapter extends TypeAdapter<Identifier> {
 
         @Override
-        public void write(JsonWriter out, ResourceLocation value) throws IOException {
+        public void write(JsonWriter out, Identifier value) throws IOException {
             out.value(value.toString());
         }
 
         @Override
-        public ResourceLocation read(JsonReader in) throws IOException {
+        public Identifier read(JsonReader in) throws IOException {
             String str = in.nextString();
-            return ResourceLocation.parse(str);
+            return Identifier.parse(str);
         }
     }
 }

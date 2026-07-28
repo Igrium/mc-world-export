@@ -7,7 +7,6 @@ import com.igrium.worldexport.mesh.WorldMaterialFactory;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
-import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
@@ -16,23 +15,19 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.client.Minecraft;
-import com.mojang.blaze3d.platform.NativeImage;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.texture.TextureAtlas;
-import net.minecraft.world.inventory.InventoryMenu;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.Util;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.util.Util;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
-import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,11 +145,10 @@ public class WorldTessellator {
         return mtls;
     }
 
-    @SuppressWarnings("deprecation")
     private Vector2f getGrassOverlayOffset(Vector2f dest) {
-        var atlas = Minecraft.getInstance().getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS);
-        TextureAtlasSprite sideSprite = atlas.getSprite(ResourceLocation.withDefaultNamespace("block/grass_block_side"));
-        TextureAtlasSprite overlaySprite = atlas.getSprite(ResourceLocation.withDefaultNamespace("block/grass_block_side_overlay"));
+        var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS);
+        TextureAtlasSprite sideSprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side"));
+        TextureAtlasSprite overlaySprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side_overlay"));
 
         return dest.set(overlaySprite.getU0() - sideSprite.getU0(), overlaySprite.getV0() - sideSprite.getV0());
     }
@@ -163,7 +157,6 @@ public class WorldTessellator {
      * Get the atlas texture used for blocks.
      * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
      */
-    @SuppressWarnings("deprecation") // Not actually deprecated
     public CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
         return TextureExtractor.pullAtlasTextureAsync(TextureAtlas.LOCATION_BLOCKS)
                 .thenApply(NativeImageReplayTexture::new);
@@ -211,7 +204,7 @@ public class WorldTessellator {
                 }
             }
             return CompletableFuture.runAsync(() -> {
-                tessellateBaseChunk(cPos, RandomSource.createNewThreadLocalInstance());
+                tessellateBaseChunk(cPos, RandomSource.createThreadLocalInstance());
                 if (onChunkTessellated != null) {
                     onChunkTessellated.accept(cPos);
                 }
@@ -251,7 +244,7 @@ public class WorldTessellator {
      * Queue every section within the bounds to be tessellated.
      */
     public void tessellateBaseWorld() {
-        ThreadLocal<RandomSource> randoms = ThreadLocal.withInitial(RandomSource::createNewThreadLocalInstance);
+        ThreadLocal<RandomSource> randoms = ThreadLocal.withInitial(RandomSource::createThreadLocalInstance);
         ChunkSectionBox bounds = worldCapture.getBounds();
 
         // Iterate over each chunk within the bounds
@@ -353,7 +346,7 @@ public class WorldTessellator {
 
     public List<WorldMesh> tessellateChunkMeshes(ChunkPos cPos, BlockUpdateCache cache) {
         List<WorldMesh> list = new ArrayList<>();
-        RandomSource random = RandomSource.createNewThreadLocalInstance();
+        RandomSource random = RandomSource.createThreadLocalInstance();
         for (int y = getBounds().minY(); y < getBounds().maxY(); y++) {
             SectionPos sPos = SectionPos.of(cPos, y);
             try {

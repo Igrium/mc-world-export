@@ -5,10 +5,10 @@ import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldTessellator;
 import lombok.Getter;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -113,7 +113,7 @@ public class ReplayCapture {
     private int gameTick;
     private int replayTick;
 
-    public ReplayCapture(Level world, ReplayExportSettings settings) {
+    public ReplayCapture(ClientLevel world, ReplayExportSettings settings) {
         this.world = world;
         this.settings = settings;
 

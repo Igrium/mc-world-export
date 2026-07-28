@@ -11,7 +11,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.core.Vec3i;
@@ -113,7 +113,7 @@ public class EntityCapture {
         modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
     }
 
-    public static String getEntityTexturePath(ResourceLocation id) {
+    public static String getEntityTexturePath(Identifier id) {
         String path = id.getPath();
         if (!path.endsWith(".png"))
             path += ".png";

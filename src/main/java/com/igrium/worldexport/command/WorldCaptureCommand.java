@@ -14,8 +14,7 @@ import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.SectionPos;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.*;
 
 public class WorldCaptureCommand
 {
@@ -41,7 +40,7 @@ public class WorldCaptureCommand
                 .bounds(bounds)
                 .build();
 
-        IgriumsReplayExporter.getInstance().startRecording(context.getSource().getWorld(), settings);
+        IgriumsReplayExporter.getInstance().startRecording(context.getSource().getLevel(), settings);
 
         context.getSource().sendFeedback(Component.literal("Capturing " + bounds.count() + " sections..."));
         return 1;

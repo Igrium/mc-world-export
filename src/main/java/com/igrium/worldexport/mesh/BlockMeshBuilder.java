@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.RandomSource;
@@ -73,7 +73,7 @@ public class BlockMeshBuilder {
                 continue;
 
             if (splitBlocks) {
-                ResourceLocation id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+                Identifier id = BuiltInRegistries.BLOCK.getKey(state.getBlock());
                 targetMesh.setActiveGroupNames(List.of(id.toString()));
             }
 

@@ -26,7 +26,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -152,7 +152,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         }
 
         // Extract texture
-        ResourceLocation texId = renderer.getTextureLocation(state);
+        Identifier texId = renderer.getTextureLocation(state);
         String texName = EntityCapture.getEntityTexturePath(texId);
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 

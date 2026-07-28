@@ -1,16 +1,23 @@
 package com.igrium.worldexport.tex;
 
-import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.textures.GpuTexture;
+import net.fabricmc.loader.impl.util.ExceptionUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.ResourceLocation;
-import org.lwjgl.opengl.GL11C;
+import net.minecraft.client.renderer.texture.TextureContents;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -23,63 +30,119 @@ public class TextureExtractor {
      *
      * @param texture Texture to get.
      * @return A NativeImage containing the contents of the texture.
-     * @implNote If the texture is a <code>NativeImageBackedTexture</code>, references the native image directly.
-     * Therefore, modifying it could cause unexpected side effects.
+     * @implNote If the texture is a <code>DynamicTexture</code>, copies the native image directly.
+     * Otherwise, the texture's underlying {@link GpuTexture} must have been created with
+     * <code>GpuTexture.USAGE_COPY_SRC</code>, or the readback will fail.
      */
     public static NativeImage pullTexture(AbstractTexture texture) {
-        if (texture instanceof DynamicTexture) {
-            return ((DynamicTexture) texture).getPixels();
+        var future = pullTextureAsync(texture);
+        // The GPU copy resolves via a fence rather than synchronously; pump RenderSystem's pending
+        // task queue (the same queue GlCommandEncoder#copyTextureToBuffer enqueues into) until it's done.
+        while (!future.isDone()) {
+            RenderSystem.executePendingTasks();
         }
-
-        if (!RenderSystem.isOnRenderThread()) {
-            throw new IllegalStateException("Texture can only be retrieved on the render thread!");
-        }
-
-        texture.bind();
-        // AbstractTexture doesn't save the texture's width/height post-init, so we need to retrieve it from the GPU.
-        int width = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_WIDTH);
-        int height = GlStateManager._getTexLevelParameter(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_TEXTURE_HEIGHT);
-
-        // TODO: Because NativeImage isn't garbage collected, pulling textures like this can cause a memory leak.
-        // We do it somewhat rarely though, so it's probably fine.
-        NativeImage image = new NativeImage(width, height, false);
-        image.downloadTexture(0, false);
-
-        return image;
+        return future.join();
     }
 
     public static CompletableFuture<NativeImage> pullTextureAsync(AbstractTexture texture) {
-        return supplyOnRenderThread(() -> pullTexture(texture));
+        if (texture instanceof DynamicTexture dynamicTexture) {
+            return CompletableFuture.completedFuture(copyNativeImage(dynamicTexture.getPixels()));
+        }
+
+        return CompletableFuture.supplyAsync(() -> downloadTexture(texture.getTexture()), TextureExtractor::onRenderThread)
+                .thenCompose(f -> f);
+
     }
 
-    public static AbstractTexture getTexture(ResourceLocation texID) {
+    private static AbstractTexture getTexture(Identifier texID) {
         return Minecraft.getInstance().getTextureManager().getTexture(texID);
     }
 
 
-    public static NativeImage pullTexture(ResourceLocation texID) {
-        LOGGER.info("Fetching texture from GPU: {}", texID);
+    public static NativeImage pullTexture(Identifier texID) {
+        LOGGER.info("Fetching texture: {}", texID);
         AbstractTexture texture = getTexture(texID);
-        return pullTexture(texture);
+        if (texture instanceof DynamicTexture dynamicTexture) {
+            return copyNativeImage(dynamicTexture.getPixels());
+        } else {
+            try {
+                return loadTextureFromResources(texID);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
-    public static CompletableFuture<NativeImage> pullTextureAsync(ResourceLocation texID) {
-        return supplyOnRenderThread(() -> pullTexture(texID));
+    public static CompletableFuture<NativeImage> pullTextureAsync(Identifier texID) {
+        LOGGER.info("Fetching texture: {}", texID);
+        AbstractTexture texture = getTexture(texID);
+        if (texture instanceof DynamicTexture dynamicTexture) {
+            return CompletableFuture.completedFuture(copyNativeImage(dynamicTexture.getPixels()));
+        }
+        return loadTextureFromResourcesAsync(texID);
     }
 
-
-    public static AbstractTexture getAtlasTexture(ResourceLocation atlasID) {
-        // TODO: Do we actually need a separate function for getting atlas textures?
-        return Minecraft.getInstance().getModelManager().getAtlas(atlasID);
+    @SuppressWarnings("resource") // Not closed: ownership of the image transfers to the caller.
+    private static NativeImage loadTextureFromResources(Identifier texID) throws IOException {
+        return TextureContents.load(Minecraft.getInstance().getResourceManager(), texID).image();
     }
 
-    public static NativeImage pullAtlasTexture(ResourceLocation atlasID) {
+    private static CompletableFuture<NativeImage> loadTextureFromResourcesAsync(Identifier texID) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return loadTextureFromResources(texID);
+            } catch (IOException e) {
+                throw ExceptionUtil.wrap(e);
+            }
+        }, Util.ioPool());
+    }
+
+    public static AbstractTexture getAtlasTexture(Identifier atlasID) {
+        return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(atlasID);
+    }
+
+    public static NativeImage pullAtlasTexture(Identifier atlasID) {
         AbstractTexture atlas = getAtlasTexture(atlasID);
         return pullTexture(atlas);
     }
 
-    public static CompletableFuture<NativeImage> pullAtlasTextureAsync(ResourceLocation atlasID) {
+    public static CompletableFuture<NativeImage> pullAtlasTextureAsync(Identifier atlasID) {
         return supplyOnRenderThread(() -> pullAtlasTexture(atlasID));
+    }
+
+    /**
+     * Copy a GPU texture into a freshly-allocated {@link NativeImage} via a staging buffer.
+     * <b>Must be called on the render thread.</b> The source texture must have been created with
+     * <code>GpuTexture.USAGE_COPY_SRC</code>.
+     */
+    private static CompletableFuture<NativeImage> downloadTexture(GpuTexture texture) {
+        int width = texture.getWidth(0);
+        int height = texture.getHeight(0);
+        int blockSize = texture.getFormat().blockSize();
+
+        GpuDevice device = RenderSystem.getDevice();
+        GpuBuffer buffer = device.createBuffer(() -> "Texture readback buffer",
+                GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long) width * height * blockSize);
+
+        CompletableFuture<NativeImage> future = new CompletableFuture<>();
+        device.createCommandEncoder().copyTextureToBuffer(texture, buffer, 0L, () -> {
+            try (GpuBufferSlice.MappedView view = buffer.map(true, false)) {
+                NativeImage image = new NativeImage(width, height, false);
+                ByteBuffer data = view.data();
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        image.setPixelABGR(x, y, data.getInt((x + y * width) * blockSize));
+                    }
+                }
+                future.complete(image);
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            } finally {
+                buffer.close();
+            }
+        }, 0);
+
+        return future;
     }
 
     private static <T> CompletableFuture<T> supplyOnRenderThread(Supplier<T> supplier) {
@@ -91,7 +154,7 @@ public class TextureExtractor {
             }
         } else {
             CompletableFuture<T> future = new CompletableFuture<>();
-            RenderSystem.recordRenderCall(() -> {
+            Minecraft.getInstance().execute(() -> {
                 try {
                     future.complete(supplier.get());
                 } catch (Exception e) {
@@ -100,5 +163,19 @@ public class TextureExtractor {
             });
             return future;
         }
+    }
+
+    private static void onRenderThread(Runnable r) {
+        if (RenderSystem.isOnRenderThread()) {
+            r.run();
+        } else {
+            Minecraft.getInstance().execute(r);
+        }
+    }
+
+    private static NativeImage copyNativeImage(NativeImage from) {
+        NativeImage to = new NativeImage(from.format(), from.getWidth(), from.getHeight(), false);
+        to.copyFrom(from);
+        return to;
     }
 }
