@@ -19,19 +19,20 @@ import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.ArmedModel;
 import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.BakedModel;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.world.entity.HumanoidArm;
 import com.mojang.math.Axis;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends EntityModel<S> & ArmedModel>
         extends FeatureAdapter<S, M> {
 
-    private record HandedModel(HumanoidArm hand, BakedModel model) {};
+    private record HandedModel(HumanoidArm hand, List<BakedQuad> model) {};
 
     public static final String ITEM_MAT = "items";
 
@@ -46,8 +47,8 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
 
     @Override
     public void capture(CapturedEntity capture, MaterialHolder materials, S state, float limbAngle, float limbDistance, int tick) {
-        captureItem(capture, materials, state, state.rightHandItem, HumanoidArm.RIGHT, tick);
-        captureItem(capture, materials, state, state.leftHandItem, HumanoidArm.LEFT, tick);
+        captureItem(capture, materials, state, state.rightHandItemState, HumanoidArm.RIGHT, tick);
+        captureItem(capture, materials, state, state.leftHandItemState, HumanoidArm.LEFT, tick);
     }
 
     private final Map<HandedModel, String> itemModelNames = new HashMap<>();
@@ -65,7 +66,7 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
         });
 
         for (var layer : ((AccessorItemStackRenderState) itemState).getLayers()) {
-            BakedModel model = ((AccessorLayerRenderState) layer).getModel();
+            List<BakedQuad> model = ((AccessorLayerRenderState) layer).getModel();
             if (model == null)
                 continue; // TODO: Special models
 
@@ -82,7 +83,7 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
                 obj.setActiveMaterialGroupName(mat.getName());
 
                 ObjVertexConsumer consumer = new ObjVertexConsumer(obj);
-                itemState.render(matrices, new WrappedVertexConsumerProvider(consumer), 1, OverlayTexture.NO_OVERLAY);
+                itemState.submit(matrices, new WrappedVertexConsumerProvider(consumer), 1, OverlayTexture.NO_OVERLAY);
                 consumer.pushFace();
 
                 // TODO: Is there a dynamic way to do this?

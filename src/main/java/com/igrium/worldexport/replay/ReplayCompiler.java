@@ -1,10 +1,9 @@
 package com.igrium.worldexport.replay;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

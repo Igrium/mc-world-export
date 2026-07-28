@@ -20,7 +20,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +39,7 @@ public final class ReplayDebugger extends CraftApp {
     public static void registerMenuButton() {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen tScreen) {
-                Screens.getButtons(screen).add(Button
+                Screens.getWidgets(screen).add(Button
                         .builder(Component.translatable("menu.worldexport.replaydebugger"), (b) -> open(client))
                         .build());
             }
@@ -48,7 +48,7 @@ public final class ReplayDebugger extends CraftApp {
 
     public static CraftAppScreen<ReplayDebugger> open(Minecraft client) {
         var screen = new CraftAppScreen<>(new ReplayDebugger());
-        client.setScreen(screen);
+        client.setScreenAndShow(screen);
         return screen;
     }
 

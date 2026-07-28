@@ -11,8 +11,7 @@ import com.igrium.worldexport.tex.ReplayMtl;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.MultiBufferSource;
+
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.ItemEntityRenderer;
 import net.minecraft.client.renderer.entity.state.ItemEntityRenderState;
