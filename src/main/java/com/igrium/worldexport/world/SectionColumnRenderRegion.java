@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world;
 
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.chunk.RenderSectionRegion;
 import net.minecraft.world.level.CardinalLighting;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
@@ -9,7 +10,6 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.SectionPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.ColorResolver;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
- * A re-implementation of {@link RenderChunkRegion} for section columns.
+ * A re-implementation of {@link RenderSectionRegion} for section columns.
  */
 public class SectionColumnRenderRegion implements BlockAndTintGetter {
     private final int chunkXOffset;

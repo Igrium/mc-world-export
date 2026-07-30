@@ -34,6 +34,7 @@ public class TextureExtractor {
      * Otherwise, the texture's underlying {@link GpuTexture} must have been created with
      * <code>GpuTexture.USAGE_COPY_SRC</code>, or the readback will fail.
      */
+    @Deprecated
     public static NativeImage pullTexture(AbstractTexture texture) {
         var future = pullTextureAsync(texture);
         // The GPU copy resolves via a fence rather than synchronously; pump RenderSystem's pending
@@ -101,13 +102,15 @@ public class TextureExtractor {
         return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(atlasID);
     }
 
+    @Deprecated
     public static NativeImage pullAtlasTexture(Identifier atlasID) {
         AbstractTexture atlas = getAtlasTexture(atlasID);
         return pullTexture(atlas);
     }
 
     public static CompletableFuture<NativeImage> pullAtlasTextureAsync(Identifier atlasID) {
-        return supplyOnRenderThread(() -> pullAtlasTexture(atlasID));
+        AbstractTexture atlas = getAtlasTexture(atlasID);
+        return pullTextureAsync(atlas);
     }
 
     /**

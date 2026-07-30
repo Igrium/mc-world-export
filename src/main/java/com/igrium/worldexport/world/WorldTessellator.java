@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
@@ -146,7 +147,7 @@ public class WorldTessellator {
     }
 
     private Vector2f getGrassOverlayOffset(Vector2f dest) {
-        var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS);
+        var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS);
         TextureAtlasSprite sideSprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side"));
         TextureAtlasSprite overlaySprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side_overlay"));
 
@@ -158,7 +159,7 @@ public class WorldTessellator {
      * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
      */
     public CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
-        return TextureExtractor.pullAtlasTextureAsync(TextureAtlas.LOCATION_BLOCKS)
+        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.BLOCKS)
                 .thenApply(NativeImageReplayTexture::new);
     }
 

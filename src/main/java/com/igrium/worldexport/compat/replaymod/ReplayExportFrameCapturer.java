@@ -4,6 +4,7 @@ import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplayExportSettings;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.render.capturer.RenderInfo;
 import com.replaymod.render.frame.BitmapFrame;
@@ -82,14 +83,24 @@ public class ReplayExportFrameCapturer implements FrameCapturer<BitmapFrame> {
             replayCapture.finish();
 
         LOGGER.info("Saving replay to {}", settings.getExportPath());
+        CompletableFuture<?> save = save();
+        // Some parts of the compile pipeline (eg. TextureExtractor's GPU texture readback) complete via
+        // fenced tasks that only run when RenderSystem.executePendingTasks() is pumped. Since we're on the
+        // render thread, blocking on save.get() would starve that pump and deadlock. Poll instead.
+        long deadline = Util.getMillis() + TimeUnit.SECONDS.toMillis(50);
         try {
-            save().get(20, TimeUnit.SECONDS);
+            // TODO: can we make close run asynchronously in its entirety?
+            while (!save.isDone()) {
+                RenderSystem.executePendingTasks();
+                if (Util.getMillis() > deadline) {
+                    throw new IOException("Replay export timed out.");
+                }
+            }
+            save.get();
         } catch (InterruptedException e) {
             LOGGER.error("Replay export interrupted.");
         } catch (ExecutionException e) {
             throw new IOException("Error compiling replay:", e);
-        } catch (TimeoutException e) {
-            throw new IOException("Replay export timed out.");
         }
     }
 

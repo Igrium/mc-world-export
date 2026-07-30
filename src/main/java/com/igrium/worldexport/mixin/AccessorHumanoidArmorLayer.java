@@ -12,17 +12,17 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(HumanoidArmorLayer.class)
 public interface AccessorHumanoidArmorLayer<S extends HumanoidRenderState, M extends HumanoidModel<S>, A extends HumanoidModel<S>> {
-    @Accessor
-    A getInnerModel();
-
-    @Accessor
-    A getOuterModel();
-
-    @Accessor
-    A getInnerModelBaby();
-
-    @Accessor
-    A getOuterModelBaby();
+//    @Accessor
+//    A getInnerModel();
+//
+//    @Accessor
+//    A getOuterModel();
+//
+//    @Accessor
+//    A getInnerModelBaby();
+//
+//    @Accessor
+//    A getOuterModelBaby();
 
     @Accessor
     EquipmentLayerRenderer getEquipmentRenderer();
@@ -30,6 +30,6 @@ public interface AccessorHumanoidArmorLayer<S extends HumanoidRenderState, M ext
     @Invoker
     A invokeGetArmorModel(S state, EquipmentSlot slot);
 
-    @Invoker
-    void invokeSetPartVisibility(A bipedModel, EquipmentSlot slot);
+//    @Invoker
+//    void invokeSetPartVisibility(A bipedModel, EquipmentSlot slot);
 }
