@@ -4,6 +4,8 @@ import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
 import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
+import lombok.Builder;
+import lombok.NonNull;
 import net.minecraft.CrashReport;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.ReportedException;
@@ -14,34 +16,33 @@ import net.minecraft.client.renderer.chunk.VisGraph;
 import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import org.joml.Vector3f;
 
+import java.util.List;
+
 /**
  * Reimplementation of SectionCompiler to tessellate base world chunks
  */
+@Builder
 public class BlockTessellator {
 
-    public static final String WORLD = "world";
-    public static final String WORLD_TRANS = "world_trans";
-    public static final String GRASS_MAT = "grass_block";
+    @Builder.Default
+    private final boolean ambientOcclusion = true;
 
-    private final boolean ambientOcclusion;
-    private final boolean cutoutLeaves;
-    private final BlockStateModelSet blockModelSet;
-    private final FluidStateModelSet fluidModelSet;
-    private final BlockColors blockColors;
+    private final @NonNull BlockStateModelSet blockModelSet;
+    private final @NonNull FluidStateModelSet fluidModelSet;
+    private final @NonNull BlockColors blockColors;
 
-    public BlockTessellator(boolean ambientOcclusion, boolean cutoutLeaves, BlockStateModelSet blockModelSet,
-                            FluidStateModelSet fluidModelSet, BlockColors blockColors) {
-        this.ambientOcclusion = ambientOcclusion;
-        this.cutoutLeaves = cutoutLeaves;
-        this.blockModelSet = blockModelSet;
-        this.fluidModelSet = fluidModelSet;
-        this.blockColors = blockColors;
-    }
+    private final @NonNull BlockMaterialFactory blockMatFactory;
+    private final @NonNull FluidMaterialFactory fluidMatFactory;
+
+    @Builder.Default
+    private final boolean splitBlocks = true;
 
     /**
      * Tessellate a world section into an obj
@@ -61,22 +62,13 @@ public class BlockTessellator {
 
         Obj obj = Objs.create();
 
-        BlockQuadOutput quadOutput = (x, y, z, quad, instance) -> {
-            obj.setActiveMaterialGroupName(WORLD_TRANS);
-            addQuad(obj, quad, instance, true);
-        };
-
-        BlockQuadOutput opaqueQuadOutput = (x, y, z, quad, instance) -> {
-            obj.setActiveMaterialGroupName(WORLD);
-            addQuad(obj, quad, instance, false);
-        };
-
         ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
 
-        FluidRenderer.Output fluidOutput = layer -> {
-            obj.setActiveMaterialGroupName(WORLD_TRANS);
-            return objConsumer;
-        };
+        BlockQuadOutput quadOutput = (x, y, z, quad, instance) ->
+                addQuad(obj, quad, instance, true);
+
+        FluidRenderer.Output fluidOutput = _ -> objConsumer;
+
 
         for (BlockPos pos : BlockPos.betweenClosed(minPos, maxPos)) {
             BlockState blockState = region.getBlockState(pos);
@@ -89,18 +81,27 @@ public class BlockTessellator {
                 }
 
                 if (blockState.hasBlockEntity()) {
-
-                    // TODO: handle blockentity
+                    // TODO: do we need to handle block entities here?
                 }
 
                 FluidState fluidState = blockState.getFluidState();
                 if (!fluidState.isEmpty()) {
+                    obj.setActiveMaterialGroupName(fluidMatFactory.getMaterial(fluidState));
+                    if (splitBlocks) {
+                        Identifier id = BuiltInRegistries.FLUID.getKey(fluidState.getType());
+                        obj.setActiveGroupNames(List.of("fluid." + id));
+                    }
                     fluidRenderer.tesselate(region, pos, fluidOutput, blockState, fluidState);
                 }
 
                 if (blockState.getRenderShape() == RenderShape.MODEL) {
+                    obj.setActiveMaterialGroupName(blockMatFactory.getMaterial(blockState));
+                    if (splitBlocks) {
+                        Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
+                        obj.setActiveGroupNames(List.of(id.toString()));
+                    }
                     blockRenderer.tesselateBlock(
-                            ModelBlockRenderer.forceOpaque(this.cutoutLeaves, blockState) ? opaqueQuadOutput : quadOutput,
+                            quadOutput,
                             SectionPos.sectionRelative(pos.getX()),
                             SectionPos.sectionRelative(pos.getY()),
                             SectionPos.sectionRelative(pos.getZ()),
@@ -111,7 +112,7 @@ public class BlockTessellator {
                 }
 
             } catch (Throwable t) {
-                CrashReport report = CrashReport.forThrowable(t, "Tesselating block in replay export");
+                CrashReport report = CrashReport.forThrowable(t, "Tessellating block in replay export");
                 CrashReportCategory category = report.addCategory("Block being tesselated");
                 CrashReportCategory.populateBlockDetails(category, region, pos, blockState);
                 throw new ReportedException(report);
@@ -135,7 +136,7 @@ public class BlockTessellator {
             long packedUv = quad.packedUV(v);
             obj.addTexCoord(UVPair.unpackU(packedUv), UVPair.unpackV(packedUv));
         }
-        obj.addFace(n, n+1, n+2, n+3);
+        obj.addFace(n, n + 1, n + 2, n + 3);
     }
 
     private static Vector3f unpackColor(int color, Vector3f dest) {

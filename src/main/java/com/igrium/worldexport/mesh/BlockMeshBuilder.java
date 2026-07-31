@@ -9,7 +9,6 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.client.Minecraft;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -40,7 +39,7 @@ public class BlockMeshBuilder {
      */
     public static void build(
             Obj targetMesh, Iterable<BlockPos> blocks, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random) {
+            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random) {
 
         Minecraft mc = Minecraft.getInstance();
         BlockStateModelSet blockModels = mc.getModelManager().getBlockStateModelSet();
@@ -118,7 +117,7 @@ public class BlockMeshBuilder {
      */
     public static void buildRange(
             Obj targetMesh, BlockPos minPos, BlockPos maxPos, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
                     super BlockPos> predicate) {
 
         Iterable<BlockPos> iter;
@@ -146,7 +145,7 @@ public class BlockMeshBuilder {
      */
     public static void buildSection(
             Obj targetMesh, SectionPos section, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, WorldMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
                     super BlockPos> predicate) {
 
         int minX = section.minBlockX();

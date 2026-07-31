@@ -3,7 +3,7 @@ package com.igrium.worldexport.world;
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.mesh.BlockMeshBuilder;
 import com.igrium.worldexport.mesh.MeshUtils;
-import com.igrium.worldexport.mesh.WorldMaterialFactory;
+import com.igrium.worldexport.mesh.BlockMaterialFactory;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
@@ -17,7 +17,6 @@ import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -57,7 +56,7 @@ public class WorldTessellator {
     private final BlockAndTintGetter baseWorld;
 
     @Getter @Setter @NonNull
-    private WorldMaterialFactory materialFactory = this::getDefaultMaterialName;
+    private BlockMaterialFactory materialFactory = this::getDefaultMaterialName;
 
     @Getter @Setter
     private @Nullable BlockPos offset;
@@ -120,7 +119,7 @@ public class WorldTessellator {
      * Get the materials that the world mesh will reference by default.
      * @return All default materials. Should be stored in <code>world/world.mtl</code>
      */
-    public List<ReplayMtl> getDefaultWorldMtls() {
+    public static List<ReplayMtl> getDefaultWorldMtls() {
         List<ReplayMtl> mtls = new ArrayList<>(2);
 
         ReplayMtl world = new ReplayMtl(Mtls.create(WORLD));
@@ -146,7 +145,7 @@ public class WorldTessellator {
         return mtls;
     }
 
-    private Vector2f getGrassOverlayOffset(Vector2f dest) {
+    private static Vector2f getGrassOverlayOffset(Vector2f dest) {
         var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS);
         TextureAtlasSprite sideSprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side"));
         TextureAtlasSprite overlaySprite = atlas.getSprite(Identifier.withDefaultNamespace("block/grass_block_side_overlay"));
