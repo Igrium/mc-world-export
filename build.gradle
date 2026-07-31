@@ -30,6 +30,11 @@ dependencies {
     implementation 'com.github.Igrium:CraftUI:26.2-SNAPSHOT'
 //    modCompileOnly "com.github.igrium:craftui:db770015ca"
     implementation "maven.modrinth:replaymod:${replaymod_version}"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 }
 processResources {
     inputs.property "version", project.version
@@ -39,6 +44,9 @@ processResources {
 }
 tasks.withType(JavaCompile).configureEach {
     it.options.release = 25
+}
+test {
+    useJUnitPlatform()
 }
 java {
     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
