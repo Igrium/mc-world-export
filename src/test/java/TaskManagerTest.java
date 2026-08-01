@@ -1,4 +1,4 @@
-import com.igrium.worldexport.util.TaskExecutor;
+import com.igrium.worldexport.util.TaskManager;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -8,12 +8,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * vibe-coded unit tests. bite me.
+ * <p>
+ * Unlike the old TaskExecutor, TaskManager takes its tasks incrementally via
+ * {@link TaskManager#addTask} / {@link TaskManager#addTasks} and keeps its workers
+ * alive (parked) until {@link TaskManager#stop()} is called. So the shape of most
+ * tests is: construct -> start -> add tasks -> stop -> await completionFuture.
  */
 public class TaskManagerTest {
 
@@ -28,32 +32,67 @@ public class TaskManagerTest {
     @Test
     @Timeout(10)
     void basicRun() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(50);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 8, (k, v) -> v * 2);
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(8, (k, v) -> v * 2);
+        manager.addTasks(makeTasks(50));
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(50, result.size());
         for (int i = 0; i < 50; i++) {
+            assertEquals(i * 2, result.get(i));
+        }
+        assertTrue(manager.isFinished());
+    }
+
+    @Test
+    @Timeout(10)
+    void tasksAddedAfterStartAreRun() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v * 2);
+        manager.start();
+
+        // Give the workers a moment to spin up and park on an empty queue.
+        Thread.sleep(100);
+        assertFalse(manager.isFinished(), "manager should not finish before stop()");
+
+        manager.addTasks(makeTasks(100));
+
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        assertEquals(100, result.size());
+        for (int i = 0; i < 100; i++) {
             assertEquals(i * 2, result.get(i));
         }
     }
 
     @Test
-    @Timeout(10)
+    void tasksAddedOneAtATimeWhileRunning() throws Exception {
+        int n = 500;
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v + 1);
+        manager.start();
+
+        for (int i = 0; i < n; i++) {
+            assertTrue(manager.addTask(i, i), "addTask should accept a fresh key: " + i);
+        }
+
+        Map<Integer, Integer> result = manager.stop().get(10, TimeUnit.SECONDS);
+        assertEquals(n, result.size());
+        for (int i = 0; i < n; i++) {
+            assertEquals(i + 1, result.get(i));
+        }
+    }
+
+    @Test
+    @Timeout(20)
     void highConcurrencyLargeBatch() throws Exception {
         int n = 5000;
-        Map<Integer, Integer> tasks = makeTasks(n);
         AtomicInteger invocations = new AtomicInteger();
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 32, (k, v) -> {
-                    invocations.incrementAndGet();
-                    return v + 1;
-                });
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(32, (k, v) -> {
+            invocations.incrementAndGet();
+            return v + 1;
+        });
+        manager.addTasks(makeTasks(n));
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(15, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
         assertEquals(n, result.size());
         assertEquals(n, invocations.get());
 
@@ -67,75 +106,127 @@ public class TaskManagerTest {
     @Test
     @Timeout(10)
     void doubleStartThrows() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(10);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> v);
-        executor.start();
-        assertThrows(IllegalStateException.class, executor::start);
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
+        manager.addTasks(makeTasks(10));
+        manager.start();
+        assertThrows(IllegalStateException.class, manager::start);
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(10, result.size());
     }
 
     @Test
     void invalidNumThreadsZero() {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        assertThrows(IllegalArgumentException.class,
-                () -> new TaskExecutor<>(tasks, 0, (k, v) -> v));
+        assertThrows(IllegalArgumentException.class, () -> new TaskManager<>(0, (k, v) -> v));
     }
 
     @Test
     void invalidNumThreadsNegative() {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        assertThrows(IllegalArgumentException.class,
-                () -> new TaskExecutor<>(tasks, -3, (k, v) -> v));
+        assertThrows(IllegalArgumentException.class, () -> new TaskManager<>(-3, (k, v) -> v));
+    }
+
+    @Test
+    @Timeout(10)
+    void addTaskRejectsDuplicatesCancelledAndCompleted() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+
+        assertTrue(manager.addTask(1, 1), "first add of a key should succeed");
+        assertFalse(manager.addTask(1, 99), "re-adding a queued key should be rejected");
+
+        manager.cancelTask(2);
+        assertFalse(manager.addTask(2, 2), "re-adding a canceled key should be rejected");
+
+        manager.start();
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        assertEquals(Map.of(1, 1), result);
+
+        // Key 1 has a result now, so it can't be re-queued.
+        assertFalse(manager.addTask(1, 1), "re-adding a completed key should be rejected");
+    }
+
+    @Test
+    @Timeout(10)
+    void isStartedReflectsState() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        assertFalse(manager.isStarted());
+        assertFalse(manager.isFinished());
+        manager.start();
+        assertTrue(manager.isStarted());
+
+        manager.stop().get(5, TimeUnit.SECONDS);
+        assertTrue(manager.isFinished());
+        assertTrue(manager.isStopping());
+    }
+
+    @Test
+    @Timeout(10)
+    void numRunningTracksInFlightTasks() throws Exception {
+        CountDownLatch bothStarted = new CountDownLatch(2);
+        CountDownLatch release = new CountDownLatch(1);
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> {
+            bothStarted.countDown();
+            try {
+                assertTrue(release.await(5, TimeUnit.SECONDS));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return v;
+        });
+        manager.addTasks(makeTasks(2));
+        manager.start();
+
+        assertTrue(bothStarted.await(5, TimeUnit.SECONDS));
+        assertEquals(2, manager.getNumRunning(), "both tasks should be reported as running");
+
+        release.countDown();
+        manager.stop().get(5, TimeUnit.SECONDS);
+        assertEquals(0, manager.getNumRunning(), "nothing should be running once finished");
     }
 
     @RepeatedTest(50)
     @Timeout(10)
     void cancelBeforeStart() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(10);
         AtomicInteger calledFor5 = new AtomicInteger();
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> {
-                    if (k == 5) calledFor5.incrementAndGet();
-                    return v;
-                });
-        executor.cancelTask(5);
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> {
+            if (k == 5) calledFor5.incrementAndGet();
+            return v;
+        });
+        manager.addTasks(makeTasks(10));
+        manager.cancelTask(5);
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(9, result.size());
         assertFalse(result.containsKey(5));
         assertEquals(0, calledFor5.get());
+        assertTrue(manager.getCancelled().contains(5));
     }
 
     @Test
     @Timeout(10)
     void cancelRunningOrFinishedTask() throws Exception {
         int n = 20;
-        Map<Integer, Integer> tasks = makeTasks(n);
         AtomicInteger invocations = new AtomicInteger();
         CountDownLatch startedLatch = new CountDownLatch(1);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> {
-                    invocations.incrementAndGet();
-                    if (k == 0) {
-                        startedLatch.countDown();
-                        try {
-                            Thread.sleep(200);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    return v;
-                });
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> {
+            invocations.incrementAndGet();
+            if (k == 0) {
+                startedLatch.countDown();
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            return v;
+        });
+        manager.addTasks(makeTasks(n));
+        manager.start();
         assertTrue(startedLatch.await(5, TimeUnit.SECONDS));
-        executor.cancelTask(0);
+        manager.cancelTask(0);
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
-        assertFalse(result.containsKey(0));
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        assertFalse(result.containsKey(0), "canceled task's result must be discarded");
         assertEquals(n - 1, result.size());
         // The function may still have run for key 0's side effects.
         assertTrue(invocations.get() >= n - 1);
@@ -144,16 +235,15 @@ public class TaskManagerTest {
     @Test
     @Timeout(10)
     void cancelAfterCompletionHasNoEffect() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 2, (k, v) -> v);
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        manager.addTasks(makeTasks(5));
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
 
-        executor.cancelTask(2);
-        Map<Integer, Integer> resultAgain = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        manager.cancelTask(2);
+        Map<Integer, Integer> resultAgain = manager.getCompletionFuture().get(5, TimeUnit.SECONDS);
         assertEquals(result, resultAgain);
         assertTrue(resultAgain.containsKey(2));
     }
@@ -161,58 +251,52 @@ public class TaskManagerTest {
     @Test
     @Timeout(10)
     void cancelUnknownKeyIsHarmless() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 2, (k, v) -> v);
-        executor.cancelTask(999);
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        manager.addTasks(makeTasks(5));
+        manager.cancelTask(999);
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
+        assertFalse(result.containsKey(999));
     }
 
     @Test
     @Timeout(10)
-    void failingTaskFailsFutureAndSetsError() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(20);
+    void failingTaskFailsFutureAndSetsError() {
         RuntimeException boom = new RuntimeException("boom");
         AtomicInteger invocations = new AtomicInteger();
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> {
-                    invocations.incrementAndGet();
-                    if (k == 10) {
-                        throw boom;
-                    }
-                    return v;
-                });
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> {
+            invocations.incrementAndGet();
+            if (k == 10) {
+                throw boom;
+            }
+            return v;
+        });
+        manager.addTasks(makeTasks(20));
+        manager.start();
 
         ExecutionException ex = assertThrows(ExecutionException.class,
-                () -> executor.getCompletionFuture().get(5, TimeUnit.SECONDS));
+                () -> manager.getCompletionFuture().get(5, TimeUnit.SECONDS));
         assertSame(boom, ex.getCause());
-        assertTrue(executor.isAborted());
-        assertSame(boom, executor.getError());
+        assertTrue(manager.isAborted(), "a thrown task should abort the manager");
+        assertSame(boom, manager.getError());
 
         // Bounded: shouldn't have run every remaining task after the failure.
-        // Not asserting an exact number, just that it terminated reasonably.
         assertTrue(invocations.get() <= 20);
     }
 
     @Test
     @Timeout(10)
     void abortBeforeAnyTaskStarts() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(100);
-        AtomicInteger invocations = new AtomicInteger();
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> {
-                    invocations.incrementAndGet();
-                    return v;
-                });
-        executor.abort();
-        assertTrue(executor.isAborted());
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
+        manager.addTasks(makeTasks(100));
+        manager.abort();
+        assertTrue(manager.isAborted());
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        // Abort means the workers wind down without needing stop().
+        Map<Integer, Integer> result = manager.getCompletionFuture().get(5, TimeUnit.SECONDS);
         assertTrue(result.size() <= 100);
         for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
             assertEquals(entry.getKey(), entry.getValue());
@@ -220,28 +304,27 @@ public class TaskManagerTest {
     }
 
     @Test
-    @Timeout(10)
+    @Timeout(15)
     void abortMidRun() throws Exception {
         int n = 200;
-        Map<Integer, Integer> tasks = makeTasks(n);
         CountDownLatch someStarted = new CountDownLatch(5);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 8, (k, v) -> {
-                    someStarted.countDown();
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    return v;
-                });
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(8, (k, v) -> {
+            someStarted.countDown();
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return v;
+        });
+        manager.addTasks(makeTasks(n));
+        manager.start();
         assertTrue(someStarted.await(5, TimeUnit.SECONDS));
-        executor.abort();
+        manager.abort();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(10, TimeUnit.SECONDS);
-        assertTrue(result.size() <= n);
-        assertFalse(executor.getCompletionFuture().isCompletedExceptionally());
+        Map<Integer, Integer> result = manager.getCompletionFuture().get(10, TimeUnit.SECONDS);
+        assertTrue(result.size() < n, "abort should have skipped at least some queued tasks");
+        assertFalse(manager.getCompletionFuture().isCompletedExceptionally());
         for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
             assertEquals(entry.getKey(), entry.getValue());
         }
@@ -249,57 +332,85 @@ public class TaskManagerTest {
 
     @Test
     @Timeout(5)
-    void getTasksIsImmutableSnapshot() {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 2, (k, v) -> v);
+    void getQueueIsAnUnmodifiableView() {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        manager.addTasks(makeTasks(5));
 
-        Map<Integer, Integer> snapshot = executor.getTasks();
-        assertEquals(tasks, snapshot);
+        Map<Integer, Integer> queue = manager.getQueue();
+        assertEquals(makeTasks(5), queue);
+        assertThrows(UnsupportedOperationException.class, () -> queue.put(1000, 1000));
 
-        // Mutating the original map after construction shouldn't affect the snapshot.
-        tasks.put(999, 999);
-        assertFalse(snapshot.containsKey(999));
-
-        assertThrows(UnsupportedOperationException.class, () -> snapshot.put(1000, 1000));
-
-        // Cancellation shouldn't affect the snapshot either.
-        executor.cancelTask(0);
-        assertTrue(snapshot.containsKey(0));
+        // Cancellation removes a task from the queue.
+        manager.cancelTask(0);
+        assertFalse(manager.getQueue().containsKey(0));
     }
 
     @Test
-    @Timeout(5)
-    void emptyTasksMapResolvesEmpty() throws Exception {
-        Map<Integer, Integer> tasks = new HashMap<>();
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 4, (k, v) -> v);
-        executor.start();
+    @Timeout(10)
+    void queueDrainsAsTasksComplete() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
+        manager.addTasks(makeTasks(50));
+        assertEquals(50, manager.getQueue().size());
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        manager.stop().get(5, TimeUnit.SECONDS);
+        assertTrue(manager.getQueue().isEmpty(), "queue should be empty once all tasks ran");
+        assertEquals(50, manager.getResults().size());
+    }
+
+    @Test
+    @Timeout(10)
+    void noTasksResolvesEmpty() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
+        manager.start();
+
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertTrue(result.isEmpty());
     }
 
     @Test
-    @Timeout(3)
-    void neverStartedNeverResolves() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(3);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 2, (k, v) -> v);
+    @Timeout(10)
+    void stopBeforeStartStillResolves() throws Exception {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
+        manager.addTasks(makeTasks(10));
+        manager.stop();
+        manager.start();
+
+        // Workers see `stopping` immediately, but must still drain what's queued.
+        Map<Integer, Integer> result = manager.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        assertEquals(10, result.size());
+    }
+
+    @Test
+    @Timeout(5)
+    void neverStartedNeverResolves() {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        manager.addTasks(makeTasks(3));
 
         assertThrows(TimeoutException.class,
-                () -> executor.getCompletionFuture().get(500, TimeUnit.MILLISECONDS));
+                () -> manager.getCompletionFuture().get(500, TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    @Timeout(5)
+    void neverStoppedNeverResolves() {
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(2, (k, v) -> v);
+        manager.addTasks(makeTasks(3));
+        manager.start();
+
+        // All tasks will finish, but the manager stays open for more work until stop().
+        assertThrows(TimeoutException.class,
+                () -> manager.getCompletionFuture().get(500, TimeUnit.MILLISECONDS));
     }
 
     @Test
     @Timeout(15)
     void manyThreadsMoreThanTasksIsHarmless() throws Exception {
-        Map<Integer, Integer> tasks = makeTasks(5);
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 64, (k, v) -> v * 10);
-        executor.start();
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(64, (k, v) -> v * 10);
+        manager.addTasks(makeTasks(5));
+        manager.start();
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
         for (int i = 0; i < 5; i++) {
             assertEquals(i * 10, result.get(i));
@@ -310,36 +421,54 @@ public class TaskManagerTest {
     @Timeout(20)
     void concurrentCancellationDuringHighConcurrencyRun() throws Exception {
         int n = 2000;
-        Map<Integer, Integer> tasks = makeTasks(n);
-        AtomicReference<TaskExecutor<Integer, Integer, Integer>> executorRef = new AtomicReference<>();
         Set<Integer> canceledKeys = ConcurrentHashMap.newKeySet();
 
-        TaskExecutor<Integer, Integer, Integer> executor =
-                new TaskExecutor<>(tasks, 16, (k, v) -> v);
-        executorRef.set(executor);
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(16, (k, v) -> v);
+        manager.addTasks(makeTasks(n));
 
-        Thread cancellerThread = new Thread(() -> {
+        Thread canceller = new Thread(() -> {
             for (int i = 0; i < n; i += 3) {
-                executor.cancelTask(i);
+                manager.cancelTask(i);
                 canceledKeys.add(i);
             }
         });
 
-        executor.start();
-        cancellerThread.start();
-        cancellerThread.join(10000);
+        manager.start();
+        canceller.start();
+        canceller.join(10000);
 
-        Map<Integer, Integer> result = executor.getCompletionFuture().get(15, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
 
-        // Every present key must be a valid, non-duplicated, correctly-mapped key.
         Set<Integer> seen = ConcurrentHashMap.newKeySet();
         for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
             assertTrue(seen.add(entry.getKey()));
             assertEquals(entry.getKey(), entry.getValue());
             assertTrue(entry.getKey() >= 0 && entry.getKey() < n);
+            assertFalse(canceledKeys.contains(entry.getKey()),
+                    "canceled key must never appear in the results: " + entry.getKey());
         }
-        // No result size assertion beyond upper bound: cancellation races are non-deterministic,
-        // but result can never exceed the full task count.
-        assertTrue(result.size() <= n);
+        assertTrue(result.size() <= n - canceledKeys.size());
+    }
+
+    @Test
+    @Timeout(20)
+    void concurrentProducerWhileRunning() throws Exception {
+        int n = 2000;
+        TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(8, (k, v) -> v * 2);
+        manager.start();
+
+        Thread producer = new Thread(() -> {
+            for (int i = 0; i < n; i++) {
+                manager.addTask(i, i);
+            }
+        });
+        producer.start();
+        producer.join(10000);
+
+        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
+        assertEquals(n, result.size());
+        for (int i = 0; i < n; i++) {
+            assertEquals(i * 2, result.get(i));
+        }
     }
 }

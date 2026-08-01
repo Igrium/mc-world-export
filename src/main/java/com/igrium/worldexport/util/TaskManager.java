@@ -38,8 +38,6 @@ public class TaskManager<K, P, O> {
 
     private final ConcurrentHashMap<K, P> running = new ConcurrentHashMap<>();
 
-    private final AtomicInteger numRunning = new AtomicInteger(0);
-
     /**
      * Used during the shutdown sequence
      */
@@ -69,7 +67,7 @@ public class TaskManager<K, P, O> {
     private final CompletableFuture<Map<K, O>> completionFuture = new CompletableFuture<>();
 
     public int getNumRunning() {
-        return numRunning.get();
+        return running.size();
     }
 
     public boolean isStarted() {
@@ -81,6 +79,9 @@ public class TaskManager<K, P, O> {
     }
 
     public TaskManager(int numThreads, BiFunction<? super K, ? super P, ? extends O> function) {
+        if (numThreads <= 0) {
+            throw new IllegalArgumentException("numThreads must be greater than zero");
+        }
         this.function = function;
         workers = new ArrayList<>(numThreads);
         this.numThreads = numThreads;
@@ -95,6 +96,10 @@ public class TaskManager<K, P, O> {
 
     public CompletableFuture<Map<K, O>> stop() {
         stopping = true;
+        for (var w : workers) {
+            // unpark so it exits
+            LockSupport.unpark(w);
+        }
         return completionFuture;
     }
 
@@ -106,7 +111,7 @@ public class TaskManager<K, P, O> {
      * @return If the task was able to be queued (not already queued, running, complete, or canceled)
      */
     public boolean addTask(K key, P param) {
-        if (!results.containsKey(key) && !running.containsKey(key) && queue.putIfAbsent(key, param) != null) {
+        if (!results.containsKey(key) && !running.containsKey(key) && queue.putIfAbsent(key, param) == null) {
             for (var thread : workers) {
                 // Unlock any thread
                 if (thread.parked) {
@@ -154,6 +159,7 @@ public class TaskManager<K, P, O> {
         for (int i = 0; i < numThreads; i++) {
             Worker thread = new Worker(i);
             thread.setDaemon(true);
+            workers.add(thread);
             thread.start();
         }
     }
