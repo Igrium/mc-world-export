@@ -2,6 +2,7 @@ package com.igrium.worldexport.world;
 
 import com.igrium.worldexport.mesh.BlockMaterialFactory;
 import com.igrium.worldexport.mesh.BlockTessellator;
+import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
@@ -195,7 +196,7 @@ public class WorldMesher {
             if (onSectionTessellated != null) {
                 onSectionTessellated.accept(pos);
             }
-            return obj;
+            return mergeDoubleVertices ? MeshUtils.removeDoubles(obj) : obj;
         });
 
         taskExecutor.start();

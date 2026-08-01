@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
  * @param <I> A task's input type
  * @param <O> A task's output type
  */
+@Deprecated
 public class TaskExecutor<K, I, O> {
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/TaskExecutor");
 

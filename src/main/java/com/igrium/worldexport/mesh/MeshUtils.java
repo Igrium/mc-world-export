@@ -131,7 +131,7 @@ public class MeshUtils {
 
         for (int i = 0; i < source.getNumTexCoords(); i++) {
             FloatTuple texCoord = source.getTexCoord(i);
-            if (!vertexIndices.containsKey(texCoord)) {
+            if (!texCoordIndices.containsKey(texCoord)) {
                 texCoordIndices.put(texCoord, output.getNumTexCoords());
                 output.addTexCoord(texCoord);
             }

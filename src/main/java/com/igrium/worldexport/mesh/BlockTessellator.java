@@ -44,6 +44,9 @@ public class BlockTessellator {
     @Builder.Default
     private final boolean splitBlocks = true;
 
+    @Builder.Default
+    private final boolean mergeDoubles = true;
+
     /**
      * Tessellate a world section into an obj
      *
