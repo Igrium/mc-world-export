@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 /**
  * Manages tasks regarding the conversion of the voxel world into meshes.
  */
+@Deprecated
 public class WorldTessellator {
 
     public static final String WORLD = "world";

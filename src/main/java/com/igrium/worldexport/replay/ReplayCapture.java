@@ -3,15 +3,19 @@ package com.igrium.worldexport.replay;
 import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
-import com.igrium.worldexport.world.WorldTessellator;
+import com.igrium.worldexport.world.WorldMesh;
+import com.igrium.worldexport.world.WorldMesher;
+import de.javagl.obj.Obj;
 import lombok.Getter;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +99,7 @@ public class ReplayCapture {
     private final WorldCapture worldCapture;
 
     @Getter
-    private final WorldTessellator worldTessellator;
+    private final WorldMesher worldMesher;
 
     @Getter
     private final EntityCapture entityCapture;
@@ -121,12 +125,14 @@ public class ReplayCapture {
 
         worldCapture = new WorldCapture(settings.getBounds());
 
-        worldTessellator = new WorldTessellator(worldCapture, world);
-        worldTessellator.setExecutor(executor);
-        worldTessellator.setOffset(settings.getOffset());
-        worldTessellator.setSplitBlocks(settings.isSplitBlocks());
-        worldTessellator.setMergeBaseMeshes(settings.isMergeBaseMeshes());
-        worldTessellator.setMergeDoubleVertices(settings.isMergeDoubleVertices());
+        // WorldMesher owns its own worker threads, so it takes no executor.
+        worldMesher = new WorldMesher(worldCapture, world, settings.getBounds().iterate());
+        worldMesher.setOffset(settings.getOffset());
+        worldMesher.setSplitBlocks(settings.isSplitBlocks());
+        worldMesher.setMaxThreads(settings.getMaxThreads());
+        // TODO: WorldMesher stores these but doesn't act on them yet.
+        worldMesher.setMergeBaseMeshes(settings.isMergeBaseMeshes());
+        worldMesher.setMergeDoubleVertices(settings.isMergeDoubleVertices());
 
         entityCapture = new EntityCapture(settings.entityBounds());
         entityCapture.setGlobalOffset(settings.getOffset());
@@ -156,15 +162,17 @@ public class ReplayCapture {
         LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
 
         long meshStartTime = Util.getMillis();
-        worldTessellator.tessellateBaseWorld();
-        worldTessellator.awaitBaseTessellationFinished().thenRun(() -> {
+        worldMesher.tessellateBaseWorld().thenRun(() -> {
             LOGGER.info("Finished tessellating base world in {}ms", Util.getMillis() - meshStartTime);
+        }).exceptionally(e -> {
+            LOGGER.error("Error tessellating base world: ", e);
+            return null;
         });
         gameTick = 0;
 
 
-        materialHolder.getTextures().put(WORLD_TEX, worldTessellator.getDefaultWorldTexture());
-        materialHolder.putMtlLib("world.mtl", worldTessellator.getDefaultWorldMtls());
+        materialHolder.getTextures().put(WORLD_TEX, WorldMesher.getDefaultWorldTexture());
+        materialHolder.putMtlLib("world.mtl", WorldMesher.getDefaultWorldMtls());
 
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;
@@ -180,15 +188,55 @@ public class ReplayCapture {
     }
 
     public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, Level world) {
-        if (world == this.world) {
-            worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
-        }
+        // Disabled until WorldMesher can generate delta meshes; nothing consumes these updates.
+//        if (world == this.world) {
+//            worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
+//        }
     }
 
     public void onLoadChunk(Level world, LevelChunk chunk) {
         if (world == this.world) {
             worldCapture.onChunkLoaded(chunk, replayTick);
         }
+    }
+
+    /**
+     * Wait for the world meshes to finish tessellating and assemble them into the final, named meshes.
+     *
+     * @return A future that completes with a map of mesh names and their meshes.
+     * @implNote TODO: only the static base world is exported. Delta meshes (block updates over time)
+     *           aren't implemented, so their capture is commented out in onUpdateBlock. Base mesh
+     *           merging, double vertex removal and progress callbacks are missing too.
+     */
+    public CompletableFuture<Map<String, WorldMesh>> compileWorldMeshes() {
+        CompletableFuture<Map<SectionPos, Obj>> baseFuture = worldMesher.getBaseWorldFuture();
+        if (baseFuture == null) {
+            LOGGER.warn("Base world was never tessellated. Tessellating now.");
+            baseFuture = worldMesher.tessellateBaseWorld();
+        }
+
+        return baseFuture.thenApply(sections -> {
+            Map<String, WorldMesh> meshes = new HashMap<>(sections.size());
+            List<String> mtlLibs = List.of("world.mtl");
+
+            for (var entry : sections.entrySet()) {
+                Obj obj = entry.getValue();
+                if (obj.getNumFaces() == 0)
+                    continue;
+
+                obj.setMtlFileNames(mtlLibs);
+
+                // BlockTessellator emits geometry relative to the section origin, so each mesh
+                // carries its world position (plus the export offset) in its metadata.
+                SectionPos sPos = entry.getKey();
+                BlockPos origin = sPos.origin().offset(settings.getOffset());
+                String name = "section_" + sPos.getX() + "_" + sPos.getY() + "_" + sPos.getZ();
+
+                meshes.put(name, new WorldMesh(obj, Vec3.atLowerCornerOf(origin)));
+            }
+
+            return meshes;
+        });
     }
 
     /**

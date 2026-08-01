@@ -65,7 +65,7 @@ public class BlockTessellator {
         ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
 
         BlockQuadOutput quadOutput = (x, y, z, quad, instance) ->
-                addQuad(obj, quad, instance, true);
+                addQuad(obj, x, y, z, quad, instance, true);
 
         FluidRenderer.Output fluidOutput = _ -> objConsumer;
 
@@ -123,10 +123,11 @@ public class BlockTessellator {
     }
 
 
-    private static void addQuad(Obj obj, BakedQuad quad, QuadInstance instance, boolean colored) {
+    private static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance, boolean colored) {
         int n = obj.getNumVertices();
         for (int v = 0; v < 4; v++) {
-            var pos = quad.position(v);
+            // Quad positions are model-local
+            var pos = quad.position(v).add(x, y, z, new Vector3f());
             if (colored) {
                 obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(v), new Vector3f())));
             } else {
@@ -134,9 +135,9 @@ public class BlockTessellator {
             }
 
             long packedUv = quad.packedUV(v);
-            obj.addTexCoord(UVPair.unpackU(packedUv), UVPair.unpackV(packedUv));
+            obj.addTexCoord(UVPair.unpackU(packedUv), 1 - UVPair.unpackV(packedUv));
         }
-        obj.addFace(n, n + 1, n + 2, n + 3);
+        obj.addFaceWithTexCoords(n, n + 1, n + 2, n + 3);
     }
 
     private static Vector3f unpackColor(int color, Vector3f dest) {

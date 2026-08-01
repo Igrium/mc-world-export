@@ -60,6 +60,10 @@ public class TaskExecutor<K, I, O> {
     @Getter
     private volatile Exception error;
 
+    public boolean isFinished() {
+        return completionFuture.isDone();
+    }
+
 
     public TaskExecutor(Map<? extends K, ? extends I> tasks, int numThreads,
                         BiFunction<? super K, ? super I, ? extends O> function) {
