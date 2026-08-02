@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -56,8 +57,11 @@ public class TaskManager<K, P, O> {
     @Getter
     private volatile boolean aborted;
 
-    @Getter
-    private volatile Exception error;
+    private final AtomicReference<Exception> error = new AtomicReference<>();
+
+    public @Nullable Exception getError() {
+        return error.get();
+    }
 
     /**
      * A future that will complete once all tasks have completed.
@@ -88,18 +92,19 @@ public class TaskManager<K, P, O> {
     }
 
     /**
-     * Stop submitting new tasks. Tasks already in progress will finish.
+     * Stop starting new tasks. Tasks already in progress will finish.
      */
     public void abort() {
         aborted = true;
+        unparkAll();
     }
 
+    /**
+     * Shut down this task manager gracefully; queued tasks will complete, but no more will be accepted.
+     */
     public CompletableFuture<Map<K, O>> stop() {
         stopping = true;
-        for (var w : workers) {
-            // unpark so it exits
-            LockSupport.unpark(w);
-        }
+        unparkAll();
         return completionFuture;
     }
 
@@ -111,14 +116,12 @@ public class TaskManager<K, P, O> {
      * @return If the task was able to be queued (not already queued, running, complete, or canceled)
      */
     public boolean addTask(K key, P param) {
+        if (aborted || stopping) {
+            LOGGER.error("Task manager is in the processes of shutting down.");
+            return false;
+        }
         if (!results.containsKey(key) && !running.containsKey(key) && queue.putIfAbsent(key, param) == null) {
-            for (var thread : workers) {
-                // Unlock any thread
-                if (thread.parked) {
-                    LockSupport.unpark(thread);
-                    break;
-                }
-            }
+            unparkAll();
             return true;
         }
         return false;
@@ -126,9 +129,7 @@ public class TaskManager<K, P, O> {
 
     public void addTasks(Map<? extends K, ? extends P> params) {
         for (var  entry : params.entrySet()) {
-            if (!results.containsKey(entry.getKey())) {
-                addTask(entry.getKey(), entry.getValue());
-            }
+            addTask(entry.getKey(), entry.getValue());
         }
     }
 
@@ -150,12 +151,10 @@ public class TaskManager<K, P, O> {
             throw new IllegalStateException("Task Manager is already started");
         }
 
-        queue.forEach((key, task) -> {
-            // If it was already canceled, it would end up in results.
-            if (!results.containsKey(key)) {
-                queue.put(key, task);
-            }
-        });
+        // If it was already canceled, it would end up in results.
+        queue.keySet().removeIf(results::containsKey);
+
+        activeThreads.set(numThreads);
         for (int i = 0; i < numThreads; i++) {
             Worker thread = new Worker(i);
             thread.setDaemon(true);
@@ -183,6 +182,13 @@ public class TaskManager<K, P, O> {
                 .collect(Collectors.toSet());
     }
 
+
+    private void unparkAll() {
+        for (var w : workers) {
+            LockSupport.unpark(w);
+        }
+    }
+
     /**
      * Atomically remove and return any value from a concurrent map
      *
@@ -200,6 +206,7 @@ public class TaskManager<K, P, O> {
         return null; // Map is empty
     }
 
+
     private class Worker extends Thread {
         volatile boolean parked;
 
@@ -209,42 +216,45 @@ public class TaskManager<K, P, O> {
 
         @Override
         public void run() {
-            activeThreads.incrementAndGet();
-            while (!aborted) {
-                var entry = removeAnyAtomic(queue);
-                if (entry != null) {
-                    running.put(entry.getKey(), entry.getValue());
-                    try {
-                        var result = function.apply(entry.getKey(), entry.getValue());
-                        //noinspection OptionalAssignedToNull (null and optional.empty mean different things here)
-                        if (results.putIfAbsent(entry.getKey(), Optional.of(result)) != null) {
-                            LOGGER.warn("Rejected task result for {}", entry.getKey());
+            try {
+                while (!aborted) {
+                    var entry = removeAnyAtomic(queue);
+                    if (entry != null) {
+                        running.put(entry.getKey(), entry.getValue());
+                        try {
+                            var result = function.apply(entry.getKey(), entry.getValue());
+                            //noinspection OptionalAssignedToNull (null and optional.empty mean different things here)
+                            if (results.putIfAbsent(entry.getKey(), Optional.of(result)) != null) {
+                                LOGGER.warn("Rejected task result for {}", entry.getKey());
+                            }
+                        } catch (Exception e) {
+                            error.compareAndSet(null, e);
+                            abort();
+                            LOGGER.error("Error computing {}", entry.getKey(), e);
+                        } finally {
+                            running.remove(entry.getKey());
                         }
-                    } catch (Exception e) {
-                        error = e;
-                        abort();
-                        LOGGER.error("Error computing {}", entry.getKey(), e);
-                    } finally {
-                        running.remove(entry.getKey());
-                    }
-                } else {
-                    // Won't hit this line if there's still more tasks, differentiating stopping from aborted
-                    if (stopping) {
-                        break;
                     } else {
-                        park();
+                        // Won't hit this line if there's still more tasks, differentiating stopping from aborted
+                        if (stopping) {
+                            break;
+                        } else {
+                            park();
+                        }
+                    }
+                }
+            } finally {
+                // Shutdown sequence
+                if (activeThreads.decrementAndGet() <= 0) {
+                    var e = getError();
+                    if (e != null) {
+                        completionFuture.completeExceptionally(e);
+                    } else {
+                        completionFuture.complete(getResults());
                     }
                 }
             }
 
-            // Shutdown sequence
-            if (activeThreads.decrementAndGet() <= 0) {
-                if (error != null) {
-                    completionFuture.completeExceptionally(error);
-                } else {
-                    completionFuture.complete(getResults());
-                }
-            }
         }
 
         private void park() {
