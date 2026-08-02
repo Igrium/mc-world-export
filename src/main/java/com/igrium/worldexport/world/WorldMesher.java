@@ -2,18 +2,19 @@ package com.igrium.worldexport.world;
 
 import com.igrium.worldexport.mesh.BlockMaterialFactory;
 import com.igrium.worldexport.mesh.BlockTessellator;
-import com.igrium.worldexport.mesh.MeshUtils;
+import com.igrium.worldexport.mesh.MeshMergeVerts;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
-import com.igrium.worldexport.util.TaskExecutor;
+import com.igrium.worldexport.util.TaskManager;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -78,18 +79,28 @@ public class WorldMesher {
     @Setter
     private @Nullable Consumer<SectionPos> onSectionTessellated;
 
-    private @Nullable TaskExecutor<SectionPos, SectionColumnRenderRegion, Obj> taskExecutor;
+    private final BlockTessellator tessellator;
 
-    /**
-     * The future returned by the last call to {@link #tessellateBaseWorld()}.
-     */
     @Getter
-    private @Nullable CompletableFuture<Map<SectionPos, Obj>> baseWorldFuture;
+    private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
 
     public WorldMesher(WorldCapture worldCapture, ClientLevel baseWorld, Iterable<? extends SectionPos> sections) {
         this.worldCapture = worldCapture;
         this.baseWorld = baseWorld;
         this.sections = sections;
+
+        var modelManager = Minecraft.getInstance().getModelManager();
+        tessellator = BlockTessellator.builder()
+                .blockColors(Minecraft.getInstance().getBlockColors())
+                .blockModelSet(modelManager.getBlockStateModelSet())
+                .fluidModelSet(modelManager.getFluidStateModelSet())
+                .blockMatFactory(this::getDefaultMaterialName)
+                .fluidMatFactory(this::getDefaultMaterialName)
+                .splitBlocks(this.splitBlocks)
+                .ambientOcclusion(false)
+                .build();
+
+        taskManager = new TaskManager<>(Runtime.getRuntime().availableProcessors() - 1, this::tessellateSection);
     }
 
     public String getDefaultMaterialName(BlockState state) {
@@ -142,6 +153,7 @@ public class WorldMesher {
 
     /**
      * Get the atlas texture used for blocks.
+     *
      * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
      */
     public static CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
@@ -149,23 +161,13 @@ public class WorldMesher {
                 .thenApply(NativeImageReplayTexture::new);
     }
 
+    private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
+        LOGGER.info("Compiling section {}", pos);
+        Obj obj = tessellator.compileSection(pos, region);
+        return mergeDoubleVertices ? MeshMergeVerts.mergeByDistance(obj, .001f) : obj;
+    }
+
     public CompletableFuture<Map<SectionPos, Obj>> tessellateBaseWorld() {
-        if (taskExecutor != null && !taskExecutor.isFinished()) {
-            throw new IllegalStateException("TaskExecutor has already been started");
-        }
-
-        var modelManager = Minecraft.getInstance().getModelManager();
-
-        BlockTessellator tessellator = BlockTessellator.builder()
-                .blockColors(Minecraft.getInstance().getBlockColors())
-                .blockModelSet(modelManager.getBlockStateModelSet())
-                .fluidModelSet(modelManager.getFluidStateModelSet())
-                .blockMatFactory(this::getDefaultMaterialName)
-                .fluidMatFactory(this::getDefaultMaterialName)
-                .splitBlocks(this.splitBlocks)
-                .ambientOcclusion(false)
-                .build();
-
         Map<ChunkPos, SimpleSectionColumn> columns = new HashMap<>();
         for (var sPos : this.sections) {
             columns.computeIfAbsent(sPos.chunk(), cPos -> {
@@ -182,25 +184,71 @@ public class WorldMesher {
                 .collect(Collectors.toMap(c -> c,
                         c -> SectionColumnRenderRegion.build(columns, c, baseWorld)));
 
-        Map<SectionPos, SectionColumnRenderRegion> queue = new HashMap<>();
-        for (var section : this.sections) {
+
+        for (var section : sections) {
             var region = regions.get(section.chunk());
             if (region != null) {
-                queue.put(section, region);
+                taskManager.addTask(section, region);
             }
         }
 
-        taskExecutor = new TaskExecutor<>(queue, Math.max(maxThreads, 1), (pos, region) -> {
-            LOGGER.info("Compiling section {}", pos);
-            Obj obj = tessellator.compileSection(pos, region);
-            if (onSectionTessellated != null) {
-                onSectionTessellated.accept(pos);
-            }
-            return mergeDoubleVertices ? MeshUtils.removeDoubles(obj) : obj;
-        });
-
-        taskExecutor.start();
-        baseWorldFuture = taskExecutor.getCompletionFuture();
-        return baseWorldFuture;
+        taskManager.start();
+        return taskManager.finish();
     }
+
+//
+//    public CompletableFuture<Map<SectionPos, Obj>> tessellateBaseWorld() {
+//        if (taskExecutor != null && !taskExecutor.isFinished()) {
+//            throw new IllegalStateException("TaskExecutor has already been started");
+//        }
+//
+//        var modelManager = Minecraft.getInstance().getModelManager();
+//
+//        BlockTessellator tessellator = BlockTessellator.builder()
+//                .blockColors(Minecraft.getInstance().getBlockColors())
+//                .blockModelSet(modelManager.getBlockStateModelSet())
+//                .fluidModelSet(modelManager.getFluidStateModelSet())
+//                .blockMatFactory(this::getDefaultMaterialName)
+//                .fluidMatFactory(this::getDefaultMaterialName)
+//                .splitBlocks(this.splitBlocks)
+//                .ambientOcclusion(false)
+//                .build();
+//
+//        Map<ChunkPos, SimpleSectionColumn> columns = new HashMap<>();
+//        for (var sPos : this.sections) {
+//            columns.computeIfAbsent(sPos.chunk(), cPos -> {
+//                var chunk = baseWorld.getChunk(cPos.x(), cPos.z(), ChunkStatus.FULL, false);
+//                if (chunk != null) {
+//                    return SimpleSectionColumn.fromChunk(chunk);
+//                } else {
+//                    return null;
+//                }
+//            });
+//        }
+//
+//        Map<ChunkPos, SectionColumnRenderRegion> regions = columns.keySet().stream()
+//                .collect(Collectors.toMap(c -> c,
+//                        c -> SectionColumnRenderRegion.build(columns, c, baseWorld)));
+//
+//        Map<SectionPos, SectionColumnRenderRegion> queue = new HashMap<>();
+//        for (var section : this.sections) {
+//            var region = regions.get(section.chunk());
+//            if (region != null) {
+//                queue.put(section, region);
+//            }
+//        }
+//
+//        taskExecutor = new TaskExecutor<>(queue, Math.max(maxThreads, 1), (pos, region) -> {
+//            LOGGER.info("Compiling section {}", pos);
+//            Obj obj = tessellator.compileSection(pos, region);
+//            if (onSectionTessellated != null) {
+//                onSectionTessellated.accept(pos);
+//            }
+//            return mergeDoubleVertices ? MeshUtils.removeDoubles(obj) : obj;
+//        });
+//
+//        taskExecutor.start();
+//        baseWorldFuture = taskExecutor.getCompletionFuture();
+//        return baseWorldFuture;
+//    }
 }

@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>
  * Unlike the old TaskExecutor, TaskManager takes its tasks incrementally via
  * {@link TaskManager#addTask} / {@link TaskManager#addTasks} and keeps its workers
- * alive (parked) until {@link TaskManager#stop()} is called. So the shape of most
+ * alive (parked) until {@link TaskManager#finish()} is called. So the shape of most
  * tests is: construct -> start -> add tasks -> stop -> await completionFuture.
  */
 public class TaskManagerTest {
@@ -36,7 +36,7 @@ public class TaskManagerTest {
         manager.addTasks(makeTasks(50));
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(50, result.size());
         for (int i = 0; i < 50; i++) {
             assertEquals(i * 2, result.get(i));
@@ -56,7 +56,7 @@ public class TaskManagerTest {
 
         manager.addTasks(makeTasks(100));
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(100, result.size());
         for (int i = 0; i < 100; i++) {
             assertEquals(i * 2, result.get(i));
@@ -73,7 +73,7 @@ public class TaskManagerTest {
             assertTrue(manager.addTask(i, i), "addTask should accept a fresh key: " + i);
         }
 
-        Map<Integer, Integer> result = manager.stop().get(10, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(10, TimeUnit.SECONDS);
         assertEquals(n, result.size());
         for (int i = 0; i < n; i++) {
             assertEquals(i + 1, result.get(i));
@@ -92,7 +92,7 @@ public class TaskManagerTest {
         manager.addTasks(makeTasks(n));
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(15, TimeUnit.SECONDS);
         assertEquals(n, result.size());
         assertEquals(n, invocations.get());
 
@@ -109,9 +109,10 @@ public class TaskManagerTest {
         TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
         manager.addTasks(makeTasks(10));
         manager.start();
-        assertThrows(IllegalStateException.class, manager::start);
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        assertFalse(manager.start(), "double-start should return false");
+
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(10, result.size());
     }
 
@@ -137,7 +138,7 @@ public class TaskManagerTest {
         assertFalse(manager.addTask(2, 2), "re-adding a canceled key should be rejected");
 
         manager.start();
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(Map.of(1, 1), result);
 
         // Key 1 has a result now, so it can't be re-queued.
@@ -153,9 +154,9 @@ public class TaskManagerTest {
         manager.start();
         assertTrue(manager.isStarted());
 
-        manager.stop().get(5, TimeUnit.SECONDS);
+        manager.finish().get(5, TimeUnit.SECONDS);
         assertTrue(manager.isFinished());
-        assertTrue(manager.isStopping());
+        assertTrue(manager.isFinishing());
     }
 
     @Test
@@ -179,7 +180,7 @@ public class TaskManagerTest {
         assertEquals(2, manager.getNumRunning(), "both tasks should be reported as running");
 
         release.countDown();
-        manager.stop().get(5, TimeUnit.SECONDS);
+        manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(0, manager.getNumRunning(), "nothing should be running once finished");
     }
 
@@ -195,7 +196,7 @@ public class TaskManagerTest {
         manager.cancelTask(5);
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(9, result.size());
         assertFalse(result.containsKey(5));
         assertEquals(0, calledFor5.get());
@@ -225,7 +226,7 @@ public class TaskManagerTest {
         assertTrue(startedLatch.await(5, TimeUnit.SECONDS));
         manager.cancelTask(0);
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertFalse(result.containsKey(0), "canceled task's result must be discarded");
         assertEquals(n - 1, result.size());
         // The function may still have run for key 0's side effects.
@@ -239,7 +240,7 @@ public class TaskManagerTest {
         manager.addTasks(makeTasks(5));
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
 
         manager.cancelTask(2);
@@ -256,7 +257,7 @@ public class TaskManagerTest {
         manager.cancelTask(999);
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
         assertFalse(result.containsKey(999));
     }
@@ -353,7 +354,7 @@ public class TaskManagerTest {
         assertEquals(50, manager.getQueue().size());
         manager.start();
 
-        manager.stop().get(5, TimeUnit.SECONDS);
+        manager.finish().get(5, TimeUnit.SECONDS);
         assertTrue(manager.getQueue().isEmpty(), "queue should be empty once all tasks ran");
         assertEquals(50, manager.getResults().size());
     }
@@ -364,16 +365,16 @@ public class TaskManagerTest {
         TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertTrue(result.isEmpty());
     }
 
     @Test
     @Timeout(10)
-    void stopBeforeStartStillResolves() throws Exception {
+    void finishBeforeStartStillResolves() throws Exception {
         TaskManager<Integer, Integer, Integer> manager = new TaskManager<>(4, (k, v) -> v);
         manager.addTasks(makeTasks(10));
-        manager.stop();
+        manager.finish();
         manager.start();
 
         // Workers see `stopping` immediately, but must still drain what's queued.
@@ -410,7 +411,7 @@ public class TaskManagerTest {
         manager.addTasks(makeTasks(5));
         manager.start();
 
-        Map<Integer, Integer> result = manager.stop().get(5, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(5, TimeUnit.SECONDS);
         assertEquals(5, result.size());
         for (int i = 0; i < 5; i++) {
             assertEquals(i * 10, result.get(i));
@@ -437,7 +438,7 @@ public class TaskManagerTest {
         canceller.start();
         canceller.join(10000);
 
-        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(15, TimeUnit.SECONDS);
 
         Set<Integer> seen = ConcurrentHashMap.newKeySet();
         for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
@@ -465,7 +466,7 @@ public class TaskManagerTest {
         producer.start();
         producer.join(10000);
 
-        Map<Integer, Integer> result = manager.stop().get(15, TimeUnit.SECONDS);
+        Map<Integer, Integer> result = manager.finish().get(15, TimeUnit.SECONDS);
         assertEquals(n, result.size());
         for (int i = 0; i < n; i++) {
             assertEquals(i * 2, result.get(i));

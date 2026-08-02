@@ -209,11 +209,8 @@ public class ReplayCapture {
      *           merging, double vertex removal and progress callbacks are missing too.
      */
     public CompletableFuture<Map<String, WorldMesh>> compileWorldMeshes() {
-        CompletableFuture<Map<SectionPos, Obj>> baseFuture = worldMesher.getBaseWorldFuture();
-        if (baseFuture == null) {
-            LOGGER.warn("Base world was never tessellated. Tessellating now.");
-            baseFuture = worldMesher.tessellateBaseWorld();
-        }
+        // TODO: refactor this so that newly-loaded chunks get added, etc
+        CompletableFuture<Map<SectionPos, Obj>> baseFuture = worldMesher.getTaskManager().getCompletionFuture();
 
         return baseFuture.thenApply(sections -> {
             Map<String, WorldMesh> meshes = new HashMap<>(sections.size());

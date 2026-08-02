@@ -52,7 +52,7 @@ public class TaskManager<K, P, O> {
     private final AtomicBoolean started = new AtomicBoolean(false);
 
     @Getter
-    private volatile boolean stopping;
+    private volatile boolean finishing;
 
     @Getter
     private volatile boolean aborted;
@@ -102,8 +102,8 @@ public class TaskManager<K, P, O> {
     /**
      * Shut down this task manager gracefully; queued tasks will complete, but no more will be accepted.
      */
-    public CompletableFuture<Map<K, O>> stop() {
-        stopping = true;
+    public CompletableFuture<Map<K, O>> finish() {
+        finishing = true;
         unparkAll();
         return completionFuture;
     }
@@ -116,7 +116,7 @@ public class TaskManager<K, P, O> {
      * @return If the task was able to be queued (not already queued, running, complete, or canceled)
      */
     public boolean addTask(K key, P param) {
-        if (aborted || stopping) {
+        if (aborted || finishing) {
             LOGGER.error("Task manager is in the processes of shutting down.");
             return false;
         }
@@ -144,11 +144,12 @@ public class TaskManager<K, P, O> {
 
     /**
      * Start the threads and begin executing the tasks.
-     * @throws IllegalStateException If we've already begun execution.
+     * @return <code>true</code> if we successfully started; <code>false</code> if we'd already started
      */
-    public void start() throws IllegalStateException {
+    public boolean start() {
+        // Don't start twice
         if (started.getAndSet(true)) {
-            throw new IllegalStateException("Task Manager is already started");
+            return false;
         }
 
         // If it was already canceled, it would end up in results.
@@ -161,6 +162,7 @@ public class TaskManager<K, P, O> {
             workers.add(thread);
             thread.start();
         }
+        return true;
     }
 
     /**
@@ -236,7 +238,7 @@ public class TaskManager<K, P, O> {
                         }
                     } else {
                         // Won't hit this line if there's still more tasks, differentiating stopping from aborted
-                        if (stopping) {
+                        if (finishing) {
                             break;
                         } else {
                             park();

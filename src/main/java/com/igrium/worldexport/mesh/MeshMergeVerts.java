@@ -88,8 +88,30 @@ public final class MeshMergeVerts {
      *         this is a copy of the source.
      */
     public static Obj mergeByDistance(ReadableObj source, float mergeDistance, boolean doMixData) {
+        return mergeByDistance(source, mergeDistance, doMixData, false);
+    }
+
+    /**
+     * Merge all vertices that are within a given distance of each other.
+     *
+     * @param source            OBJ to merge. Not modified.
+     * @param mergeDistance     Maximum distance between two vertices for them to
+     *                          merge.
+     * @param doMixData         If true, a merged vertex or corner gets its
+     *                          attributes averaged from all the elements that went
+     *                          into it. If false, it keeps those of the element it
+     *                          merged into.
+     * @param keepVertexColors  If true, two vertices only merge when their vertex
+     *                          colors match, keeping color discontinuities sharp.
+     *                          See {@link ColoredVertex}.
+     * @return A new OBJ with the merged mesh. If nothing was close enough to merge,
+     *         this is a copy of the source.
+     */
+    public static Obj mergeByDistance(ReadableObj source, float mergeDistance, boolean doMixData,
+                                      boolean keepVertexColors) {
         SourceMesh mesh = SourceMesh.fromObj(source);
-        MergeMap map = buildDistanceMergeMap(mesh.vertPositions, mergeDistance);
+        MergeMap map = buildDistanceMergeMap(mesh.vertPositions, keepVertexColors ? mesh.vertColors : null,
+                mergeDistance);
         return createMergedMesh(mesh, map.vertDestMap(), map.vertKillLen(), doMixData);
     }
 
@@ -119,7 +141,24 @@ public final class MeshMergeVerts {
      * @return The merge map.
      */
     public static MergeMap buildDistanceMergeMap(ReadableObj source, float mergeDistance) {
-        return buildDistanceMergeMap(readPositions(source), mergeDistance);
+        return buildDistanceMergeMap(source, mergeDistance, false);
+    }
+
+    /**
+     * Build a merge map that welds every vertex into the lowest-indexed vertex
+     * within <code>mergeDistance</code> of it, without performing the merge. Pass
+     * the result to {@link #mergeVerts}, optionally after adjusting it.
+     *
+     * @param source           OBJ to search.
+     * @param mergeDistance    Maximum distance between two vertices for them to
+     *                         merge.
+     * @param keepVertexColors If true, two vertices only merge when their vertex
+     *                         colors match. See {@link ColoredVertex}.
+     * @return The merge map.
+     */
+    public static MergeMap buildDistanceMergeMap(ReadableObj source, float mergeDistance, boolean keepVertexColors) {
+        return buildDistanceMergeMap(readPositions(source), keepVertexColors ? readColors(source) : null,
+                mergeDistance);
     }
 
     /* -------------------------------------------------------------------- */
@@ -183,14 +222,7 @@ public final class MeshMergeVerts {
             mesh.faceOffsets[numFaces] = numCorners;
 
             mesh.vertPositions = readPositions(obj);
-            mesh.vertColors = new Vector3f[obj.getNumVertices()];
-            for (int i = 0; i < obj.getNumVertices(); i++) {
-                FloatTuple vertex = obj.getVertex(i);
-                // Vertex colors, as written by ObjVertexConsumer.
-                if (vertex.getDimensions() >= 6) {
-                    mesh.vertColors[i] = new Vector3f(vertex.get(3), vertex.get(4), vertex.get(5));
-                }
-            }
+            mesh.vertColors = readColors(obj);
 
             mesh.cornerVerts = new int[numCorners];
             mesh.cornerEdges = new int[numCorners];
@@ -267,6 +299,21 @@ public final class MeshMergeVerts {
             positions[i] = new Vector3f(vertex.getX(), vertex.getY(), vertex.getZ());
         }
         return positions;
+    }
+
+    /**
+     * Read the per-vertex colors of an OBJ, as written by
+     * <code>ObjVertexConsumer</code>. Vertices without a color get a null entry.
+     */
+    private static Vector3f[] readColors(ReadableObj obj) {
+        Vector3f[] colors = new Vector3f[obj.getNumVertices()];
+        for (int i = 0; i < colors.length; i++) {
+            FloatTuple vertex = obj.getVertex(i);
+            if (vertex.getDimensions() >= 6) {
+                colors[i] = new Vector3f(vertex.get(3), vertex.get(4), vertex.get(5));
+            }
+        }
+        return colors;
     }
 
     /* -------------------------------------------------------------------- */
@@ -448,8 +495,12 @@ public final class MeshMergeVerts {
      * within <code>mergeDistance</code> of it. This replaces Blender's KD-tree
      * duplicate search with a uniform grid, which behaves the same for the small,
      * evenly distributed distances this is used with.
+     *
+     * @param colors When non-null, two vertices only merge if their entries here are
+     *               equal, so color discontinuities stay sharp. Entries may
+     *               themselves be null for vertices without a color.
      */
-    private static MergeMap buildDistanceMergeMap(Vector3f[] positions, float mergeDistance) {
+    private static MergeMap buildDistanceMergeMap(Vector3f[] positions, Vector3f[] colors, float mergeDistance) {
         final int numVerts = positions.length;
         int[] vertDestMap = new int[numVerts];
         Arrays.fill(vertDestMap, OUT_OF_CONTEXT);
@@ -484,6 +535,10 @@ public final class MeshMergeVerts {
                         }
                         for (int j : bucket) {
                             if (j <= i || vertDestMap[j] != OUT_OF_CONTEXT) {
+                                continue;
+                            }
+                            if (colors != null && !Objects.equals(colors[i], colors[j])) {
+                                /* Merging these would smear one vertex color into the other. */
                                 continue;
                             }
                             if (pos.distanceSquared(positions[j]) <= mergeDistSq) {

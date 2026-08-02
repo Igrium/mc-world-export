@@ -1,8 +1,10 @@
+import com.igrium.worldexport.mesh.ColoredVertex;
 import com.igrium.worldexport.mesh.MeshMergeVerts;
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;
 import de.javagl.obj.Objs;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -121,6 +123,66 @@ public class MeshMergeVertsTest {
         for (int i = 0; i < merged.getNumFaces(); i++) {
             ObjFace face = merged.getFace(i);
             assertTrue(face.containsTexCoordIndices());
+        }
+    }
+
+    /** Add a quad whose four vertices all carry the same vertex color. */
+    private static void addColoredQuad(Obj obj, Vector3f color, float[]... positions) {
+        int start = obj.getNumVertices();
+        int[] indices = new int[positions.length];
+        for (int i = 0; i < positions.length; i++) {
+            obj.addVertex(new ColoredVertex(new Vector3f(positions[i]), color));
+            indices[i] = start + i;
+        }
+        obj.addFace(indices);
+    }
+
+    @Test
+    void mergesAcrossVertexColorsWhenNotKeepingThem() {
+        Obj obj = Objs.create();
+        addColoredQuad(obj, new Vector3f(1, 0, 0), v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
+        addColoredQuad(obj, new Vector3f(0, 1, 0), v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
+
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, false);
+
+        assertEquals(6, merged.getNumVertices());
+        assertEquals(2, merged.getNumFaces());
+    }
+
+    @Test
+    void keepsVerticesWithDifferingColorsApart() {
+        Obj obj = Objs.create();
+        addColoredQuad(obj, new Vector3f(1, 0, 0), v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
+        addColoredQuad(obj, new Vector3f(0, 1, 0), v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
+
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, true);
+
+        // Nothing merges, and every color survives unmixed.
+        assertEquals(8, merged.getNumVertices());
+        assertEquals(2, merged.getNumFaces());
+        for (int i = 0; i < merged.getNumVertices(); i++) {
+            FloatTuple vertex = merged.getVertex(i);
+            assertEquals(6, vertex.getDimensions());
+            assertTrue(vertex.get(3) == 1 || vertex.get(4) == 1, "Vertex color should not have been averaged");
+        }
+    }
+
+    @Test
+    void mergesVerticesWithMatchingColors() {
+        Obj obj = Objs.create();
+        Vector3f color = new Vector3f(0.25f, 0.5f, 0.75f);
+        addColoredQuad(obj, color, v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
+        addColoredQuad(obj, color, v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
+
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, true);
+
+        assertEquals(6, merged.getNumVertices());
+        assertEquals(2, merged.getNumFaces());
+        for (int i = 0; i < merged.getNumVertices(); i++) {
+            FloatTuple vertex = merged.getVertex(i);
+            assertEquals(0.25f, vertex.get(3), 1e-6f);
+            assertEquals(0.5f, vertex.get(4), 1e-6f);
+            assertEquals(0.75f, vertex.get(5), 1e-6f);
         }
     }
 

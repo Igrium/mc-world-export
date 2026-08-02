@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import org.joml.Vector3f;
 
-import java.util.List;
+import java.util.Collections;
 
 /**
  * Reimplementation of SectionCompiler to tessellate base world chunks
@@ -92,7 +92,7 @@ public class BlockTessellator {
                     obj.setActiveMaterialGroupName(fluidMatFactory.getMaterial(fluidState));
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.FLUID.getKey(fluidState.getType());
-                        obj.setActiveGroupNames(List.of("fluid." + id));
+                        obj.setActiveGroupNames(Collections.singletonList("fluid." + id));
                     }
                     fluidRenderer.tesselate(region, pos, fluidOutput, blockState, fluidState);
                 }
@@ -101,7 +101,7 @@ public class BlockTessellator {
                     obj.setActiveMaterialGroupName(blockMatFactory.getMaterial(blockState));
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
-                        obj.setActiveGroupNames(List.of(id.toString()));
+                        obj.setActiveGroupNames(Collections.singletonList(id.toString()));
                     }
                     blockRenderer.tesselateBlock(
                             quadOutput,
