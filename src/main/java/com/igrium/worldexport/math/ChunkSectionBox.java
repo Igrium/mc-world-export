@@ -1,9 +1,8 @@
 package com.igrium.worldexport.math;
 
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.AABB;
 
 /**
  * Represents a 3D box in chunk section coordinates.
@@ -149,8 +148,8 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      */
     public boolean isInBounds(int x, int y, int z) {
         return minX <= x && x < maxX()
-                && minY < y && y < maxY()
-                && minZ < z && z < maxZ();
+                && minY <= y && y < maxY()
+                && minZ <= z && z < maxZ();
     }
 
     /**
@@ -189,6 +188,10 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
      */
     public Iterable<SectionPos> iterate() {
         return ChunkSections.iterate(minX, minY, minZ, maxXInclusive(), maxYInclusive(), maxZInclusive());
+    }
+
+    public Iterable<ChunkPos> iterateChunks() {
+        return ChunkSections.iterate(minX, minZ, maxXInclusive(), maxZInclusive());
     }
 
     /**
@@ -234,4 +237,5 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
     public static ChunkSectionBox fromRadius(SectionPos center, int radius) {
         return fromRadius(center.getX(), center.getY(), center.getZ(), radius);
     }
+
 }

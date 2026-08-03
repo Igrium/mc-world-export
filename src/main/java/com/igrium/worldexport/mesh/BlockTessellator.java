@@ -57,6 +57,22 @@ public class BlockTessellator {
     public Obj compileSection(SectionPos sectionPos, BlockAndTintGetter region) {
         BlockPos minPos = sectionPos.origin();
         BlockPos maxPos = minPos.offset(15, 15, 15);
+
+        return compileBlocks(BlockPos.betweenClosed(minPos, maxPos), region, minPos);
+    }
+
+    /**
+     * Tessellate an arbitrary collection of blocks into an obj.
+     *
+     * @param blocks Blocks to tessellate. Does not affect culling.
+     * @param region RenderSectionRegion to use
+     * @param origin Position the resulting geometry is relative to
+     * @return The tessellated obj, relative to <code>origin</code>
+     * @implNote {@link FluidRenderer} computes its vertex positions section-locally, so every block passed in
+     * must belong to the section starting at <code>origin</code>. Blocks outside it will have their fluid
+     * geometry placed incorrectly.
+     */
+    public Obj compileBlocks(Iterable<BlockPos> blocks, BlockAndTintGetter region, BlockPos origin) {
         VisGraph visGraph = new VisGraph();
         BlockModelLighter.enableCaching();
 
@@ -73,7 +89,7 @@ public class BlockTessellator {
         FluidRenderer.Output fluidOutput = _ -> objConsumer;
 
 
-        for (BlockPos pos : BlockPos.betweenClosed(minPos, maxPos)) {
+        for (BlockPos pos : blocks) {
             BlockState blockState = region.getBlockState(pos);
             if (blockState.isAir()) continue;
 
@@ -105,9 +121,9 @@ public class BlockTessellator {
                     }
                     blockRenderer.tesselateBlock(
                             quadOutput,
-                            SectionPos.sectionRelative(pos.getX()),
-                            SectionPos.sectionRelative(pos.getY()),
-                            SectionPos.sectionRelative(pos.getZ()),
+                            pos.getX() - origin.getX(),
+                            pos.getY() - origin.getY(),
+                            pos.getZ() - origin.getZ(),
                             region, pos, blockState,
                             blockModelSet.get(blockState),
                             blockState.getSeed(pos)

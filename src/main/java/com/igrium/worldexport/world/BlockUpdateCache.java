@@ -11,7 +11,7 @@ import java.util.*;
 /**
  * Keeps track of block updates in a format ideal for tessellation.
  *
- * @apiNote Unlike WorldCapture, this class also keeps track of adjoining block updates
+ * @apiNote Unlike WorldCaptureOld, this class also keeps track of adjoining block updates
  * because they can affect the culling of a block.
  */
 public class BlockUpdateCache {
@@ -47,7 +47,6 @@ public class BlockUpdateCache {
                 for (BlockPos pos : AdjacentDirectionIterator.getIterable(entry.getKey())) {
                     IntSortedSet blockUpdateSet = blockUpdates.computeIfAbsent(pos, p -> new IntAVLTreeSet());
                     blockUpdateSet.add(frame);
-
                     keyframe.add(pos);
                 }
             }

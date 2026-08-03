@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 /**
  * Renders the block world into an OBJ.
  */
+@Deprecated
 public class BlockMeshBuilder {
 
     /**
@@ -35,11 +36,10 @@ public class BlockMeshBuilder {
      * @param world           World to render from.
      * @param splitBlocks     If true, blocks will be assigned OBJ groups based on their type.
      * @param materialFactory Generates material names from block types.
-     * @param random          Random instance to pass to <code>BlockRenderManager</code>
      */
     public static void build(
             Obj targetMesh, Iterable<BlockPos> blocks, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random) {
+            boolean splitBlocks, BlockMaterialFactory materialFactory) {
 
         Minecraft mc = Minecraft.getInstance();
         BlockStateModelSet blockModels = mc.getModelManager().getBlockStateModelSet();
@@ -54,15 +54,6 @@ public class BlockMeshBuilder {
         vertexConsumer.setEnableNormals(true);
 
 
-//        BlockRenderDispatcher blockRenderManager = Minecraft.getInstance().getBlockRenderer();
-//        PoseStack matrixStack = new PoseStack();
-//
-//
-//        ObjVertexConsumer vertexConsumer = new ObjVertexConsumer(targetMesh);
-//        DuplicateCheckingVertexConsumer duplicateChecker = new DuplicateCheckingVertexConsumer(vertexConsumer);
-//
-//        vertexConsumer.setEnableNormals(false);
-//
         if (offset != null) {
             vertexConsumer.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
             duplicateChecker.matrices.translate(offset.getX(), offset.getY(), offset.getZ());
@@ -112,12 +103,11 @@ public class BlockMeshBuilder {
      * @param world           World to render from.
      * @param splitBlocks     If true, blocks will be assigned OBJ groups based on their type.
      * @param materialFactory Generates material names from block types.
-     * @param random          Random instance to pass to <code>BlockRenderManager</code>
      * @param predicate       If set, only tessellate block positions that match this predicate (doesn't affect culling)
      */
     public static void buildRange(
             Obj targetMesh, BlockPos minPos, BlockPos maxPos, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+            boolean splitBlocks, BlockMaterialFactory materialFactory, @Nullable Predicate<?
                     super BlockPos> predicate) {
 
         Iterable<BlockPos> iter;
@@ -127,7 +117,7 @@ public class BlockMeshBuilder {
             iter = BlockPos.betweenClosed(minPos, maxPos);
         }
 
-        build(targetMesh, iter, offset, world, splitBlocks, materialFactory, random);
+        build(targetMesh, iter, offset, world, splitBlocks, materialFactory);
     }
 
 
@@ -140,12 +130,11 @@ public class BlockMeshBuilder {
      * @param world           World to render from.
      * @param splitBlocks     If true, blocks will be assigned OBJ groups based on their type.
      * @param materialFactory Generates material names from block types.
-     * @param random          Random instance to pass to <code>BlockRenderManager</code>
      * @param predicate       If set, only tessellate block positions that match this predicate (doesn't affect culling)
      */
     public static void buildSection(
             Obj targetMesh, SectionPos section, @Nullable BlockPos offset, BlockAndTintGetter world,
-            boolean splitBlocks, BlockMaterialFactory materialFactory, RandomSource random, @Nullable Predicate<?
+            boolean splitBlocks, BlockMaterialFactory materialFactory, @Nullable Predicate<?
                     super BlockPos> predicate) {
 
         int minX = section.minBlockX();
@@ -158,7 +147,7 @@ public class BlockMeshBuilder {
 
 
         buildRange(targetMesh, new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ), offset, world,
-                splitBlocks, materialFactory, random, predicate);
+                splitBlocks, materialFactory, predicate);
     }
 
     private static <T> Iterable<T> filteredIterable(Iterable<T> in, Predicate<? super T> predicate) {

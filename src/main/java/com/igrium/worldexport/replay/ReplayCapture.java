@@ -1,6 +1,8 @@
 package com.igrium.worldexport.replay;
 
+import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.entity.EntityCapture;
+import com.igrium.worldexport.math.ChunkSections;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldMesh;
@@ -99,9 +101,6 @@ public class ReplayCapture {
     private final WorldCapture worldCapture;
 
     @Getter
-    private final WorldMesher worldMesher;
-
-    @Getter
     private final EntityCapture entityCapture;
 
     @Getter
@@ -123,10 +122,16 @@ public class ReplayCapture {
 
         executor = Util.backgroundExecutor(); // Make our own as to not starve this.
 
-        worldCapture = new WorldCapture(settings.getBounds());
+
+        var bounds = settings.getBounds();
+
+//        worldCapture = new WorldCaptureOld(settings.getBounds());
+        worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
+                bounds.maxXInclusive(), bounds.maxZInclusive()), bounds.minY(), bounds.sizeY());
+//        worldCapture.
 
         // WorldMesher owns its own worker threads, so it takes no executor.
-        worldMesher = new WorldMesher(worldCapture, world, settings.getBounds().iterate());
+        var worldMesher = worldCapture.getMesher();
         worldMesher.setOffset(settings.getOffset());
         worldMesher.setSplitBlocks(settings.isSplitBlocks());
         worldMesher.setMaxThreads(settings.getMaxThreads());
@@ -158,16 +163,12 @@ public class ReplayCapture {
         }
 
         long captureStart = Util.getMillis();
-        worldCapture.captureBaseWorld(world);
+//        worldCapture.captureBaseWorld(world);
+        worldCapture.captureBaseWorld();
         LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
 
-        long meshStartTime = Util.getMillis();
-        worldMesher.tessellateBaseWorld().thenRun(() -> {
-            LOGGER.info("Finished tessellating base world in {}ms", Util.getMillis() - meshStartTime);
-        }).exceptionally(e -> {
-            LOGGER.error("Error tessellating base world: ", e);
-            return null;
-        });
+
+        worldCapture.getMesher().startBase();
         gameTick = 0;
 
 
@@ -188,10 +189,9 @@ public class ReplayCapture {
     }
 
     public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, Level world) {
-        // Disabled until WorldMesher can generate delta meshes; nothing consumes these updates.
-//        if (world == this.world) {
-//            worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
-//        }
+        if (world == this.world) {
+            worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
+        }
     }
 
     public void onLoadChunk(Level world, LevelChunk chunk) {
@@ -204,22 +204,18 @@ public class ReplayCapture {
      * Wait for the world meshes to finish tessellating and assemble them into the final, named meshes.
      *
      * @return A future that completes with a map of mesh names and their meshes.
-     * @implNote TODO: only the static base world is exported. Delta meshes (block updates over time)
-     *           aren't implemented, so their capture is commented out in onUpdateBlock. Base mesh
-     *           merging, double vertex removal and progress callbacks are missing too.
      */
     public CompletableFuture<Map<String, WorldMesh>> compileWorldMeshes() {
-        // TODO: refactor this so that newly-loaded chunks get added, etc
-        CompletableFuture<Map<SectionPos, Obj>> baseFuture = worldMesher.getTaskManager().getCompletionFuture();
+        var baseFuture = worldCapture.getMesher().finishBase();
+        var deltaFuture = worldCapture.getMesher().tessellateDeltas(worldCapture);
 
-        return baseFuture.thenApply(sections -> {
-            Map<String, WorldMesh> meshes = new HashMap<>(sections.size());
-            List<String> mtlLibs = List.of("world.mtl");
+        return baseFuture.thenCombine(deltaFuture, (base, deltas) -> {
+            Map<String, WorldMesh> meshes = new HashMap<>();
+            List<String> mtlLibs = ImmutableList.of("world.mtl");
 
-            for (var entry : sections.entrySet()) {
+            for (var entry : base.entrySet()) {
                 Obj obj = entry.getValue();
-                if (obj.getNumFaces() == 0)
-                    continue;
+                if (obj.getNumFaces() == 0) continue;
 
                 obj.setMtlFileNames(mtlLibs);
 
@@ -227,17 +223,36 @@ public class ReplayCapture {
                 // carries its world position (plus the export offset) in its metadata.
                 SectionPos sPos = entry.getKey();
                 BlockPos origin = sPos.origin().offset(settings.getOffset());
-                String name = "section_" + sPos.getX() + "_" + sPos.getY() + "_" + sPos.getZ();
+                meshes.put(sectionName(sPos), new WorldMesh(obj, Vec3.atLowerCornerOf(origin)));
+            }
 
-                meshes.put(name, new WorldMesh(obj, Vec3.atLowerCornerOf(origin)));
+            for (var entry : deltas.entrySet()) {
+                SectionPos sPos = entry.getKey();
+                BlockPos origin = sPos.origin().offset(settings.getOffset());
+                Vec3 offset = Vec3.atLowerCornerOf(origin);
+
+                int i = 0;
+                for (WorldMesh mesh : entry.getValue()) {
+                    if (mesh.obj().getNumFaces() == 0) continue;
+
+                    mesh.obj().setMtlFileNames(mtlLibs);
+                    mesh.meta().setOffset(offset);
+                    meshes.put(sectionName(sPos) + "_" + i, mesh);
+                    i++;
+                }
             }
 
             return meshes;
         });
     }
 
+    private static String sectionName(SectionPos sPos) {
+        return "section_" + sPos.getX() + "_" + sPos.getY() + "_" + sPos.getZ();
+    }
+
     /**
      * Wait for all texture futures to complete and return their values.
+     *
      * @return A map of all texture paths and their values.
      */
     public CompletableFuture<Map<String, ReplayTexture>> getAllTextures() {

@@ -101,6 +101,7 @@ public class TaskManager<K, P, O> {
 
     /**
      * Shut down this task manager gracefully; queued tasks will complete, but no more will be accepted.
+     * @return The task results
      */
     public CompletableFuture<Map<K, O>> finish() {
         finishing = true;

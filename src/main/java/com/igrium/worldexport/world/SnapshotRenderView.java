@@ -34,6 +34,7 @@ public class SnapshotRenderView implements BlockAndTintGetter {
     }
 
     @Override
+    // TODO: snapshot tint
     public int getBlockTint(BlockPos pos, ColorResolver colorResolver) {
         return world.getBlockTint(pos, colorResolver);
     }
@@ -44,22 +45,22 @@ public class SnapshotRenderView implements BlockAndTintGetter {
     }
 
     @Override
-    public BlockState getBlockState(BlockPos pos) {
+    public @NonNull BlockState getBlockState(BlockPos pos) {
         return worldCapture.getBlock(pos, tick);
     }
 
     @Override
-    public FluidState getFluidState(BlockPos pos) {
+    public @NonNull FluidState getFluidState(BlockPos pos) {
         return getBlockState(pos).getFluidState();
     }
 
     @Override
     public int getHeight() {
-        return worldCapture.getBounds().sizeY() * 16;
+        return worldCapture.getHeight() * 16;
     }
 
     @Override
     public int getMinY() {
-        return worldCapture.getBounds().minY() * 16;
+        return worldCapture.getMinY() * 16;
     }
 }

@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world;
 
-import com.igrium.worldexport.mesh.BlockMaterialFactory;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.igrium.worldexport.mesh.BlockTessellator;
 import com.igrium.worldexport.mesh.MeshMergeVerts;
 import com.igrium.worldexport.replay.ReplayCapture;
@@ -10,6 +11,10 @@ import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.Minecraft;
@@ -20,6 +25,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -31,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -41,13 +49,11 @@ public class WorldMesher {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/WorldMesher");
 
-    private final WorldCapture worldCapture;
+    /// === STATE & CONFIGURATION ===
 
     private final ClientLevel baseWorld;
 
     private final Iterable<? extends SectionPos> sections;
-
-    private BlockMaterialFactory materialFactory = this::getDefaultMaterialName;
 
     @Getter
     @Setter
@@ -84,8 +90,7 @@ public class WorldMesher {
     @Getter
     private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
 
-    public WorldMesher(WorldCapture worldCapture, ClientLevel baseWorld, Iterable<? extends SectionPos> sections) {
-        this.worldCapture = worldCapture;
+    public WorldMesher(ClientLevel baseWorld, Iterable<? extends SectionPos> sections) {
         this.baseWorld = baseWorld;
         this.sections = sections;
 
@@ -102,6 +107,8 @@ public class WorldMesher {
 
         taskManager = new TaskManager<>(Runtime.getRuntime().availableProcessors() - 1, this::tessellateSection);
     }
+
+    /// === MATERIALS & TEXTURES ===
 
     public String getDefaultMaterialName(BlockState state) {
         return state.propagatesSkylightDown() ? WORLD_TRANS : WORLD;
@@ -161,94 +168,138 @@ public class WorldMesher {
                 .thenApply(NativeImageReplayTexture::new);
     }
 
+    /// === MESHING ===
+
     private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
         LOGGER.info("Compiling section {}", pos);
         Obj obj = tessellator.compileSection(pos, region);
         return mergeDoubleVertices ? MeshMergeVerts.mergeByDistance(obj, .001f) : obj;
     }
 
-    public CompletableFuture<Map<SectionPos, Obj>> tessellateBaseWorld() {
-        Map<ChunkPos, SimpleSectionColumn> columns = new HashMap<>();
-        for (var sPos : this.sections) {
-            columns.computeIfAbsent(sPos.chunk(), cPos -> {
-                var chunk = baseWorld.getChunk(cPos.x(), cPos.z(), ChunkStatus.FULL, false);
-                if (chunk != null) {
-                    return SimpleSectionColumn.fromChunk(chunk);
-                } else {
-                    return null;
-                }
-            });
+    public CompletableFuture<Map<SectionPos, List<WorldMesh>>> tessellateDeltas(WorldCapture capture) {
+        BlockUpdateCache cache = BlockUpdateCache.generate(capture);
+        Map<SectionPos, List<WorldMesh>> results = new ConcurrentHashMap<>();
+
+        var dirtySections = capture.getDirtySections();
+        var futures = new CompletableFuture<?>[dirtySections.size()];
+
+        int i = 0;
+        for (SectionPos sPos : dirtySections) {
+            futures[i++] = CompletableFuture
+                    .runAsync(() -> results.put(sPos, tessellateSectionMeshes(sPos, capture, cache)),
+                            Util.backgroundExecutor())
+                    .exceptionally(e -> {
+                        LOGGER.error("Error meshing deltas for section {}", sPos, e);
+                        return null;
+                    });
         }
 
-        Map<ChunkPos, SectionColumnRenderRegion> regions = columns.keySet().stream()
-                .collect(Collectors.toMap(c -> c,
-                        c -> SectionColumnRenderRegion.build(columns, c, baseWorld)));
+        return CompletableFuture.allOf(futures).thenApply(v -> results);
+    }
 
+    /**
+     * Queue meshing tasks for every section of a chunk, backed by the given base world snapshot.
+     *
+     * @param cPos      The chunk to mesh.
+     * @param baseWorld Base world snapshot to render the sections against.
+     * @param minY      The chunk-coordinate of the lowest chunk section to mesh.
+     * @param height    The number of chunk sections to mesh vertically.
+     */
+    public void queueChunk(ChunkPos cPos, Map<ChunkPos, SimpleSectionColumn> baseWorld, int minY, int height) {
+        SectionColumnRenderRegion region = SectionColumnRenderRegion.build(baseWorld, cPos, this.baseWorld);
+        Map<SectionPos, SectionColumnRenderRegion> sections = new HashMap<>(height);
+        for (int i = minY; i < minY + height; i++) {
+            sections.put(SectionPos.of(cPos, i), region);
+        }
+        taskManager.addTasks(sections);
+    }
 
-        for (var section : sections) {
-            var region = regions.get(section.chunk());
-            if (region != null) {
-                taskManager.addTask(section, region);
+    /**
+     * Cancel the meshing task for a given section, if one is queued or in progress.
+     *
+     * @param pos Section to cancel.
+     */
+    public void cancelSection(SectionPos pos) {
+        taskManager.cancelTask(pos);
+    }
+
+    private void tessellateSectionFrame(SectionPos sPos, int tick, Collection<BlockPos> blocks,
+                                        BlockAndTintGetter renderView, BlockUpdateCache cache,
+                                        Consumer<WorldMesh> meshConsumer) {
+        BlockPos origin = sPos.origin();
+        Int2ObjectMap<Set<BlockPos>> overrideMap = new Int2ObjectOpenHashMap<>();
+        Set<BlockPos> blocksWithoutOverrides = new HashSet<>();
+
+        for (var bPos : blocks) {
+            if (!sPos.equals(SectionPos.of(bPos))) continue;
+            int nextKeyframe = cache.getNextBlockUpdate(bPos, tick);
+            if (nextKeyframe >= 0) {
+                overrideMap.computeIfAbsent(nextKeyframe, k -> new HashSet<>()).add(bPos);
+            } else {
+                blocksWithoutOverrides.add(bPos);
             }
         }
 
-        taskManager.start();
-        return taskManager.finish();
+        for (var entry : overrideMap.int2ObjectEntrySet()) {
+            Obj mesh = tessellator.compileBlocks(entry.getValue(), renderView, origin);
+            meshConsumer.accept(new WorldMesh(mesh, tick, entry.getIntKey() - 1));
+        }
+        if (!blocksWithoutOverrides.isEmpty()) {
+            Obj mesh = tessellator.compileBlocks(blocksWithoutOverrides, renderView, origin);
+            meshConsumer.accept(new WorldMesh(mesh, tick, null));
+        }
     }
 
-//
-//    public CompletableFuture<Map<SectionPos, Obj>> tessellateBaseWorld() {
-//        if (taskExecutor != null && !taskExecutor.isFinished()) {
-//            throw new IllegalStateException("TaskExecutor has already been started");
-//        }
-//
-//        var modelManager = Minecraft.getInstance().getModelManager();
-//
-//        BlockTessellator tessellator = BlockTessellator.builder()
-//                .blockColors(Minecraft.getInstance().getBlockColors())
-//                .blockModelSet(modelManager.getBlockStateModelSet())
-//                .fluidModelSet(modelManager.getFluidStateModelSet())
-//                .blockMatFactory(this::getDefaultMaterialName)
-//                .fluidMatFactory(this::getDefaultMaterialName)
-//                .splitBlocks(this.splitBlocks)
-//                .ambientOcclusion(false)
-//                .build();
-//
-//        Map<ChunkPos, SimpleSectionColumn> columns = new HashMap<>();
-//        for (var sPos : this.sections) {
-//            columns.computeIfAbsent(sPos.chunk(), cPos -> {
-//                var chunk = baseWorld.getChunk(cPos.x(), cPos.z(), ChunkStatus.FULL, false);
-//                if (chunk != null) {
-//                    return SimpleSectionColumn.fromChunk(chunk);
-//                } else {
-//                    return null;
-//                }
-//            });
-//        }
-//
-//        Map<ChunkPos, SectionColumnRenderRegion> regions = columns.keySet().stream()
-//                .collect(Collectors.toMap(c -> c,
-//                        c -> SectionColumnRenderRegion.build(columns, c, baseWorld)));
-//
-//        Map<SectionPos, SectionColumnRenderRegion> queue = new HashMap<>();
-//        for (var section : this.sections) {
-//            var region = regions.get(section.chunk());
-//            if (region != null) {
-//                queue.put(section, region);
-//            }
-//        }
-//
-//        taskExecutor = new TaskExecutor<>(queue, Math.max(maxThreads, 1), (pos, region) -> {
-//            LOGGER.info("Compiling section {}", pos);
-//            Obj obj = tessellator.compileSection(pos, region);
-//            if (onSectionTessellated != null) {
-//                onSectionTessellated.accept(pos);
-//            }
-//            return mergeDoubleVertices ? MeshUtils.removeDoubles(obj) : obj;
-//        });
-//
-//        taskExecutor.start();
-//        baseWorldFuture = taskExecutor.getCompletionFuture();
-//        return baseWorldFuture;
-//    }
+    private List<WorldMesh> tessellateSectionMeshes(SectionPos sPos, WorldCapture capture, BlockUpdateCache cache) {
+        Int2ObjectSortedMap<Set<BlockPos>> updates = cache.getSectionUpdates(sPos);
+        List<WorldMesh> meshes = new ArrayList<>();
+        Set<BlockPos> overwrittenBlocks = new HashSet<>();
+
+        // Mesh per update tick
+        for (var entry : updates.int2ObjectEntrySet()) {
+            var renderView = new SnapshotRenderView(capture, baseWorld, entry.getIntKey());
+            tessellateSectionFrame(sPos, entry.getIntKey(), entry.getValue(), renderView, cache, meshes::add);
+            overwrittenBlocks.addAll(entry.getValue());
+        }
+
+        var baseRenderView = SectionColumnRenderRegion.build(capture.getCopiedBaseWorld(), sPos.chunk(), baseWorld);
+
+        // Blocks present at tick 0 that are updated later
+        if (!overwrittenBlocks.isEmpty()) {
+            tessellateSectionFrame(sPos, 0, overwrittenBlocks, baseRenderView, cache, meshes::add);
+        }
+
+        // Everything that never changes
+        BlockPos origin = sPos.origin();
+        Iterable<BlockPos> staticBlocks = Iterables.filter(
+                BlockPos.betweenClosed(origin, origin.offset(15, 15, 15)),
+                p -> !overwrittenBlocks.contains(p)
+        );
+
+        Obj baseMesh = tessellator.compileBlocks(staticBlocks, baseRenderView, origin);
+        if (baseMesh.getNumFaces() > 0) {
+            meshes.add(new WorldMesh(baseMesh));
+        }
+
+        if (mergeDoubleVertices) {
+            meshes.replaceAll(m -> new WorldMesh(MeshMergeVerts.mergeByDistance(m.obj(), .001f), m.meta()));
+        }
+        return meshes;
+    }
+
+    /**
+     * Start the primary world tessellation
+     */
+    public void startBase() {
+        taskManager.start();
+    }
+
+    /**
+     * Wait for the base world tessellation to finish
+     *
+     * @return All the base section OBJs with their section positions
+     */
+    public CompletableFuture<Map<SectionPos, Obj>> finishBase() {
+        return taskManager.finish();
+    }
 }
