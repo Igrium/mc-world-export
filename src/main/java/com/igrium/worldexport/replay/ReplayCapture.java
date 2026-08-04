@@ -3,12 +3,16 @@ package com.igrium.worldexport.replay;
 import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.math.ChunkSections;
+import com.igrium.worldexport.mesh.MeshUtils;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldMesh;
 import com.igrium.worldexport.world.WorldMesher;
 import de.javagl.obj.Obj;
+import de.javagl.obj.ObjUtils;
+import de.javagl.obj.Objs;
 import lombok.Getter;
+import net.minecraft.core.Vec3i;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
@@ -18,6 +22,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,22 +214,32 @@ public class ReplayCapture {
         var baseFuture = worldCapture.getMesher().finishBase();
         var deltaFuture = worldCapture.getMesher().tessellateDeltas(worldCapture);
 
-        return baseFuture.thenCombine(deltaFuture, (base, deltas) -> {
+        return baseFuture.thenCombine(deltaFuture, (sections, deltas) -> {
             Map<String, WorldMesh> meshes = new HashMap<>();
             List<String> mtlLibs = ImmutableList.of("world.mtl");
 
-            for (var entry : base.entrySet()) {
-                Obj obj = entry.getValue();
-                if (obj.getNumFaces() == 0) continue;
+            if (getSettings().isMergeBaseMeshes()) {
+                LOGGER.info("Merging base meshes...");
+                WorldMesh base = new WorldMesh(Objs.create(), Vec3.atLowerCornerOf(settings.getOffset()));
+                base.obj().setMtlFileNames(mtlLibs);
+                for (var meshEntry : sections.entrySet()) {
+                    MeshUtils.merge(meshEntry.getValue(), base.obj(), toVec3f(meshEntry.getKey().origin()));
+                }
+                meshes.put("world", base);
 
-                obj.setMtlFileNames(mtlLibs);
+            } else {
+                for (var entry : sections.entrySet()) {
+                    Obj obj = entry.getValue();
+                    if (obj.getNumFaces() == 0) continue;
 
-                // BlockTessellator emits geometry relative to the section origin, so each mesh
-                // carries its world position (plus the export offset) in its metadata.
-                SectionPos sPos = entry.getKey();
-                BlockPos origin = sPos.origin().offset(settings.getOffset());
-                meshes.put(sectionName(sPos), new WorldMesh(obj, Vec3.atLowerCornerOf(origin)));
+                    obj.setMtlFileNames(mtlLibs);
+
+                    SectionPos sPos = entry.getKey();
+                    BlockPos origin = sPos.origin().offset(settings.getOffset());
+                    meshes.put(sectionName(sPos), new WorldMesh(obj, Vec3.atLowerCornerOf(origin)));
+                }
             }
+
 
             for (var entry : deltas.entrySet()) {
                 SectionPos sPos = entry.getKey();
@@ -287,5 +302,9 @@ public class ReplayCapture {
 
         activeCaptures.remove(this);
         state = ReplayCaptureState.FINISHED;
+    }
+
+    private static Vector3f toVec3f(Vec3i vec) {
+        return new Vector3f(vec.getX(), vec.getY(), vec.getZ());
     }
 }

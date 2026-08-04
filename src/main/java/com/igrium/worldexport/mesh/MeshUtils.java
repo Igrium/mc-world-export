@@ -4,6 +4,7 @@ import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import com.mojang.blaze3d.vertex.PoseStack;
+import org.joml.Vector3fc;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,6 +17,17 @@ public class MeshUtils {
      * A Minecraft matrix stack entry representing an identity matrix.
      */
     public static final PoseStack.Pose IDENTITY_ENTRY = new PoseStack().last();
+
+    public static FloatTuple transformFloatTuple(FloatTuple floatTuple, Vector3fc offset) {
+        float[] vals = new float[floatTuple.getDimensions()];
+        for (int i = 0; i < floatTuple.getDimensions(); i++) {
+            vals[i] = floatTuple.get(i);
+        }
+        for (int i = 0; i < Math.min(vals.length, 3); i++) {
+            vals[i] += offset.get(i);
+        }
+        return new ArrayBackedFloatTuple(vals);
+    }
 
     /**
      * Add all the data of the given OBJ into an output OBJ, assigning all its faces to a group.
@@ -53,16 +65,20 @@ public class MeshUtils {
     }
 
     private static void activateGroups(ReadableObj input, ObjFace face, String groupName, WritableObj output) {
-//        Set<String> activatedGroupNames = input.getActivatedGroupNames(face);
-//        if (activatedGroupNames != null) {
-//            // Duplicate so we don't mess with the input OBJ
-//            activatedGroupNames = new HashSet<>(activatedGroupNames);
-//            activatedGroupNames.add(groupName);
-//            output.setActiveGroupNames(activatedGroupNames);
-//        }
         // Ends up discarding the input groups, but that's fine.
         output.setActiveGroupNames(Collections.singleton(groupName));
 
+        String activatedMaterialGroupName = input.getActivatedMaterialGroupName(face);
+        if (activatedMaterialGroupName != null) {
+            output.setActiveMaterialGroupName(activatedMaterialGroupName);
+        }
+    }
+
+    private static void activateGroups(ReadableObj input, ObjFace face, WritableObj output) {
+        Set<String> activatedGroupNames = input.getActivatedGroupNames(face);
+        if (activatedGroupNames != null) {
+            output.setActiveGroupNames(activatedGroupNames);
+        }
         String activatedMaterialGroupName = input.getActivatedMaterialGroupName(face);
         if (activatedMaterialGroupName != null) {
             output.setActiveMaterialGroupName(activatedMaterialGroupName);
@@ -177,6 +193,70 @@ public class MeshUtils {
         }
 
         return output;
+    }
+
+    public static void merge(ReadableObj input, Obj output, Vector3fc offset) {
+        int verticesOffset = output.getNumVertices();
+        for (int i = 0; i < input.getNumVertices(); i++) {
+            output.addVertex(transformFloatTuple(input.getVertex(i), offset));
+        }
+
+        int texCoordsOffset = output.getNumTexCoords();
+        for (int i = 0; i < input.getNumTexCoords(); i++) {
+            output.addTexCoord(input.getTexCoord(i));
+        }
+
+        int normalsOffset = output.getNumNormals();
+        for (int i = 0; i < input.getNumNormals(); i++) {
+            output.addNormal(input.getNormal(i));
+        }
+
+        for (int i = 0; i < input.getNumFaces(); i++) {
+            ObjFace inputFace = input.getFace(i);
+
+            activateGroups(input, inputFace, output);
+
+            ObjFace outputFace = createWithOffsets(inputFace, verticesOffset, texCoordsOffset,
+                    normalsOffset);
+            output.addFace(outputFace);
+        }
+    }
+
+    /**
+     * Create a copy of the given face, adding the given offsets to the
+     * respective indices. If the given face does not contain texture
+     * coordinate or normal indices, then the respective offsets will
+     * be ignored.<br>
+     *
+     * @param face            The input face
+     * @param verticesOffset  The offset for the vertex indices
+     * @param texCoordsOffset The offset for the texture coordinate indices
+     * @param normalsOffset   The offset for the normal indices
+     * @return The copy
+     */
+    static ObjFace createWithOffsets(ObjFace face, int verticesOffset, int texCoordsOffset, int normalsOffset) {
+        int[] v = new int[face.getNumVertices()];
+        int[] vt = null;
+        int[] vn = null;
+        for (int i = 0; i < face.getNumVertices(); i++) {
+            v[i] = face.getVertexIndex(i) + verticesOffset;
+        }
+
+        if (face.containsTexCoordIndices()) {
+            vt = new int[face.getNumVertices()];
+            for (int i = 0; i < face.getNumVertices(); i++) {
+                vt[i] = face.getTexCoordIndex(i) + texCoordsOffset;
+            }
+        }
+
+        if (face.containsNormalIndices()) {
+            vn = new int[face.getNumVertices()];
+            for (int i = 0; i < face.getNumVertices(); i++) {
+                vn[i] = face.getNormalIndex(i) + normalsOffset;
+            }
+        }
+
+        return ObjFaces.create(v, vt, vn);
     }
 
 }
