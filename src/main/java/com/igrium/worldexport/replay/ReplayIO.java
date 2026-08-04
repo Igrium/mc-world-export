@@ -412,23 +412,4 @@ public class ReplayIO {
         }
         return result;
     }
-
-//    private static void loadMtls(Path root, CompiledReplay replay) {
-//        List<Path> mtlPaths;
-//        try (var stream = Files.walk(root)) {
-//            mtlPaths = stream.filter(path -> path.toString().endsWith(".mtl")).toList();
-//        } catch (IOException e) {
-//            LOGGER.error("Failed to retrieve mtl directory listing: ", e);
-//            return;
-//        }
-//
-//        for (var path : mtlPaths) {
-//            try (BufferedReader reader = Files.newBufferedReader(path)) {
-//                replay.getMtlLibs().put(root.relativize(path).toString(), new ArrayList<>(MtlReader.read(reader)));
-//
-//            } catch (IOException e) {
-//                LOGGER.error("Error loading MTL library {}: ", path, e);
-//            }
-//        }
-//    }
 }

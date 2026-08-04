@@ -1,4 +1,3 @@
-// TODO(Ravel): Failed to fully resolve file: null cannot be cast to non-null type com.intellij.psi.PsiJavaCodeReferenceElement
 package com.igrium.worldexport.world;
 
 import it.unimi.dsi.fastutil.ints.*;
@@ -133,9 +132,4 @@ public class BlockUpdateCache {
         }
     }
 
-    private static boolean isBlockInSection(BlockPos bPos, SectionPos cPos) {
-        return SectionPos.blockToSectionCoord(bPos.getX()) == cPos.getX()
-                && SectionPos.blockToSectionCoord(bPos.getY()) == cPos.getY()
-                && SectionPos.blockToSectionCoord(bPos.getZ()) == cPos.getZ();
-    }
 }

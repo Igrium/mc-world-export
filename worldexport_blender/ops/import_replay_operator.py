@@ -1,7 +1,7 @@
 import bpy
-import os
+import os  # @deprecated Dead code; only used by the commented-out line below.
 
-from .. import world_importer
+from .. import world_importer  # @deprecated Dead code; only used by the commented-out line below.
 from .. import replay_importer
 
 from ..replay_importer import ReplayImportSettings
@@ -52,6 +52,7 @@ class ImportReplay(Operator, ImportHelper): # type: ignore
     )
 
     def execute(self, context): # type: ignore
+        # @deprecated Dead code; commented out and unused.
         # world_importer.import_world(os.path.join(self.filepath, 'world')) # type: ignore
         replay_importer.import_replay(self.filepath, ReplayImportSettings(), context) # type: ignore
         return {'FINISHED'}

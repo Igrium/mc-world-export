@@ -74,15 +74,6 @@ class CapturedEntity(AnimationProvider):
                 split_parts.add(pname)
         
         return split_parts
-    
-    
-    # def load_relations_file(self, entity_folder: str, context: ReplayImportContext):
-    #     path = os.path.join(entity_folder, self.name + '.json')
-    #     if not os.path.exists(path):
-    #         return
-        
-    #     with open(path, 'r') as f:
-    #         self.parents = json.load(f)
             
     def load_mesh(self, entity_folder: str, context: ReplayImportContext, split_parts: set[str] | None = None):
         path = os.path.join(entity_folder, self.name + '.obj')
@@ -124,9 +115,7 @@ class CapturedEntity(AnimationProvider):
             
             context.entity_collection.objects.link(empty_obj)
             self.armature = empty_obj
-            
-            # if (self.mesh):
-            #     self.mesh.parent = empty_obj
+
             return
         
         armature = bpy.data.armatures.new(self.name)
@@ -163,13 +152,10 @@ class CapturedEntity(AnimationProvider):
         bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
         
         self.armature = obj
-        # if (self.mesh):
-        #         self.mesh.parent = obj
         
     
     def load(self, entity_folder: str, context: ReplayImportContext):
         self.load_anim_file(entity_folder, context)
-        # self.load_relations_file(entity_folder, context)
         self.gen_armature(context)
         self.load_mesh(entity_folder, context)
 

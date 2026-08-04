@@ -140,10 +140,8 @@ public class ReplayCapture {
                     SectionPos.blockToSectionCoord(pos.getZ()));
         };
 
-//        worldCapture = new WorldCaptureOld(settings.getBounds());
         worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
                 bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY());
-//        worldCapture.
 
         // WorldMesher owns its own worker threads, so it takes no executor.
         var worldMesher = worldCapture.getMesher();
@@ -178,7 +176,7 @@ public class ReplayCapture {
         }
 
         long captureStart = Util.getMillis();
-//        worldCapture.captureBaseWorld(world);
+
         worldCapture.captureBaseWorld();
         LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
 

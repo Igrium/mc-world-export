@@ -25,26 +25,6 @@ public class TextureExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TextureExtractor.class);
 
-    /**
-     * Pull a texture from the GPU. <b>Must be called on the render thread!</b>
-     *
-     * @param texture Texture to get.
-     * @return A NativeImage containing the contents of the texture.
-     * @implNote If the texture is a <code>DynamicTexture</code>, copies the native image directly.
-     * Otherwise, the texture's underlying {@link GpuTexture} must have been created with
-     * <code>GpuTexture.USAGE_COPY_SRC</code>, or the readback will fail.
-     */
-    @Deprecated
-    public static NativeImage pullTexture(AbstractTexture texture) {
-        var future = pullTextureAsync(texture);
-        // The GPU copy resolves via a fence rather than synchronously; pump RenderSystem's pending
-        // task queue (the same queue GlCommandEncoder#copyTextureToBuffer enqueues into) until it's done.
-        while (!future.isDone()) {
-            RenderSystem.executePendingTasks();
-        }
-        return future.join();
-    }
-
     public static CompletableFuture<NativeImage> pullTextureAsync(AbstractTexture texture) {
         if (texture instanceof DynamicTexture dynamicTexture) {
             return CompletableFuture.completedFuture(copyNativeImage(dynamicTexture.getPixels()));
@@ -102,11 +82,6 @@ public class TextureExtractor {
         return Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(atlasID);
     }
 
-    @Deprecated
-    public static NativeImage pullAtlasTexture(Identifier atlasID) {
-        AbstractTexture atlas = getAtlasTexture(atlasID);
-        return pullTexture(atlas);
-    }
 
     public static CompletableFuture<NativeImage> pullAtlasTextureAsync(Identifier atlasID) {
         AbstractTexture atlas = getAtlasTexture(atlasID);
@@ -146,26 +121,6 @@ public class TextureExtractor {
         }, 0);
 
         return future;
-    }
-
-    private static <T> CompletableFuture<T> supplyOnRenderThread(Supplier<T> supplier) {
-        if (RenderSystem.isOnRenderThread()) {
-            try {
-                return CompletableFuture.completedFuture(supplier.get());
-            } catch (Exception e) {
-                return CompletableFuture.failedFuture(e);
-            }
-        } else {
-            CompletableFuture<T> future = new CompletableFuture<>();
-            Minecraft.getInstance().execute(() -> {
-                try {
-                    future.complete(supplier.get());
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            });
-            return future;
-        }
     }
 
     private static void onRenderThread(Runnable r) {

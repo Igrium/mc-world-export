@@ -40,8 +40,6 @@ public class IgriumsReplayExporter implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
-        ClientCommandRegistrationCallback.EVENT.register(WorldCaptureCommand::register);
-        ClientCommandRegistrationCallback.EVENT.register(ProfileDiffsCommand::register);
 
         ClientTickEvents.END_CLIENT_TICK.register(ReplayCapture::globalEndClientTick);
         ClientBlockUpdatedEvent.EVENT.register(ReplayCapture::globalClientBlockUpdated);

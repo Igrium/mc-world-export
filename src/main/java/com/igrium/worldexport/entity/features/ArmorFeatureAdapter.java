@@ -90,8 +90,6 @@ public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends Humano
                 return mtl;
             });
 
-//            renderAccessor().invokeSetPartVisibility(armorModel, slot);
-
             // Create part meshes
             ModelParts.forEachPart(armorModel.root(), "root", (path, part) -> {
                 String armorPath = BuiltInRegistries.ITEM.getKey(stack.getItem()) + "." + path;

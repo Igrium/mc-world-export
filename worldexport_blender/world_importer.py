@@ -33,7 +33,7 @@ def import_world(context: ReplayImportContext):
     
 def _import_world_mesh(mesh: WorldMesh, context: ReplayImportContext) -> Object | None:
     obj_path = os.path.join(context.replay_root, mesh.name + '.obj')
-    # obj = common.import_obj(obj_path, mtl_name_collision_mode='REFERENCE_EXISTING')
+
     imported = common.load_obj(obj_path)
     if not imported:
         return None
