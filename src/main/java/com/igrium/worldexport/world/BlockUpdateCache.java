@@ -32,22 +32,16 @@ public class BlockUpdateCache {
     private void generateInternal(WorldCapture capture) {
         // For each block
         for (var entry : capture.getBlockUpdates().entrySet()) {
-            SectionPos sPos = SectionPos.of(entry.getKey());
-
-            // The keyframe set for this section.
-            var blockKeyframes = sortedKeyframes.computeIfAbsent(sPos, cPos -> new Int2ObjectAVLTreeMap<>());
-
             // For each update
             for (int frame : entry.getValue().keySet()) {
-
-                // Get or create keyframe for this tick.
-                Set<BlockPos> keyframe = blockKeyframes.computeIfAbsent(frame, i -> new HashSet<>());
-
-                // For each adjacent block
+                // For each adjacent block (updates culling)
                 for (BlockPos pos : AdjacentDirectionIterator.getIterable(entry.getKey())) {
-                    IntSortedSet blockUpdateSet = blockUpdates.computeIfAbsent(pos, p -> new IntAVLTreeSet());
-                    blockUpdateSet.add(frame);
-                    keyframe.add(pos);
+                    blockUpdates.computeIfAbsent(pos, p -> new IntAVLTreeSet()).add(frame);
+
+                    sortedKeyframes
+                            .computeIfAbsent(SectionPos.of(pos), s -> new Int2ObjectAVLTreeMap<>())
+                            .computeIfAbsent(frame, i -> new HashSet<>())
+                            .add(pos);
                 }
             }
         }

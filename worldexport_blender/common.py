@@ -50,6 +50,19 @@ def add_vis_keyframe(obj: Object, visible: bool, frame: float):
     obj.keyframe_insert('hide_viewport', frame=frame)
     obj.keyframe_insert('hide_render', frame=frame)
 
+    anim_data = obj.animation_data
+    if anim_data and anim_data.action and anim_data.action_slot:
+        for layer in anim_data.action.layers:
+            for strip in layer.strips:
+                channelbag = strip.channelbag(anim_data.action_slot)
+                if not channelbag:
+                    continue
+                for fcurve in channelbag.fcurves:
+                    if fcurve.data_path in ('hide_viewport', 'hide_render'):
+                        for kp in fcurve.keyframe_points:
+                            if kp.co.x == frame:
+                                kp.interpolation = 'CONSTANT'
+
 def read_int(f: BinaryIO) -> int:
     data: bytes = f.read(4)
     if len(data) != 4:

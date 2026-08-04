@@ -55,6 +55,6 @@ def _import_world_mesh(mesh: WorldMesh, context: ReplayImportContext) -> Object 
         common.add_vis_keyframe(obj, True, 0)
     
     if mesh.end_tick != None:
-        common.add_vis_keyframe(obj, False, context.tick_to_frame(mesh.end_tick) + 1)
+        common.add_vis_keyframe(obj, False, context.tick_to_frame(mesh.end_tick + 1))
     
     return obj
