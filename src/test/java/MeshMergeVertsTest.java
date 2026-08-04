@@ -143,7 +143,7 @@ public class MeshMergeVertsTest {
         addColoredQuad(obj, new Vector3f(1, 0, 0), v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
         addColoredQuad(obj, new Vector3f(0, 1, 0), v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
 
-        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, false);
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, -1f);
 
         assertEquals(6, merged.getNumVertices());
         assertEquals(2, merged.getNumFaces());
@@ -155,7 +155,7 @@ public class MeshMergeVertsTest {
         addColoredQuad(obj, new Vector3f(1, 0, 0), v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
         addColoredQuad(obj, new Vector3f(0, 1, 0), v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
 
-        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, true);
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, 0.001f);
 
         // Nothing merges, and every color survives unmixed.
         assertEquals(8, merged.getNumVertices());
@@ -174,7 +174,7 @@ public class MeshMergeVertsTest {
         addColoredQuad(obj, color, v(0, 0, 0), v(1, 0, 0), v(1, 1, 0), v(0, 1, 0));
         addColoredQuad(obj, color, v(1, 0, 0), v(2, 0, 0), v(2, 1, 0), v(1, 1, 0));
 
-        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, true);
+        Obj merged = MeshMergeVerts.mergeByDistance(obj, 0.001f, true, 0.001f);
 
         assertEquals(6, merged.getNumVertices());
         assertEquals(2, merged.getNumFaces());

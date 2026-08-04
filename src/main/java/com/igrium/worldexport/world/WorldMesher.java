@@ -279,7 +279,8 @@ public class WorldMesher {
         }
 
         if (mergeDoubleVertices) {
-            meshes.replaceAll(m -> new WorldMesh(MeshMergeVerts.mergeByDistance(m.obj(), .001f), m.meta()));
+            meshes.replaceAll(m -> new WorldMesh(MeshMergeVerts.mergeByDistance(
+                    m.obj(), .001f, true, .001f), m.meta()));
         }
         return meshes;
     }

@@ -47,6 +47,8 @@ public final class MeshMergeVerts {
     private static final int OUT_OF_CONTEXT = -1;
     /** Indicates if the edge or face will be collapsed. */
     private static final int ELEM_COLLAPSED = -2;
+    /** The largest possible squared distance between two colors whose channels are each in <code>[0, 1]</code>. */
+    private static final float MAX_COLOR_DISTANCE_SQ = 3f;
 
     /* -------------------------------------------------------------------- */
     /* Public API                                                           */
@@ -88,7 +90,7 @@ public final class MeshMergeVerts {
      *         this is a copy of the source.
      */
     public static Obj mergeByDistance(ReadableObj source, float mergeDistance, boolean doMixData) {
-        return mergeByDistance(source, mergeDistance, doMixData, false);
+        return mergeByDistance(source, mergeDistance, doMixData, -1f);
     }
 
     /**
@@ -101,17 +103,21 @@ public final class MeshMergeVerts {
      *                          attributes averaged from all the elements that went
      *                          into it. If false, it keeps those of the element it
      *                          merged into.
-     * @param keepVertexColors  If true, two vertices only merge when their vertex
-     *                          colors match, keeping color discontinuities sharp.
-     *                          See {@link ColoredVertex}.
+     * @param colorThreshold    How different two vertex colors are allowed to be
+     *                          for them to still be considered equal for merging
+     *                          purposes, keeping color discontinuities sharp.
+     *                          Normalized: <code>0</code> requires colors to match
+     *                          exactly, <code>1</code> allows any two colors to
+     *                          merge. Pass a negative value to ignore vertex colors
+     *                          entirely. See {@link ColoredVertex}.
      * @return A new OBJ with the merged mesh. If nothing was close enough to merge,
      *         this is a copy of the source.
      */
     public static Obj mergeByDistance(ReadableObj source, float mergeDistance, boolean doMixData,
-                                      boolean keepVertexColors) {
+                                      float colorThreshold) {
         SourceMesh mesh = SourceMesh.fromObj(source);
-        MergeMap map = buildDistanceMergeMap(mesh.vertPositions, keepVertexColors ? mesh.vertColors : null,
-                mergeDistance);
+        MergeMap map = buildDistanceMergeMap(mesh.vertPositions, colorThreshold >= 0 ? mesh.vertColors : null,
+                mergeDistance, colorThreshold);
         return createMergedMesh(mesh, map.vertDestMap(), map.vertKillLen(), doMixData);
     }
 
@@ -141,7 +147,7 @@ public final class MeshMergeVerts {
      * @return The merge map.
      */
     public static MergeMap buildDistanceMergeMap(ReadableObj source, float mergeDistance) {
-        return buildDistanceMergeMap(source, mergeDistance, false);
+        return buildDistanceMergeMap(source, mergeDistance, -1f);
     }
 
     /**
@@ -149,16 +155,20 @@ public final class MeshMergeVerts {
      * within <code>mergeDistance</code> of it, without performing the merge. Pass
      * the result to {@link #mergeVerts}, optionally after adjusting it.
      *
-     * @param source           OBJ to search.
-     * @param mergeDistance    Maximum distance between two vertices for them to
-     *                         merge.
-     * @param keepVertexColors If true, two vertices only merge when their vertex
-     *                         colors match. See {@link ColoredVertex}.
+     * @param source          OBJ to search.
+     * @param mergeDistance   Maximum distance between two vertices for them to
+     *                        merge.
+     * @param colorThreshold  How different two vertex colors are allowed to be for
+     *                        them to still be considered equal for merging
+     *                        purposes. Normalized: <code>0</code> requires colors
+     *                        to match exactly, <code>1</code> allows any two colors
+     *                        to merge. Pass a negative value to ignore vertex
+     *                        colors entirely. See {@link ColoredVertex}.
      * @return The merge map.
      */
-    public static MergeMap buildDistanceMergeMap(ReadableObj source, float mergeDistance, boolean keepVertexColors) {
-        return buildDistanceMergeMap(readPositions(source), keepVertexColors ? readColors(source) : null,
-                mergeDistance);
+    public static MergeMap buildDistanceMergeMap(ReadableObj source, float mergeDistance, float colorThreshold) {
+        return buildDistanceMergeMap(readPositions(source), colorThreshold >= 0 ? readColors(source) : null,
+                mergeDistance, colorThreshold);
     }
 
     /* -------------------------------------------------------------------- */
@@ -496,11 +506,20 @@ public final class MeshMergeVerts {
      * duplicate search with a uniform grid, which behaves the same for the small,
      * evenly distributed distances this is used with.
      *
-     * @param colors When non-null, two vertices only merge if their entries here are
-     *               equal, so color discontinuities stay sharp. Entries may
-     *               themselves be null for vertices without a color.
+     * @param colors         When non-null, two vertices only merge if their
+     *                       entries here are within <code>colorThreshold</code> of
+     *                       each other, so color discontinuities stay sharp.
+     *                       Entries may themselves be null for vertices without a
+     *                       color.
+     * @param colorThreshold How different two vertex colors are allowed to be for
+     *                       them to still be considered equal for merging
+     *                       purposes. Normalized: <code>0</code> requires colors
+     *                       to match exactly, <code>1</code> allows any two colors
+     *                       (assumed to be in <code>[0, 1]</code> per channel) to
+     *                       merge. Ignored when <code>colors</code> is null.
      */
-    private static MergeMap buildDistanceMergeMap(Vector3f[] positions, Vector3f[] colors, float mergeDistance) {
+    private static MergeMap buildDistanceMergeMap(Vector3f[] positions, Vector3f[] colors, float mergeDistance,
+                                                   float colorThreshold) {
         final int numVerts = positions.length;
         int[] vertDestMap = new int[numVerts];
         Arrays.fill(vertDestMap, OUT_OF_CONTEXT);
@@ -515,6 +534,8 @@ public final class MeshMergeVerts {
         }
 
         final float mergeDistSq = mergeDistance * mergeDistance;
+        /* The squared distance between two normalized colors ranges from 0 to MAX_COLOR_DISTANCE_SQ. */
+        final float colorThresholdSq = colorThreshold * colorThreshold * MAX_COLOR_DISTANCE_SQ;
         int vertKillLen = 0;
 
         for (int i = 0; i < numVerts; i++) {
@@ -537,7 +558,7 @@ public final class MeshMergeVerts {
                             if (j <= i || vertDestMap[j] != OUT_OF_CONTEXT) {
                                 continue;
                             }
-                            if (colors != null && !Objects.equals(colors[i], colors[j])) {
+                            if (colors != null && !colorsWithinThreshold(colors[i], colors[j], colorThresholdSq)) {
                                 /* Merging these would smear one vertex color into the other. */
                                 continue;
                             }
@@ -553,6 +574,18 @@ public final class MeshMergeVerts {
         }
 
         return new MergeMap(vertDestMap, vertKillLen);
+    }
+
+    /**
+     * @return True if two (possibly null) vertex colors have a squared distance no
+     *         greater than {@code thresholdSq}. Two null colors are considered
+     *         equal; a null and a non-null color are not.
+     */
+    private static boolean colorsWithinThreshold(Vector3f a, Vector3f b, float thresholdSq) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        return a.distanceSquared(b) <= thresholdSq;
     }
 
     private record Cell(int x, int y, int z) {
