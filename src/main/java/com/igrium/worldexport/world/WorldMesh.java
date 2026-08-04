@@ -38,6 +38,10 @@ public record WorldMesh(Obj obj, Meta meta) {
                     && offset.equals(Vec3.ZERO);
         }
 
+        public boolean isTickBounded() {
+            return startTick != null || endTick != null;
+        }
+
     }
 
     public WorldMesh(Obj obj) {

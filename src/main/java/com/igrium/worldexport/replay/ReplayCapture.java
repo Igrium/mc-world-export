@@ -9,17 +9,16 @@ import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.world.WorldMesh;
 import com.igrium.worldexport.world.WorldMesher;
 import de.javagl.obj.Obj;
-import de.javagl.obj.ObjUtils;
 import de.javagl.obj.Objs;
 import lombok.Getter;
-import net.minecraft.core.Vec3i;
-import net.minecraft.util.Util;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.util.Util;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -27,7 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
  * Responsible for capturing a replay.
@@ -218,16 +219,19 @@ public class ReplayCapture {
             Map<String, WorldMesh> meshes = new HashMap<>();
             List<String> mtlLibs = ImmutableList.of("world.mtl");
 
+            // Base meshes
+            WorldMesh base;
             if (getSettings().isMergeBaseMeshes()) {
                 LOGGER.info("Merging base meshes...");
-                WorldMesh base = new WorldMesh(Objs.create(), Vec3.atLowerCornerOf(settings.getOffset()));
+                base = new WorldMesh(Objs.create(), Vec3.atLowerCornerOf(settings.getOffset()));
                 base.obj().setMtlFileNames(mtlLibs);
-                for (var meshEntry : sections.entrySet()) {
-                    MeshUtils.merge(meshEntry.getValue(), base.obj(), toVec3f(meshEntry.getKey().origin()));
+                for (var entry : sections.entrySet()) {
+                    if (entry.getValue().getNumFaces() == 0) continue;
+                    MeshUtils.merge(entry.getValue(), base.obj(), toVec3f(entry.getKey().origin()));
                 }
                 meshes.put("world", base);
-
             } else {
+                base = null;
                 for (var entry : sections.entrySet()) {
                     Obj obj = entry.getValue();
                     if (obj.getNumFaces() == 0) continue;
@@ -240,7 +244,7 @@ public class ReplayCapture {
                 }
             }
 
-
+            // Deltas
             for (var entry : deltas.entrySet()) {
                 SectionPos sPos = entry.getKey();
                 BlockPos origin = sPos.origin().offset(settings.getOffset());
@@ -250,10 +254,15 @@ public class ReplayCapture {
                 for (WorldMesh mesh : entry.getValue()) {
                     if (mesh.obj().getNumFaces() == 0) continue;
 
-                    mesh.obj().setMtlFileNames(mtlLibs);
-                    mesh.meta().setOffset(offset);
-                    meshes.put(sectionName(sPos) + "_" + i, mesh);
-                    i++;
+                    // Blocks that aren't touched in chunks with deltas still get applied to base
+                    // base != null when mergeBaseMeshes == true
+                    if (base != null && !mesh.meta().isTickBounded()) {
+                        MeshUtils.merge(mesh.obj(), base.obj(), toVec3f(entry.getKey().origin()));
+                    } else {
+                        mesh.obj().setMtlFileNames(mtlLibs);
+                        mesh.meta().setOffset(offset);
+                        meshes.put(sectionName(sPos) + "_" + i++, mesh);
+                    }
                 }
             }
 
