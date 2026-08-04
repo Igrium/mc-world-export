@@ -16,12 +16,12 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.PalettedContainerFactory;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * Responsible for capturing and meshing updates to the block world
@@ -38,6 +38,11 @@ public class WorldCapture {
 
     @Getter
     private final Set<ChunkPos> chunks;
+
+    /**
+     * A callback for whether deltas should be processed for a given block
+     */
+    private final Predicate<BlockPos> processDeltas;
 
     @Getter
     private final Map<ChunkPos, SimpleSectionColumn> copiedBaseWorld = new ConcurrentHashMap<>();
@@ -62,9 +67,10 @@ public class WorldCapture {
     @Getter
     private final int height;
 
-    public WorldCapture(ClientLevel world, Set<ChunkPos> chunks, int minY, int height) {
+    public WorldCapture(ClientLevel world, Set<ChunkPos> chunks, Predicate<BlockPos> processDeltas, int minY, int height) {
         this.world = world;
         this.chunks = Set.copyOf(chunks);
+        this.processDeltas = processDeltas;
         this.minY = minY;
         this.height = height;
 
@@ -134,7 +140,7 @@ public class WorldCapture {
      * @param update The update data.
      */
     public void addBlockUpdate(BlockPos pos, BlockUpdate update) {
-        if (!chunks.contains(ChunkPos.containing(pos))) return;
+        if (!processDeltas.test(pos) || !chunks.contains(ChunkPos.containing(pos))) return;
         Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(new BlockPos(pos),
                 p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
         map.put(update.tick(), update);

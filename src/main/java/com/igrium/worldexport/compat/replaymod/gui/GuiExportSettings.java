@@ -51,6 +51,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private final int minViewDistance = 1;
     private final int minEntityDistance = 0;
+    private final int minUpdateDistance = 0;
 
     @Getter
     private File outputFile;
@@ -104,6 +105,24 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         return entityDistanceSlider.getValue() + minEntityDistance;
     }
 
+    public final GuiSlider updateDistanceSlider = new GuiSlider()
+            .onValueChanged(this::setUpdateSliderDistanceText).setSize(122, 20).setSteps(32 - minUpdateDistance);
+
+    private void setUpdateSliderDistanceText() {
+        String prefix = "Update Radius: ";
+        int distance = getUpdateDistance();
+        String suffix = distance > 0 ? String.valueOf(distance) : "[use export radius]";
+        updateDistanceSlider.setText(prefix + suffix);
+    }
+
+    public void setUpdateDistance(int updateDistance) {
+        updateDistanceSlider.setValue(updateDistance - minUpdateDistance);
+    }
+
+    public int getUpdateDistance() {
+        return updateDistanceSlider.getValue() + minUpdateDistance;
+    }
+
     public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(new Runnable() {
         public void run() {
             lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
@@ -132,7 +151,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    viewDistanceSlider, entityDistanceSlider, lowerDepthSlider)
+                    viewDistanceSlider, entityDistanceSlider, updateDistanceSlider, lowerDepthSlider)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
 
     {
@@ -178,6 +197,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         setOutputFile(generateOutputFile());
         setViewDistance(client.options.getEffectiveRenderDistance());
         setEntityDistance(0);
+        setUpdateDistance(0);
         setLowerDepth(minLowerDepth);
     }
 
@@ -201,6 +221,10 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         if (getEntityDistance() > 0) {
             builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance(), minSectionY, height).toBox());
+        }
+
+        if (getUpdateDistance() > 0) {
+            builder.updateBounds(ChunkSectionBox.fromRadius(center, getUpdateDistance(), minSectionY, height));
         }
 
         CustomPipelines.replayExportSettings = builder.build();

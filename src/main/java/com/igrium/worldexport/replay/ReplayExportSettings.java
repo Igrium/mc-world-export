@@ -35,6 +35,20 @@ public class ReplayExportSettings {
     private ChunkSectionBox bounds = ChunkSectionBox.ZERO;
 
     /**
+     * The bounding box in which block updates are processed.
+     */
+    @Nullable @Getter
+    private ChunkSectionBox updateBounds;
+
+    /**
+     * Get the bounding box that block updates should be culled to.
+     * @return <code>updateBounds</code> if not null, otherwise <code>bounds</code>
+     */
+    public @NonNull ChunkSectionBox updateBounds() {
+        return updateBounds != null ? updateBounds : bounds;
+    }
+
+    /**
      * An optional, additional bounding box to use to cull entity exports.
      */
     @Nullable @Getter
@@ -44,7 +58,7 @@ public class ReplayExportSettings {
      * Get the bounding box that entities should be culled to.
      * @return <code>entityBounds</code> if not null, otherwise <code>bounds.toBox()</code>
      */
-    public AABB entityBounds() {
+    public @NonNull AABB entityBounds() {
         return entityBounds != null ? entityBounds : bounds.toBox();
     }
 

@@ -29,6 +29,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 
 /**
  * Responsible for capturing a replay.
@@ -131,9 +132,17 @@ public class ReplayCapture {
 
         var bounds = settings.getBounds();
 
+        Predicate<BlockPos> updatePredicate = pos -> {
+            var uBounds = this.settings.updateBounds();
+            return uBounds.isInBounds(
+                    SectionPos.blockToSectionCoord(pos.getX()),
+                    SectionPos.blockToSectionCoord(pos.getY()),
+                    SectionPos.blockToSectionCoord(pos.getZ()));
+        };
+
 //        worldCapture = new WorldCaptureOld(settings.getBounds());
         worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
-                bounds.maxXInclusive(), bounds.maxZInclusive()), bounds.minY(), bounds.sizeY());
+                bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY());
 //        worldCapture.
 
         // WorldMesher owns its own worker threads, so it takes no executor.
