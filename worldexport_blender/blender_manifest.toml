@@ -13,7 +13,8 @@ website = "https://github.com/Igrium/mc-world-export"
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
 tags = ["Animation", "Import-Export"]
 
-blender_version_min = "4.2.0"
+# 4.4 is the first version with slotted actions (`Action.slots` / channelbags)
+blender_version_min = "4.4.0"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 license = [

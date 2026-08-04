@@ -24,6 +24,23 @@ def load_obj_python(context: Context, filepath: str, use_split_objects=False, us
 
 
 
+def create_action(id_data, name: str, id_type: str = 'OBJECT'):
+    """Create an action, assign it (and a slot) to the given ID, and return its fcurve collection.
+
+    Blender 4.4+ actions are "slotted": fcurves live in a channelbag belonging to a slot inside a
+    strip, and the legacy `Action.fcurves` shortcut was removed in 5.0.
+    """
+    anim_data = id_data.animation_data or id_data.animation_data_create()
+    action = bpy.data.actions.new(name=name)
+    anim_data.action = action
+
+    slot = action.slots.new(id_type=id_type, name=id_data.name)
+    anim_data.action_slot = slot
+
+    strip = action.layers.new("Layer").strips.new(type='KEYFRAME')
+    return action, strip.channelbag(slot, ensure=True).fcurves
+
+
 def convert_coords(x: float, y: float, z: float):
     return (x, -z, y)
 

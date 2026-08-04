@@ -15,7 +15,6 @@ http://wiki.blender.org/index.php/Scripts/Manual/Import/wavefront_obj
 Modified for Igrium's Replay Exporter
 """
 
-import array
 import os
 import time
 import bpy
@@ -225,7 +224,8 @@ def create_materials(filepath, relpath,
                 # ~ diff_var = math.sqrt(sum((c - diff) ** 2 for c in context_mat_wrap.base_color) / 3.0)
                 # ~ tint = min(1.0, spec_var / diff_var)
                 context_mat_wrap.specular = spec
-                context_mat_wrap.specular_tint = 0.0
+                # Since Blender 4.0 "Specular Tint" is a color socket; white means "no tint".
+                context_mat_wrap.specular_tint = (1.0, 1.0, 1.0)
                 if "roughness" not in context_material_vars:
                     context_mat_wrap.roughness = 0.0
 
@@ -254,7 +254,7 @@ def create_materials(filepath, relpath,
                 if "alpha" not in context_material_vars:
                     context_mat_wrap.alpha = 1.0
                 # EEVEE only
-                context_material.blend_method = 'BLEND'
+                context_material.surface_render_method = 'BLENDED'
 
             if do_glass:
                 if "ior" not in context_material_vars:
@@ -270,9 +270,9 @@ def create_materials(filepath, relpath,
     for name in unique_materials:  # .keys()
         ma_name = "Default OBJ" if name is None else name.decode('utf-8', "replace")
         ma = unique_materials[name] = bpy.data.materials.new(ma_name)
+        ma.use_nodes = True
         ma_wrap = node_shader_utils.PrincipledBSDFWrapper(ma, is_readonly=False)
         nodal_material_wrap_map[ma] = ma_wrap
-        ma_wrap.use_nodes = True
 
     for libname in sorted(material_libs):
         # print(libname)
@@ -703,14 +703,13 @@ def create_mesh(new_objects,
     faces_use_smooth = tuple(bool(context_smooth_group) for (_, _, _, _, context_smooth_group, _, _) in faces)
     me.polygons.foreach_set("use_smooth", faces_use_smooth)
 
+    loops_nor = None
     if verts_nor and me.loops:
-        # Note: we store 'temp' normals in loops, since validate() may alter final mesh,
-        #       we can only set custom lnors *after* calling it.
-        me.create_normals_split()
-        loops_nor = tuple(no for (_, face_vert_nor_indices, _, _, _, _, _) in faces
-                             for face_noidx in face_vert_nor_indices
-                             for no in verts_nor[face_noidx])
-        me.loops.foreach_set("normal", loops_nor)
+        # Since Blender 4.1 loop normals are read-only, so we keep them on the Python side and
+        # only apply them *after* validate() (which may alter the final mesh).
+        loops_nor = tuple(tuple(verts_nor[face_noidx])
+                          for (_, face_vert_nor_indices, _, _, _, _, _) in faces
+                          for face_noidx in face_vert_nor_indices)
 
     if verts_tex and me.polygons:
         # Some files Do not explicitly write the 'v' value when it's 0.0, see T68249...
@@ -754,15 +753,16 @@ def create_mesh(new_objects,
             if e.key in sharp_edges:
                 e.use_edge_sharp = True
 
-    if verts_nor:
-        clnors = array.array('f', [0.0] * (len(me.loops) * 3))
-        me.loops.foreach_get("normal", clnors)
-
+    if loops_nor:
         if not unique_smooth_groups:
             me.polygons.foreach_set("use_smooth", [True] * len(me.polygons))
 
-        me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-        me.use_auto_smooth = True
+        # validate()/un-tessellation may have changed the loop count, in which case our normals
+        # no longer line up and are better dropped than applied to the wrong corners.
+        if len(loops_nor) == len(me.loops):
+            me.normals_split_custom_set(loops_nor)
+        else:
+            print("WARNING, mesh %r was altered during validation, custom normals skipped." % me.name)
 
     ob = bpy.data.objects.new(me.name, me)
     new_objects.append(ob)

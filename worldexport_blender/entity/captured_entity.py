@@ -178,10 +178,8 @@ class CapturedEntity(AnimationProvider):
         if (self.armature == None):
             raise Exception("Armature has not been generated yet!")
         
-        anim_data = self.armature.animation_data_create()
-        action = bpy.data.actions.new(name=f'{self.name}_action')
-        anim_data.action = action
-        
+        action, fcurves = common.create_action(self.armature, f'{self.name}_action')
+
         flattened_curves: dict[tuple[str, int], list[float]] = {}
         
         # Assemble keyframes from all replay curves into one array.
@@ -221,14 +219,13 @@ class CapturedEntity(AnimationProvider):
                     
         # Apply anim curves
         for (data_path, index), keys in flattened_curves.items():
-            # curve = action.fcurves.find(data_path, index=index)
-            # if not curve:
-            curve = action.fcurves.new(data_path, index=index)
-            
+            curve = fcurves.new(data_path, index=index)
+
             keyframe_points = curve.keyframe_points
             keyframe_points.add(len(keys) // 2)
             keyframe_points.foreach_set('co', keys)
             keyframe_points.foreach_set('interpolation', [1] * (len(keys) // 2))
+            curve.update()
         
         # Entity visibility keyframes
         
