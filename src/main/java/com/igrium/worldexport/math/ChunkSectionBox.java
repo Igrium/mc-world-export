@@ -230,12 +230,51 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
         return from(pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX(), pos2.getY(), pos2.getZ());
     }
 
+    /**
+     * Creates a cubic {@code ChunkSectionBox} centered on the given section.
+     *
+     * @param centerX The X coordinate of the center section.
+     * @param centerY The Y coordinate of the center section.
+     * @param centerZ The Z coordinate of the center section.
+     * @param radius  The number of sections to include on each side of the center.
+     * @return A box measuring <code>radius * 2 + 1</code> sections on each axis.
+     */
     public static ChunkSectionBox fromRadius(int centerX, int centerY, int centerZ, int radius) {
-        return new ChunkSectionBox(centerX - radius, centerY - radius, centerZ - radius, radius * 2, radius * 2, radius * 2);
+        int size = radius * 2 + 1;
+        return new ChunkSectionBox(centerX - radius, centerY - radius, centerZ - radius, size, size, size);
     }
 
     public static ChunkSectionBox fromRadius(SectionPos center, int radius) {
         return fromRadius(center.getX(), center.getY(), center.getZ(), radius);
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} with a horizontal radius around a center column and an explicit vertical range.
+     *
+     * @param centerX The X coordinate of the center section.
+     * @param centerZ The Z coordinate of the center section.
+     * @param radius  The number of sections to include on each side of the center, horizontally.
+     * @param minY    The section coordinate of the bottom of the box.
+     * @param height  The number of sections in the box vertically.
+     * @return A box measuring <code>radius * 2 + 1</code> sections horizontally and <code>height</code> vertically.
+     */
+    public static ChunkSectionBox fromRadius(int centerX, int centerZ, int radius, int minY, int height) {
+        int size = radius * 2 + 1;
+        return new ChunkSectionBox(centerX - radius, minY, centerZ - radius, size, height, size);
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} with a horizontal radius around a center column and an explicit vertical range.
+     * The center's Y coordinate is ignored.
+     *
+     * @param center The center section. Only its horizontal coordinates are used.
+     * @param radius The number of sections to include on each side of the center, horizontally.
+     * @param minY   The section coordinate of the bottom of the box.
+     * @param height The number of sections in the box vertically.
+     * @return A box measuring <code>radius * 2 + 1</code> sections horizontally and <code>height</code> vertically.
+     */
+    public static ChunkSectionBox fromRadius(SectionPos center, int radius, int minY, int height) {
+        return fromRadius(center.getX(), center.getZ(), radius, minY, height);
     }
 
 }

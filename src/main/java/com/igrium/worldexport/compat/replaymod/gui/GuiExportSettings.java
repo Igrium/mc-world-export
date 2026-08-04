@@ -190,13 +190,17 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         LocalPlayer player = client.player;
         SectionPos center = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0,0,0);
 
+        // maxLowerDepth is the top section coordinate, inclusive.
+        int minSectionY = getLowerDepth();
+        int height = maxLowerDepth + 1 - minSectionY;
+
         var builder = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
-                .bounds(ChunkSectionBox.fromRadius(center, getViewDistance()))
+                .bounds(ChunkSectionBox.fromRadius(center, getViewDistance(), minSectionY, height))
                 .offset(center.origin().multiply(-1));
 
         if (getEntityDistance() > 0) {
-            builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance()).toBox());
+            builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance(), minSectionY, height).toBox());
         }
 
         CustomPipelines.replayExportSettings = builder.build();

@@ -53,8 +53,6 @@ public class WorldMesher {
 
     private final ClientLevel baseWorld;
 
-    private final Iterable<? extends SectionPos> sections;
-
     @Getter
     @Setter
     private @Nullable BlockPos offset;
@@ -90,9 +88,8 @@ public class WorldMesher {
     @Getter
     private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
 
-    public WorldMesher(ClientLevel baseWorld, Iterable<? extends SectionPos> sections) {
+    public WorldMesher(ClientLevel baseWorld) {
         this.baseWorld = baseWorld;
-        this.sections = sections;
 
         var modelManager = Minecraft.getInstance().getModelManager();
         tessellator = BlockTessellator.builder()

@@ -68,7 +68,7 @@ public class WorldCapture {
         this.minY = minY;
         this.height = height;
 
-        mesher = new WorldMesher(world, () -> new SectionIterator(this.chunks.iterator(), this.minY, this.height));
+        mesher = new WorldMesher(world);
         factory = PalettedContainerFactory.create(world.registryAccess());
     }
 
@@ -84,6 +84,10 @@ public class WorldCapture {
 
         for (var chunkPos : this.chunks) {
             captureBaseChunk(chunkPos);
+        }
+
+        for (var chunkPos : copiedBaseWorld.keySet()) {
+            mesher.queueChunk(chunkPos, copiedBaseWorld, minY, height);
         }
     }
 
@@ -215,38 +219,5 @@ public class WorldCapture {
                     SectionPos.sectionRelative(pos.getX()), pos.getY(), SectionPos.sectionRelative(pos.getZ()));
         }
         return Blocks.AIR.defaultBlockState();
-    }
-
-    /// === SECTION ITERATION HELPER ===
-
-    private static class SectionIterator extends AbstractIterator<SectionPos> {
-
-        final Iterator<ChunkPos> chunkIterator;
-        final int minY;
-        final int height;
-
-        int curY;
-        @Nullable ChunkPos curChunk;
-
-        private SectionIterator(Iterator<ChunkPos> chunkIterator, int minY, int height) {
-            if (height <= 0) throw new IllegalArgumentException("height <= 0");
-            this.chunkIterator = chunkIterator;
-            this.minY = minY;
-            this.height = height;
-            curY = minY;
-        }
-
-        @Override
-        protected @Nullable SectionPos computeNext() {
-            if (curChunk == null || curY >= minY + height) {
-                if (chunkIterator.hasNext()) {
-                    curChunk = chunkIterator.next();
-                    curY = minY;
-                } else {
-                    return endOfData();
-                }
-            }
-            return SectionPos.of(curChunk, curY++);
-        }
     }
 }
