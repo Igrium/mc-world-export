@@ -20,6 +20,9 @@ import java.util.Map;
  * A re-implementation of {@link RenderSectionRegion} for section columns.
  */
 public class SectionColumnRenderRegion implements BlockAndTintGetter {
+
+    public static final CardinalLighting NO_SHADE = new CardinalLighting(1, 1, 1, 1, 1, 1);
+
     private final int chunkXOffset;
     private final int chunkZOffset;
 
@@ -46,7 +49,7 @@ public class SectionColumnRenderRegion implements BlockAndTintGetter {
 
     @Override
     public CardinalLighting cardinalLighting() {
-        return world.cardinalLighting();
+        return NO_SHADE;
     }
 
     @Override

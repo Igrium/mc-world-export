@@ -30,7 +30,7 @@ public class SnapshotRenderView implements BlockAndTintGetter {
 
     @Override
     public @NonNull CardinalLighting cardinalLighting() {
-        return world.cardinalLighting();
+        return SectionColumnRenderRegion.NO_SHADE;
     }
 
     @Override

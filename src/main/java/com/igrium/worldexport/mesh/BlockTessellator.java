@@ -31,9 +31,6 @@ import java.util.Collections;
 @Builder
 public class BlockTessellator {
 
-    @Builder.Default
-    private final boolean ambientOcclusion = true;
-
     private final @NonNull BlockStateModelSet blockModelSet;
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
@@ -76,7 +73,7 @@ public class BlockTessellator {
         VisGraph visGraph = new VisGraph();
         BlockModelLighter.enableCaching();
 
-        ModelBlockRenderer blockRenderer = new ModelBlockRenderer(ambientOcclusion, true, blockColors);
+        ModelBlockRenderer blockRenderer = new ModelBlockRenderer(false, true, blockColors);
         FluidRenderer fluidRenderer = new FluidRenderer(fluidModelSet);
 
         Obj obj = Objs.create();

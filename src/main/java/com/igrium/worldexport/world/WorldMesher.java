@@ -94,7 +94,6 @@ public class WorldMesher {
                 .blockMatFactory(this::getDefaultMaterialName)
                 .fluidMatFactory(this::getDefaultMaterialName)
                 .splitBlocks(this.splitBlocks)
-                .ambientOcclusion(false)
                 .build();
 
         taskManager = new TaskManager<>(Runtime.getRuntime().availableProcessors() - 1, this::tessellateSection);
