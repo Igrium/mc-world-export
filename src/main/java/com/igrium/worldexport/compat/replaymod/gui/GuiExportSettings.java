@@ -18,16 +18,18 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.popup.GuiFileChooserPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Color;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
-import com.replaymod.render.RenderSettings;
-import com.replaymod.render.rendering.VideoRenderer;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import lombok.Getter;
+import lombok.Setter;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.CrashReport;
+import net.minecraft.core.BlockBox;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
 import org.slf4j.LoggerFactory;
 
@@ -47,15 +49,14 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private final Minecraft client = Minecraft.getInstance();
 
-    private int minLowerDepth = 0;
-    private int maxLowerDepth = 16;
-
-    private final int minViewDistance = 1;
     private final int minEntityDistance = 0;
     private final int minUpdateDistance = 0;
 
     @Getter
     private File outputFile;
+
+    @Setter @Getter
+    private BlockBox bounds;
 
     public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(new Runnable() {
         public void run() {
@@ -74,18 +75,17 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         }
     });
 
-    public final GuiSlider viewDistanceSlider = new GuiSlider().onValueChanged(new Runnable() {
-        public void run() {
-            viewDistanceSlider.setText("Radius (Chunks): " + getViewDistance());
-        };
-    }).setSize(122, 20).setSteps(32 - minViewDistance);
+    public final GuiButton boundsEditorButton = new GuiButton().setI18nLabel("worldexport.gui.export.edit_bounds")
+            .setMinSize(new Dimension(122, 20)).onClick(this::openBoundsEditor);
 
-    public void setViewDistance(int viewDistance) {
-        viewDistanceSlider.setValue(viewDistance - minViewDistance);
-    }
+    public void openBoundsEditor() {
+        int radius = Math.max(client.options.getEffectiveRenderDistance(), 1) * 2;
 
-    public int getViewDistance() {
-        return viewDistanceSlider.getValue() + minViewDistance;
+        LocalPlayer player = client.player;
+        SectionPos centerSection = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+
+        GuiBoundsEditor.openEditor(bounds, this, client.level, radius * 2, radius * 2,
+                new ChunkPos(centerSection.x() - radius, centerSection.z() - radius)).thenAccept(this::setBounds);
     }
 
     public final GuiSlider entityDistanceSlider = new GuiSlider()
@@ -124,21 +124,6 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         return updateDistanceSlider.getValue() + minUpdateDistance;
     }
 
-    public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(new Runnable() {
-        public void run() {
-            lowerDepthSlider.setText("Lower Depth: " + getLowerDepth() * 16);
-        };
-    }).setSize(122, 20).setSteps(32);
-
-    public void setLowerDepth(int lowerSectionCoord) {
-        lowerDepthSlider.setSteps(maxLowerDepth - minLowerDepth);
-        lowerDepthSlider.setValue(lowerSectionCoord - minLowerDepth);
-    }
-
-    public int getLowerDepth() {
-        return lowerDepthSlider.getValue() + minLowerDepth;
-    }
-
     public final GuiButton exportButton = new GuiButton(buttonPanel)
             .setLabel("Export")
             .setSize(100, 20)
@@ -152,7 +137,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    viewDistanceSlider, entityDistanceSlider, updateDistanceSlider, lowerDepthSlider)
+                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
+                    entityDistanceSlider, updateDistanceSlider)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
 
     {
@@ -192,14 +178,18 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         });
 
-        minLowerDepth = client.level.getMinSectionY();
-        maxLowerDepth = client.level.getMaxSectionY();
+        int minLowerDepth = client.level.getMinSectionY();
+        int maxLowerDepth = client.level.getMaxSectionY();
+
+        LocalPlayer player = client.player;
+        SectionPos centerSection = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+
+        setBounds(BlockBox.of(new BlockPos(centerSection.x() - 4, minLowerDepth, centerSection.z() - 4),
+                new BlockPos(centerSection.x() + 4, maxLowerDepth, centerSection.z() + 4)));
 
         setOutputFile(generateOutputFile());
-        setViewDistance(client.options.getEffectiveRenderDistance());
         setEntityDistance(0);
         setUpdateDistance(0);
-        setLowerDepth(minLowerDepth);
     }
 
     public void export() {
@@ -208,21 +198,21 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         LocalPlayer player = client.player;
         SectionPos center = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0,0,0);
 
-        // maxLowerDepth is the top section coordinate, inclusive.
-        int minSectionY = getLowerDepth();
-        int height = maxLowerDepth + 1 - minSectionY;
+        ChunkSectionBox worldBounds = ChunkSectionBox.from(
+                SectionPos.of(bounds.min().getX(), bounds.min().getY(), bounds.min().getZ()),
+                SectionPos.of(bounds.max().getX(), bounds.max().getY(), bounds.max().getZ()));
 
         var builder = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
-                .bounds(ChunkSectionBox.fromRadius(center, getViewDistance(), minSectionY, height))
+                .bounds(worldBounds)
                 .offset(center.origin().multiply(-1));
 
         if (getEntityDistance() > 0) {
-            builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance(), minSectionY, height).toBox());
+            builder.entityBounds(ChunkSectionBox.fromRadius(center, getEntityDistance(), worldBounds.minY(), worldBounds.sizeY()).toBox());
         }
 
         if (getUpdateDistance() > 0) {
-            builder.updateBounds(ChunkSectionBox.fromRadius(center, getUpdateDistance(), minSectionY, height));
+            builder.updateBounds(ChunkSectionBox.fromRadius(center, getUpdateDistance(), worldBounds.minY(), worldBounds.sizeY()));
         }
 
         ReplayExportSettings exportSettings = builder.build();
