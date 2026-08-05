@@ -1,12 +1,16 @@
 package com.igrium.worldexport.replay;
 
+import com.igrium.worldexport.compat.replaymod.util.ExportPhase;
+import lombok.Setter;
 import net.minecraft.util.Util;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Compiles a replay into a "serialized" state that can be saved to disk.
@@ -18,6 +22,15 @@ public class ReplayCompiler {
 
     public ReplayCompiler(ReplayCapture replayCapture) {
         this.replayCapture = replayCapture;
+    }
+
+    @Setter
+    private @Nullable Consumer<String> phaseListener;
+
+    private void setPhase(String phase) {
+        if (phaseListener != null) {
+            phaseListener.accept(phase);
+        }
     }
 
     public CompletableFuture<CompiledReplay> compile() {
@@ -40,6 +53,7 @@ public class ReplayCompiler {
 
     private CompletableFuture<CompiledReplay> compileWorld(CompiledReplay replay) {
         LOGGER.info("Tessellating block world...");
+        setPhase(ExportPhase.WORLD);
         return replayCapture.compileWorldMeshes().thenApply(meshes -> {
             replay.getWorldMeshes().putAll(meshes);
             return replay;
@@ -47,6 +61,7 @@ public class ReplayCompiler {
     }
 
     private CompiledReplay compileEntities(CompiledReplay replay) {
+        setPhase(ExportPhase.ENTITIES);
         for (var entEntry : replayCapture.getEntityCapture().getEntities().entrySet()) {
             String name = getUniqueName(entEntry.getKey().getName().getString(), replay.getEntities().keySet());
             replay.getEntities().put(name, entEntry.getValue());
@@ -56,6 +71,7 @@ public class ReplayCompiler {
 
     private CompletableFuture<CompiledReplay> compileTextures(CompiledReplay replay) {
         LOGGER.info("Extracting textures...");
+        setPhase(ExportPhase.MATERIALS);
         return replayCapture.getAllTextures().thenApply(map -> {
             replay.getTextures().putAll(map);
             return replay;

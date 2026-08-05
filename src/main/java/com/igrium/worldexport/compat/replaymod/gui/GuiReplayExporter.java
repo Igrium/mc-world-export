@@ -8,7 +8,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.element.advanced.GuiProgress
 import com.replaymod.lib.de.johni0702.minecraft.gui.function.Tickable;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 
-// TODO: wire into new system
 public class GuiReplayExporter extends GuiScreen implements Tickable {
 
     public final GuiLabel title = new GuiLabel().setI18nText("worldexport.gui.exporting.title");

@@ -5,5 +5,17 @@
   "command.worldcapture.save.confirmed": "Saved to %s in %d ms.",
   "command.worldcapture.save.failed": "Failed to save replay. See console for details. (%s)",
 
-  "menu.worldexport.replaydebugger": "Open Replay Debugger"
+  "menu.worldexport.replaydebugger": "Open Replay Debugger",
+
+  "worldexport.gui.exporting.title": "Exporting Replay",
+  "worldexport.gui.exporting.frame_progress": "Frames captured: %d / %d",
+  "worldexport.gui.exporting.world_progress": "Chunks exported: %d / %d",
+
+  "worldexport.gui.status.init": "Initializing",
+  "worldexport.gui.status.capture": "Capturing game",
+  "worldexport.gui.status.serialization": "Writing replay file",
+  "worldexport.gui.status.world": "Tessellating world",
+  "worldexport.gui.status.entities": "Serializing entities",
+  "worldexport.gui.status.materials": "Extracting materials",
+  "worldexport.gui.status.finished": "Finished writing replay file!"
 }

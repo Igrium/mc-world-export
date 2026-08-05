@@ -1,6 +1,7 @@
 package com.igrium.worldexport.compat.replaymod.gui;
 
 import com.igrium.worldexport.compat.replaymod.CustomPipelines;
+import com.igrium.worldexport.compat.replaymod.export.ReplayExporter;
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.replaymod.core.utils.Utils;
@@ -203,9 +204,6 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     public void export() {
         close();
-        RenderSettings settings = new RenderSettings(RenderSettings.RenderMethod.BLEND, RenderSettings.EncodingPreset.BLEND, 1920, 1080, 20, 100,
-                outputFile, false, false, false, false, false, null, 360, 180, false, false, false, RenderSettings.AntiAliasing.NONE,
-                "", "", false);
 
         LocalPlayer player = client.player;
         SectionPos center = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0,0,0);
@@ -227,11 +225,11 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             builder.updateBounds(ChunkSectionBox.fromRadius(center, getUpdateDistance(), minSectionY, height));
         }
 
-        CustomPipelines.replayExportSettings = builder.build();
+        ReplayExportSettings exportSettings = builder.build();
 
         try {
-            VideoRenderer renderer = new VideoRenderer(settings, replayHandler, timeline);
-            renderer.renderVideo();
+            ReplayExporter exporter = new ReplayExporter(exportSettings, replayHandler, timeline);
+            exporter.exportReplay();
         } catch (Throwable e) {
             Utils.error(LogManager.getLogger("Replay Export"), this, CrashReport.forThrowable(e, "Exporting Replay"), () -> {});
             screen.display();
