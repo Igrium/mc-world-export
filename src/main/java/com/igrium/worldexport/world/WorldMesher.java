@@ -1,6 +1,5 @@
 package com.igrium.worldexport.world;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.igrium.worldexport.mesh.BlockTessellator;
 import com.igrium.worldexport.mesh.MeshMergeVerts;
@@ -11,7 +10,6 @@ import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
@@ -25,11 +23,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
@@ -40,7 +36,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class WorldMesher {
     public static final String WORLD = "world";
@@ -170,7 +165,7 @@ public class WorldMesher {
     private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
         LOGGER.info("Compiling section {}", pos);
         Obj obj = tessellator.compileSection(pos, region);
-        return mergeDoubleVertices ? MeshMergeVerts.mergeByDistance(obj, .001f) : obj;
+        return mergeDoubleVertices ? MeshMergeVerts.mergeByDistance(obj, .001f, true, .15f) : obj;
     }
 
     public CompletableFuture<Map<SectionPos, List<WorldMesh>>> tessellateDeltas(WorldCapture capture) {
@@ -280,7 +275,7 @@ public class WorldMesher {
 
         if (mergeDoubleVertices) {
             meshes.replaceAll(m -> new WorldMesh(MeshMergeVerts.mergeByDistance(
-                    m.obj(), .001f, true, .001f), m.meta()));
+                    m.obj(), .001f, true, 0f), m.meta()));
         }
         return meshes;
     }
