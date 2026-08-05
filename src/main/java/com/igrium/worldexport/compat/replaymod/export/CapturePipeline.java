@@ -106,9 +106,6 @@ public class CapturePipeline {
             CompletableFuture<?> result;
             if (getSettings().isExportZip()) {
                 Path exportPath = getSettings().getExportPath();
-                if (!exportPath.endsWith(".zip")) {
-                    exportPath = exportPath.resolveSibling(exportPath.getFileName() + ".zip");
-                }
                 result = ReplayIO.saveReplayZip(exportPath, replay, Util.backgroundExecutor());
             } else {
                 result = ReplayIO.saveReplayAsync(getSettings().getExportPath(), replay, Util.backgroundExecutor());

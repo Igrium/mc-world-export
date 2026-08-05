@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -40,7 +41,7 @@ public class ReplayIO {
         if (create) {
             env.put("create", "true");
         }
-        FileSystem fs = FileSystems.newFileSystem(zipFile, env);
+        FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zipFile.toUri()), env);
 
         Iterator<Path> roots = fs.getRootDirectories().iterator();
         if (!roots.hasNext()) {
