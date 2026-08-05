@@ -6,9 +6,9 @@ import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
-import com.igrium.worldexport.util.ExceptionUtils;
 import com.igrium.worldexport.world.WorldMesh;
 import de.javagl.obj.*;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +66,7 @@ public class ReplayIO {
     public static CompletableFuture<?> saveReplayZip(Path zipFile, CompiledReplay replay, Executor executor) {
         ZipFileRoot zip;
         try {
+            //noinspection resource (handled in future)
             zip = openZipFile(zipFile, true);
         } catch (IOException e) {
             return CompletableFuture.failedFuture(e);
@@ -75,7 +76,7 @@ public class ReplayIO {
             try {
                 zip.close();
             } catch (IOException e) {
-                throw ExceptionUtils.sneakyThrow(e); // Will get handled by the completablefuture.
+                throw ExceptionUtils.asRuntimeException(e); // Will get handled by the completablefuture.
             }
         });
     }
@@ -101,7 +102,7 @@ public class ReplayIO {
             try {
                 zip.close();
             } catch (IOException e) {
-                throw ExceptionUtils.sneakyThrow(e); // Will get handled by the completablefuture.
+                throw ExceptionUtils.asRuntimeException(e); // Will get handled by the completablefuture.
             }
         });
     }
@@ -136,7 +137,7 @@ public class ReplayIO {
             try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("entities.json"))) {
                 GSON.toJson(entityJson, writer);
             } catch (IOException e) {
-                throw ExceptionUtils.sneakyThrow(e);
+                throw ExceptionUtils.asRuntimeException(e);
             }
         }, executor);
     }
@@ -222,7 +223,7 @@ public class ReplayIO {
             try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("world.json"))) {
                 GSON.toJson(worldJson, writer);
             } catch (IOException e) {
-                throw ExceptionUtils.sneakyThrow(e);
+                throw ExceptionUtils.asRuntimeException(e);
             }
         }, executor);
     }
@@ -376,7 +377,7 @@ public class ReplayIO {
         } catch (IOException e) {
             // Will get caught by the completable future this is a part of, so no need to handle.
             // Also this code shouldn't even get called if the folder doesn't exist.
-            throw ExceptionUtils.sneakyThrow(e);
+            throw ExceptionUtils.asRuntimeException(e);
         }
 
         for (Path mtlFile : mtlFiles) {

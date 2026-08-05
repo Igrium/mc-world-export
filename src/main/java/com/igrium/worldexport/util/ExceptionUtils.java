@@ -2,6 +2,7 @@ package com.igrium.worldexport.util;
 
 import lombok.Lombok;
 
+@Deprecated
 public class ExceptionUtils {
 
     /**

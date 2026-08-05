@@ -286,21 +286,14 @@ public class ReplayExporter implements RenderInfo {
         if (!GLFW.glfwWindowShouldClose(window.handle()) && ((BlockableEventLoopAccessor) this.mc).getDelayedCrash() == null) {
             RenderSystem.pollEvents();
             com.replaymod.core.versions.MCVer.pushMatrix();
-            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                    this.mc.gameRenderer.mainRenderTarget().getColorTexture(),
-                    new Vector4f(), this.mc.gameRenderer.mainRenderTarget().getDepthTexture(),
-                    (double) 0.0F);
+            clearRenderTarget();
             this.guiWindow.beginWrite();
-            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                    this.mc.gameRenderer.mainRenderTarget().getColorTexture(),
-                    new Vector4f(), this.mc.gameRenderer.mainRenderTarget().getDepthTexture(),
-                    (double) 0.0F);
+            clearRenderTarget();
             this.gui.toMinecraft().init(window.getGuiScaledWidth(), window.getGuiScaledHeight());
-            int mouseX =
-                    (int) this.mc.mouseHandler.xpos() * window.getGuiScaledWidth() / Math.max(window.getScreenWidth()
-                            , 1);
-            int mouseY =
-                    (int) this.mc.mouseHandler.ypos() * window.getGuiScaledHeight() / Math.max(window.getScreenHeight(), 1);
+            int mouseX = (int) this.mc.mouseHandler.xpos() * window.getGuiScaledWidth()
+                    / Math.max(window.getScreenWidth(), 1);
+            int mouseY = (int) this.mc.mouseHandler.ypos() * window.getGuiScaledHeight()
+                    / Math.max(window.getScreenHeight(), 1);
             GameRendererAccessor gameRenderer = (GameRendererAccessor) this.mc.gameRenderer;
             GuiRenderState guiRenderState = gameRenderer.getGameRenderState().guiRenderState;
             guiRenderState.reset();
@@ -344,6 +337,13 @@ public class ReplayExporter implements RenderInfo {
         } else {
             return false;
         }
+    }
+
+    private void clearRenderTarget() {
+        var renderTarget = this.mc.gameRenderer.mainRenderTarget();
+        if (renderTarget.getColorTexture() == null || renderTarget.getDepthTexture() == null) return;
+        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(renderTarget.getColorTexture(),
+                new Vector4f(), renderTarget.getDepthTexture(), 0.0F);
     }
 
     @Override

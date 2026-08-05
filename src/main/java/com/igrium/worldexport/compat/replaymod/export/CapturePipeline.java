@@ -109,9 +109,9 @@ public class CapturePipeline {
                 if (!exportPath.endsWith(".zip")) {
                     exportPath = exportPath.resolveSibling(exportPath.getFileName() + ".zip");
                 }
-                result = ReplayIO.saveReplayZip(exportPath, replay, Util.ioPool());
+                result = ReplayIO.saveReplayZip(exportPath, replay, Util.backgroundExecutor());
             } else {
-                result = ReplayIO.saveReplayAsync(getSettings().getExportPath(), replay, Util.ioPool());
+                result = ReplayIO.saveReplayAsync(getSettings().getExportPath(), replay, Util.backgroundExecutor());
             }
             return result;
         });
