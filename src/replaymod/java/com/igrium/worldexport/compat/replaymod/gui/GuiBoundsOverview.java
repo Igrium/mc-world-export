@@ -12,6 +12,8 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimensio
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadablePoint;
 import com.igrium.worldexport.math.Box2i;
 import com.mojang.blaze3d.platform.NativeImage;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -19,10 +21,13 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 import org.joml.*;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.lang.Math;
 
@@ -30,6 +35,7 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     private static final int FILL_COLOR = ARGB.color(64, 255, 0, 255);
     private static final int BORDER_COLOR = ARGB.color(128, 255, 0, 255);
+    private static final int BLACK = 0xFF000000;
 
     private final OverviewData overviewData;
     private final Identifier texID;
@@ -44,13 +50,35 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     private ReadablePoint lastGlOffset = new Point();
     private final Matrix3x2f lastTransformMatrix = new Matrix3x2f();
 
-    @Getter
-    private final Box2i bounds;
 
     @Getter
     private int bottomY;
     @Getter
     private int topY;
+
+    @Getter
+    private final List<Box2i> boxes = new ArrayList<>();
+
+    @Getter
+    private final IntList colors = new IntArrayList();
+
+    /**
+     * Get the color of the box at a given index
+     * @param index Index to query
+     * @return ARGB color value; Black if the color was not set.
+     */
+    public int getColor(int index) {
+        return colors.size() > index ? colors.getInt(index) : BLACK;
+    }
+
+    /**
+     * Set the color of the box at a given index
+     * @param index Index to set
+     * @param color ARGB color to set
+     */
+    public void setColor(int index, int color) {
+        fillList(colors, index, color);
+    }
 
     public GuiBoundsOverview(Level world, OverviewData overviewData) {
         Objects.requireNonNull(world);
@@ -69,11 +97,26 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         int centerX = overviewData.getOrigin().x() + overviewData.getWidth() / 2;
         int centerZ = overviewData.getOrigin().z() + overviewData.getHeight() / 2;
 
-        bounds = new Box2i(centerX - 4, centerZ - 4, centerX + 4, centerZ + 4);
+        boxes.add(new Box2i(centerX - 4, centerZ - 4, centerX + 4, centerZ + 4));
+        colors.add(0xFF00FF);
     }
 
+    @Deprecated
     public void setBounds(Box2i bounds) {
-        this.bounds.set(bounds);
+        setBounds(0, bounds);
+    }
+
+    public void setBounds(int index, Box2i bounds) {
+        fillList(boxes, index, bounds, null);
+    }
+
+    @Deprecated
+    public @Nullable Box2i getBounds() {
+        return getBounds(0);
+    }
+
+    public @Nullable Box2i getBounds(int index) {
+        return boxes.size() > index ? boxes.get(index) : null;
     }
 
     public void setPanOffset(Vector2fc panOffset) {
@@ -136,17 +179,9 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
         context.blit(RenderPipelines.GUI_TEXTURED, texID, imageX, imageY, 0, 0, image.getWidth(), image.getHeight(), image.getWidth(), image.getHeight());
 
-        Vector2i bounds1 = worldToImage(bounds.point1(new Vector2i()).mul(16));
-        Vector2i bounds2 = worldToImage(bounds.point2(new Vector2i()).mul(16)).add(1, 1); // Inclusive
-
-        context.fill(bounds1.x, bounds1.y, bounds2.x, bounds2.y, FILL_COLOR);
-
-        // Selection border
-        context.fill(bounds1.x - 1, bounds1.y - 1, bounds2.x + 1, bounds1.y, BORDER_COLOR);
-        context.fill(bounds1.x - 1, bounds2.y, bounds2.x + 1, bounds2.y + 1, BORDER_COLOR);
-        context.fill(bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, BORDER_COLOR);
-        context.fill(bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, BORDER_COLOR);
-
+        for (int i = 0; i < boxes.size(); i++) {
+            drawBox(boxes.get(i), getOrDefault(colors, i), context);
+        }
 
         context.disableScissor();
 
@@ -158,7 +193,22 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     }
 
-    private Matrix3x2f calcTransformMatrix(Matrix3x2f dest) {
+    private void drawBox(Box2i box, int color, GuiGraphicsExtractor context) {
+        Vector2i bounds1 = worldToImage(box.point1(new Vector2i()).mul(16));
+        Vector2i bounds2 = worldToImage(box.point2(new Vector2i()).mul(16)).add(1, 1); // Inclusive
+
+        int fillColor = ARGB.multiplyAlpha(color, .5f);
+
+        context.fill(bounds1.x, bounds1.y, bounds2.x, bounds2.y, fillColor);
+
+        // Selection border
+        context.fill(bounds1.x - 1, bounds1.y - 1, bounds2.x + 1, bounds1.y, color);
+        context.fill(bounds1.x - 1, bounds2.y, bounds2.x + 1, bounds2.y + 1, color);
+        context.fill(bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, color);
+        context.fill(bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, color);
+    }
+
+    private void calcTransformMatrix(Matrix3x2f dest) {
         NativeImage image = overviewData.getTexture().getPixels();
 
         dest.translate(lastGlOffset.getX(), lastGlOffset.getY());
@@ -178,7 +228,6 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
         dest.translate(panOffset.x, panOffset.y);
 
-        return dest;
     }
 
     public Vector2f viewportToImage(Vector2ic viewport, Vector2f dest) {
@@ -293,6 +342,9 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     }
 
     private boolean mouseDragSecondary(ReadablePoint position) {
+        Box2i bounds = getBounds();
+        if (bounds == null) return false;
+
         Vector2i worldPos = viewportToWorld(new Vector2i(position.getX(), position.getY()));
 
         worldPos.x = Math.round(worldPos.x / 16f);
@@ -313,4 +365,44 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         }
     }
 
+    /**
+     * Set the value of a list at a given index, filling the items before it so it is big enough
+     *
+     * @param list  List to use
+     * @param index Index to set
+     * @param value Value to set
+     */
+    private static void fillList(IntList list, int index, int value) {
+        if (list.size() > index) {
+            list.set(index, value);
+        } else {
+            for (int i = list.size(); i < index; i++) {
+                list.add(BLACK);
+            }
+            list.add(value);
+        }
+    }
+
+    private static int getOrDefault(IntList list, int index) {
+        return list.size() > index ? list.getInt(index) : BLACK;
+    }
+
+    /**
+     * Set the value of a list at a given index, filling the items before it so it is big enough
+     *
+     * @param list       List to use
+     * @param index      Index to set
+     * @param value      Value to set
+     * @param defaultVal Value to fill the list with
+     */
+    private static <T> void fillList(List<T> list, int index, T value, T defaultVal) {
+        if (list.size() > index) {
+            list.set(index, value);
+        } else {
+            for (int i = list.size(); i < index; i++) {
+                list.add(defaultVal);
+            }
+            list.add(value);
+        }
+    }
 }
