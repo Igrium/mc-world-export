@@ -15,6 +15,7 @@ import com.replaymod.render.rendering.Pipeline;
 import java.io.IOException;
 import java.util.Map;
 
+@Deprecated
 public class CustomPipelines {
     private CustomPipelines() {
     }

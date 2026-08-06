@@ -33,8 +33,6 @@ import java.lang.Math;
 
 public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> implements Closeable, Draggable, Scrollable {
 
-    private static final int FILL_COLOR = ARGB.color(64, 255, 0, 255);
-    private static final int BORDER_COLOR = ARGB.color(128, 255, 0, 255);
     private static final int BLACK = 0xFF000000;
 
     private final OverviewData overviewData;
@@ -107,12 +105,7 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     }
 
     public void setBounds(int index, Box2i bounds) {
-        fillList(boxes, index, bounds, null);
-    }
-
-    @Deprecated
-    public @Nullable Box2i getBounds() {
-        return getBounds(0);
+        fillList(boxes, index, bounds);
     }
 
     public @Nullable Box2i getBounds(int index) {
@@ -342,7 +335,7 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     }
 
     private boolean mouseDragSecondary(ReadablePoint position) {
-        Box2i bounds = getBounds();
+        Box2i bounds = getBounds(0);
         if (bounds == null) return false;
 
         Vector2i worldPos = viewportToWorld(new Vector2i(position.getX(), position.getY()));
@@ -390,17 +383,16 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     /**
      * Set the value of a list at a given index, filling the items before it so it is big enough
      *
-     * @param list       List to use
-     * @param index      Index to set
-     * @param value      Value to set
-     * @param defaultVal Value to fill the list with
+     * @param list  List to use
+     * @param index Index to set
+     * @param value Value to set
      */
-    private static <T> void fillList(List<T> list, int index, T value, T defaultVal) {
+    private static <T> void fillList(List<T> list, int index, T value) {
         if (list.size() > index) {
             list.set(index, value);
         } else {
             for (int i = list.size(); i < index; i++) {
-                list.add(defaultVal);
+                list.add(null);
             }
             list.add(value);
         }

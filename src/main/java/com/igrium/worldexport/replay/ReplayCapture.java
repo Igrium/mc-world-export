@@ -130,7 +130,7 @@ public class ReplayCapture {
         executor = Util.backgroundExecutor(); // Make our own as to not starve this.
 
 
-        var bounds = settings.getBounds();
+        var bounds = settings.getWorldBounds();
 
         Predicate<BlockPos> updatePredicate = pos -> {
             var uBounds = this.settings.updateBounds();

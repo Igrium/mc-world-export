@@ -18,6 +18,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public enum EditMode {
-        WORLD, UPDATES, ENTITIES
+        WORLD, UPDATE, ENTITY
     }
 
     private static final int WORLD_COLOR = 0xDDFF00FF;
@@ -40,13 +41,13 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     private final Box2i updateBox = new Box2i();
     private final Box2i entityBox = new Box2i();
 
-    private int lowerDepthWorld;
-    private int lowerDepthUpdate;
-    private int lowerDepthEntity;
+    private int worldLowerDepth;
+    private int updateLowerDepth;
+    private int entityLowerDepth;
 
-    private int upperLimitWorld;
-    private int upperLimitUpdate;
-    private int upperLimitEntity;
+    private int worldUpperLimit;
+    private int updateUpperLimit;
+    private int entityUpperLimit;
 
     private final int minSection;
     private final int maxSection;
@@ -59,23 +60,23 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     // --- Mode buttons ---
 
     private final GuiSelectableButton worldButton = new GuiSelectableButton(() -> editMode == EditMode.WORLD);
-    private final GuiSelectableButton updateButton = new GuiSelectableButton(() -> editMode == EditMode.UPDATES);
-    private final GuiSelectableButton entitiesButton = new GuiSelectableButton(() -> editMode == EditMode.ENTITIES);
+    private final GuiSelectableButton updateButton = new GuiSelectableButton(() -> editMode == EditMode.UPDATE);
+    private final GuiSelectableButton entityButton = new GuiSelectableButton(() -> editMode == EditMode.ENTITY);
 
     {
         worldButton.setI18nLabel("worldexport.gui.export.world_bounds");
         updateButton.setI18nLabel("worldexport.gui.export.update_bounds");
-        entitiesButton.setI18nLabel("worldexport.gui.export.entity_bounds");
+        entityButton.setI18nLabel("worldexport.gui.export.entity_bounds");
 
         worldButton.onClick(() -> setEditMode(EditMode.WORLD));
-        updateButton.onClick(() -> setEditMode(EditMode.UPDATES));
-        entitiesButton.onClick(() -> setEditMode(EditMode.ENTITIES));
+        updateButton.onClick(() -> setEditMode(EditMode.UPDATE));
+        entityButton.onClick(() -> setEditMode(EditMode.ENTITY));
     }
 
     private final GuiPopupBackground background = new GuiPopupBackground();
 
     private final GuiPanel topPanel = new GuiPanel()
-            .addElements(null, worldButton, updateButton, entitiesButton)
+            .addElements(null, worldButton, updateButton, entityButton)
             .setLayout(new CustomLayout<GuiPanel>() {
                 @Override
                 protected void layout(GuiPanel guiPanel, int width, int height) {
@@ -88,8 +89,8 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
                     pos(updateButton, margin * 2 + btnWidth, 0);
                     width(updateButton, btnWidth);
 
-                    pos(entitiesButton, margin * 3 + btnWidth * 2, 0);
-                    width(entitiesButton, btnWidth);
+                    pos(entityButton, margin * 3 + btnWidth * 2, 0);
+                    width(entityButton, btnWidth);
                 }
 
                 @Override
@@ -154,9 +155,9 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public void setUpperLimit(EditMode mode, int upperLimit) {
         switch (mode) {
-            case WORLD -> upperLimitWorld = upperLimit;
-            case UPDATES -> upperLimitUpdate = upperLimit;
-            case ENTITIES -> upperLimitEntity = upperLimit;
+            case WORLD -> worldUpperLimit = upperLimit;
+            case UPDATE -> updateUpperLimit = upperLimit;
+            case ENTITY -> entityUpperLimit = upperLimit;
         }
         if (mode == editMode) {
             setUpperLimitSlider(upperLimit);
@@ -165,17 +166,17 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public int getUpperLimit(EditMode mode) {
         return switch (mode) {
-            case WORLD -> upperLimitWorld;
-            case UPDATES -> upperLimitUpdate;
-            case ENTITIES -> upperLimitEntity;
+            case WORLD -> worldUpperLimit;
+            case UPDATE -> updateUpperLimit;
+            case ENTITY -> entityUpperLimit;
         };
     }
 
     public void setLowerDepth(EditMode mode, int lowerDepth) {
         switch (mode) {
-            case WORLD -> lowerDepthWorld = lowerDepth;
-            case UPDATES -> lowerDepthUpdate = lowerDepth;
-            case ENTITIES -> lowerDepthEntity = lowerDepth;
+            case WORLD -> worldLowerDepth = lowerDepth;
+            case UPDATE -> updateLowerDepth = lowerDepth;
+            case ENTITY -> entityLowerDepth = lowerDepth;
         }
         if (mode == editMode) {
             setLowerDepthSlider(lowerDepth);
@@ -184,25 +185,25 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public int getLowerDepth(EditMode mode) {
         return switch (mode) {
-            case WORLD -> lowerDepthWorld;
-            case UPDATES -> lowerDepthUpdate;
-            case ENTITIES -> lowerDepthEntity;
+            case WORLD -> worldLowerDepth;
+            case UPDATE -> updateLowerDepth;
+            case ENTITY -> entityLowerDepth;
         };
     }
 
     public Box2i getBox(EditMode mode) {
         return switch (mode) {
             case WORLD -> worldBox;
-            case UPDATES -> updateBox;
-            case ENTITIES -> entityBox;
+            case UPDATE -> updateBox;
+            case ENTITY -> entityBox;
         };
     }
 
     private static int colorOf(EditMode mode) {
         return switch (mode) {
             case WORLD -> WORLD_COLOR;
-            case UPDATES -> UPDATE_COLOR;
-            case ENTITIES -> ENTITY_COLOR;
+            case UPDATE -> UPDATE_COLOR;
+            case ENTITY -> ENTITY_COLOR;
         };
     }
 
@@ -228,7 +229,7 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public GuiBoundsEditor(GuiContainer<?> container, Level world, int width, int height, ChunkPos rootPos) {
         super(container);
-        // jGui's own popup background is quadratic in its quad count; see GuiPopupBackground.
+        // jGui's own popup background is really inefficient; see GuiPopupBackground.
         disablePopupBackground();
         minSection = world.getMinSectionY();
         maxSection = world.getMaxSectionY();
@@ -244,13 +245,13 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         updateBox.set(worldBox);
         entityBox.set(worldBox);
 
-        lowerDepthWorld = minSection;
-        lowerDepthUpdate = minSection;
-        lowerDepthEntity = minSection;
+        worldLowerDepth = minSection;
+        updateLowerDepth = minSection;
+        entityLowerDepth = minSection;
 
-        upperLimitWorld = maxSection;
-        upperLimitUpdate = maxSection;
-        upperLimitEntity = maxSection;
+        worldUpperLimit = maxSection;
+        updateUpperLimit = maxSection;
+        entityUpperLimit = maxSection;
 
         overview.getColors().addElements(0, new int[]{WORLD_COLOR, UPDATE_COLOR, ENTITY_COLOR});
 
@@ -313,6 +314,12 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         setBounds(editMode, bounds);
     }
 
+    public void setBounds(EnumMap<EditMode, ? extends BlockBox> bounds) {
+        for (var entry : bounds.entrySet()) {
+            setBounds(entry.getKey(), entry.getValue());
+        }
+    }
+
     @Override
     protected void close() {
         super.close();
@@ -330,13 +337,19 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         closeListeners.add(r);
     }
 
-    public static CompletableFuture<BlockBox> openEditor(BlockBox defaultBounds, GuiContainer<?> container,
+    public static CompletableFuture<EnumMap<EditMode, BlockBox>> openEditor(EnumMap<EditMode, BlockBox> defaultBounds, GuiContainer<?> container,
                                                          Level world, int width, int height, ChunkPos rootPos) {
         GuiBoundsEditor editor = new GuiBoundsEditor(container, world, width, height, rootPos);
         editor.setBounds(defaultBounds);
 
-        CompletableFuture<BlockBox> future = new CompletableFuture<>();
-        editor.onClose(() -> future.complete(editor.getBounds(EditMode.WORLD)));
+        CompletableFuture<EnumMap<EditMode, BlockBox>> future = new CompletableFuture<>();
+        editor.onClose(() -> {
+            EnumMap<EditMode, BlockBox> map = new EnumMap<>(EditMode.class);
+            for (var mode : EditMode.values()) {
+                map.put(mode, editor.getBounds(mode));
+            }
+            future.complete(map);
+        });
 
         editor.open();
         return future;

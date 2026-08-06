@@ -37,7 +37,7 @@ public class WorldCaptureCommand
         SectionPos center = SectionPos.of(context.getSource().getPosition());
         ChunkSectionBox bounds = ChunkSectionBox.fromRadius(center, radius);
         ReplayExportSettings settings = ReplayExportSettings.builder()
-                .bounds(bounds)
+                .worldBounds(bounds)
                 .build();
 
         IgriumsReplayExporter.getInstance().startRecording(context.getSource().getLevel(), settings);

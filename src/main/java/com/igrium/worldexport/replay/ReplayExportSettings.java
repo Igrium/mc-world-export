@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +31,7 @@ public class ReplayExportSettings {
      * The world-space bounds of the exported area.
      */
     @Builder.Default @NonNull
-    private ChunkSectionBox bounds = ChunkSectionBox.ZERO;
+    private ChunkSectionBox worldBounds = ChunkSectionBox.ZERO;
 
     /**
      * The bounding box in which block updates are processed.
@@ -45,7 +44,7 @@ public class ReplayExportSettings {
      * @return <code>updateBounds</code> if not null, otherwise <code>bounds</code>
      */
     public @NonNull ChunkSectionBox updateBounds() {
-        return updateBounds != null ? updateBounds : bounds;
+        return updateBounds != null ? updateBounds : worldBounds;
     }
 
     /**
@@ -59,7 +58,7 @@ public class ReplayExportSettings {
      * @return <code>entityBounds</code> if not null, otherwise <code>bounds.toBox()</code>
      */
     public @NonNull AABB entityBounds() {
-        return entityBounds != null ? entityBounds : bounds.toBox();
+        return entityBounds != null ? entityBounds : worldBounds.toBox();
     }
 
     /**

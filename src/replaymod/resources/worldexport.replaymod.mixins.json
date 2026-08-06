@@ -6,8 +6,7 @@
   "mixins": [
     "MixinAbstractGuiButton",
     "MixinGuiExportSettings",
-    "MixinReplayMod",
-    "MixinVideoRenderer"
+    "MixinReplayMod"
   ],
   "injectors": {
     "defaultRequire": 1
