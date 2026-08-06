@@ -90,13 +90,6 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         this.texID = Identifier.fromNamespaceAndPath("worldexport", "overview_" + System.identityHashCode(overviewData));
         getMinecraft().getTextureManager().register(texID, overviewData.getTexture());
         updateTexture();
-
-        // Default bounds
-        int centerX = overviewData.getOrigin().x() + overviewData.getWidth() / 2;
-        int centerZ = overviewData.getOrigin().z() + overviewData.getHeight() / 2;
-
-        boxes.add(new Box2i(centerX - 4, centerZ - 4, centerX + 4, centerZ + 4));
-        colors.add(0xFF00FF);
     }
 
     @Deprecated
@@ -117,11 +110,13 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
     }
 
     public void setBottomY(int bottomY) {
+        if (this.bottomY == bottomY) return;
         this.bottomY = bottomY;
         getMinecraft().execute(this::updateTexture);
     }
 
     public void setTopY(int topY) {
+        if (this.topY == topY) return;
         this.topY = topY;
         getMinecraft().execute(this::updateTexture);
     }
@@ -188,7 +183,8 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
 
     private void drawBox(Box2i box, int color, GuiGraphicsExtractor context) {
         Vector2i bounds1 = worldToImage(box.point1(new Vector2i()).mul(16));
-        Vector2i bounds2 = worldToImage(box.point2(new Vector2i()).mul(16)).add(1, 1); // Inclusive
+        // Corners are inclusive chunk coords, so the max corner covers its whole chunk.
+        Vector2i bounds2 = worldToImage(box.point2(new Vector2i()).add(1, 1).mul(16));
 
         int fillColor = ARGB.multiplyAlpha(color, .5f);
 

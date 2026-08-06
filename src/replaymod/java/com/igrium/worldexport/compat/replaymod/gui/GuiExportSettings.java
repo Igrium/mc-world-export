@@ -26,20 +26,23 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.CrashReport;
-import net.minecraft.core.BlockBox;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import org.apache.logging.log4j.LogManager;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.Objects;
 
 public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
+
+    private static final Logger LOGGER = LogManager.getLogger("WorldExport/GuiExportSettings");
 
     public final GuiPanel contentPanel = new GuiPanel(popup).setBackgroundColor(new Color(0, 0, 0, 230));
     public final GuiVerticalList settingsList = new GuiVerticalList(contentPanel).setDrawSlider(true);
@@ -51,23 +54,30 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private final Minecraft client = Minecraft.getInstance();
 
+    /**
+     * Where the player was when this screen opened. The default bounds and the export offset are both
+     * derived from this, so that they stay consistent if the camera moves before exporting.
+     */
+    private final SectionPos exportCenter;
+
     @Getter
     private File outputFile;
 
     @Getter @Setter
-    private @NonNull BlockBox boundsWorld;
+    private @NonNull ChunkSectionBox boundsWorld;
 
     @Getter @Setter
-    private @NonNull BlockBox boundsUpdate;
+    private @NonNull ChunkSectionBox boundsUpdate;
 
     @Getter @Setter
-    private @NonNull BlockBox boundsEntity;
+    private @NonNull ChunkSectionBox boundsEntity;
 
     public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(new Runnable() {
         public void run() {
-            File parentFile = outputFile.getParentFile();
-            if (!parentFile.isDirectory() && !parentFile.mkdirs()) {
-                LoggerFactory.getLogger(GuiExportSettings.class).error("Error creating output directory.");
+            try {
+                createOutputDir();
+            } catch (IOException e) {
+                LOGGER.error("Error creating output directory.", e);
             }
 
             GuiFileChooserPopup popup = GuiFileChooserPopup.openSaveGui(GuiExportSettings.this, "replaymod.gui.save", "replay");
@@ -84,18 +94,19 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             .setMinSize(new Dimension(122, 20)).onClick(this::openBoundsEditor);
 
     public void openBoundsEditor() {
-        int radius = Math.max(client.options.getEffectiveRenderDistance(), 1) * 2;
+        var level = client.level;
+        if (level == null) return;
 
-        LocalPlayer player = client.player;
-        SectionPos centerSection = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+        // How far the editor's map extends from the center, in chunks.
+        int mapRadius = Math.max(client.options.getEffectiveRenderDistance(), 1) * 2;
 
-        EnumMap<EditMode, BlockBox> map = new EnumMap<>(EditMode.class);
+        EnumMap<EditMode, ChunkSectionBox> map = new EnumMap<>(EditMode.class);
         map.put(EditMode.WORLD, boundsWorld);
         map.put(EditMode.UPDATE, boundsUpdate);
         map.put(EditMode.ENTITY, boundsEntity);
 
-        GuiBoundsEditor.openEditor(map, this, client.level, radius * 2, radius * 2,
-                new ChunkPos(centerSection.x() - radius, centerSection.z() - radius)).thenAccept(eMap -> {
+        GuiBoundsEditor.openEditor(map, this, level, mapRadius * 2, mapRadius * 2,
+                new ChunkPos(exportCenter.x() - mapRadius, exportCenter.z() - mapRadius)).thenAccept(eMap -> {
             for (var entry : eMap.entrySet()) {
                 switch (entry.getKey()) {
                     case WORLD -> boundsWorld = entry.getValue();
@@ -160,14 +171,14 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         });
 
-        int minLowerDepth = Objects.requireNonNull(client.level).getMinSectionY();
-        int maxLowerDepth = client.level.getMaxSectionY();
+        int minSection = Objects.requireNonNull(client.level).getMinSectionY();
+        int maxSection = client.level.getMaxSectionY();
 
         LocalPlayer player = client.player;
-        SectionPos centerSection = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+        exportCenter = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
 
-        boundsWorld = (BlockBox.of(new BlockPos(centerSection.x() - 4, minLowerDepth, centerSection.z() - 4),
-                new BlockPos(centerSection.x() + 4, maxLowerDepth, centerSection.z() + 4)));
+        boundsWorld = ChunkSectionBox.from(exportCenter.x() - 4, minSection, exportCenter.z() - 4,
+                exportCenter.x() + 4, maxSection, exportCenter.z() + 4);
 
         boundsEntity = boundsWorld;
         boundsUpdate = boundsWorld;
@@ -178,26 +189,32 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public void export() {
         close();
 
-        LocalPlayer player = client.player;
-        SectionPos center = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0,0,0);
-
         var builder = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
-                .worldBounds(block2SectionBox(boundsWorld))
-                .entityBounds(block2SectionBox(boundsEntity).toBox())
-                .updateBounds(block2SectionBox(boundsUpdate))
-                .offset(center.origin().multiply(-1));
+                .worldBounds(boundsWorld)
+                .entityBounds(boundsEntity.toBox())
+                .updateBounds(boundsUpdate)
+                .offset(exportCenter.origin().multiply(-1));
 
         ReplayExportSettings exportSettings = builder.build();
 
         try {
+            createOutputDir();
             ReplayExporter exporter = new ReplayExporter(exportSettings, replayHandler, timeline);
             exporter.exportReplay();
         } catch (Throwable e) {
-            Utils.error(LogManager.getLogger("Replay Export"), this, CrashReport.forThrowable(e, "Exporting Replay"), () -> {});
+            // This popup is already closed, so the error has to attach to the screen behind it.
             screen.display();
+            Utils.error(LOGGER, screen, CrashReport.forThrowable(e, "Exporting Replay"), () -> {});
         }
 
+    }
+
+    private void createOutputDir() throws IOException {
+        Path parent = outputFile.toPath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
     }
 
     protected File generateOutputFile() {
@@ -221,11 +238,5 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     @Override
     public void open() {
         super.open();
-    }
-
-    private static ChunkSectionBox block2SectionBox(BlockBox box) {
-        return ChunkSectionBox.from(
-                SectionPos.of(box.min().getX(), box.min().getY(), box.min().getZ()),
-                SectionPos.of(box.max().getX(), box.max().getY(), box.max().getZ()));
     }
 }

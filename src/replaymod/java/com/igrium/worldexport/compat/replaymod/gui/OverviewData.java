@@ -99,7 +99,7 @@ public class OverviewData implements AutoCloseable {
 
                     // Get highest non-clear blockstate
                     while ((blockState = chunk.getBlockState(mutable)).getMapColor(world, mutable) == MapColor.NONE && height > lowerDepth) {
-                        mutable.setY(height--);
+                        mutable.setY(--height);
                     }
 
                     int deltaHeight = height - lastHeight;

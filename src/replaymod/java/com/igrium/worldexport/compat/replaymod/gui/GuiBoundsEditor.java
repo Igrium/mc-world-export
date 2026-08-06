@@ -1,6 +1,7 @@
 package com.igrium.worldexport.compat.replaymod.gui;
 
 import com.igrium.worldexport.math.Box2i;
+import com.igrium.worldexport.math.ChunkSectionBox;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiContainer;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
@@ -11,8 +12,6 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import lombok.Getter;
-import net.minecraft.core.BlockBox;
-import net.minecraft.core.BlockPos;
 import net.minecraft.util.ARGB;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -20,7 +19,6 @@ import net.minecraft.world.level.Level;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
@@ -105,13 +103,7 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
             .setHeight(20).setSteps(32);
 
     private void handleChangeUpperLimit() {
-        int val = getUpperLimitSlider();
-        upperLimitSlider.setI18nText("worldexport.gui.export.upper_limit", val * 16 + 15);
-        overview.setTopY(val * 16 + 15);
-
-        if (val < getLowerDepthSlider()) {
-            setLowerDepth(editMode, val);
-        }
+        setUpperLimit(editMode, getUpperLimitSlider());
     }
 
     private int getUpperLimitSlider() {
@@ -120,20 +112,20 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     private void setUpperLimitSlider(int upperLimit) {
         upperLimitSlider.setSteps(maxSection - minSection);
-        upperLimitSlider.setValue(upperLimit - minSection);
+        // setValue always fires onValueChanged, so only touch it when it's actually out of date.
+        if (getUpperLimitSlider() != upperLimit) {
+            upperLimitSlider.setValue(upperLimit - minSection);
+        }
+
+        upperLimitSlider.setI18nText("worldexport.gui.export.upper_limit", upperLimit * 16 + 15);
+        overview.setTopY(upperLimit * 16 + 15);
     }
 
     public final GuiSlider lowerDepthSlider = new GuiSlider().onValueChanged(this::handleChangeLowerDepth)
             .setHeight(20).setSteps(32);
 
     private void handleChangeLowerDepth() {
-        int val = getLowerDepthSlider();
-        lowerDepthSlider.setI18nText("worldexport.gui.export.lower_depth", val * 16);
-        overview.setBottomY(val * 16);
-
-        if (getUpperLimitSlider() < val) {
-            setUpperLimit(editMode, val);
-        }
+        setLowerDepth(editMode, getLowerDepthSlider());
     }
 
     private int getLowerDepthSlider() {
@@ -142,7 +134,13 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     private void setLowerDepthSlider(int lowerDepth) {
         lowerDepthSlider.setSteps(maxSection - minSection);
-        lowerDepthSlider.setValue(lowerDepth - minSection);
+        // setValue always fires onValueChanged, so only touch it when it's actually out of date.
+        if (getLowerDepthSlider() != lowerDepth) {
+            lowerDepthSlider.setValue(lowerDepth - minSection);
+        }
+
+        lowerDepthSlider.setI18nText("worldexport.gui.export.lower_depth", lowerDepth * 16);
+        overview.setBottomY(lowerDepth * 16);
     }
 
     private final GuiButton closeButton =
@@ -154,10 +152,15 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     // --- Per-mode bounds accessors ---
 
     public void setUpperLimit(EditMode mode, int upperLimit) {
+        upperLimit = Math.clamp(upperLimit, minSection, maxSection);
         switch (mode) {
             case WORLD -> worldUpperLimit = upperLimit;
             case UPDATE -> updateUpperLimit = upperLimit;
             case ENTITY -> entityUpperLimit = upperLimit;
+        }
+        // Stored above first, so this bounces back at most once.
+        if (getLowerDepth(mode) > upperLimit) {
+            setLowerDepth(mode, upperLimit);
         }
         if (mode == editMode) {
             setUpperLimitSlider(upperLimit);
@@ -173,10 +176,15 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     }
 
     public void setLowerDepth(EditMode mode, int lowerDepth) {
+        lowerDepth = Math.clamp(lowerDepth, minSection, maxSection);
         switch (mode) {
             case WORLD -> worldLowerDepth = lowerDepth;
             case UPDATE -> updateLowerDepth = lowerDepth;
             case ENTITY -> entityLowerDepth = lowerDepth;
+        }
+        // Stored above first, so this bounces back at most once.
+        if (getUpperLimit(mode) < lowerDepth) {
+            setUpperLimit(mode, lowerDepth);
         }
         if (mode == editMode) {
             setLowerDepthSlider(lowerDepth);
@@ -253,8 +261,6 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         updateUpperLimit = maxSection;
         entityUpperLimit = maxSection;
 
-        overview.getColors().addElements(0, new int[]{WORLD_COLOR, UPDATE_COLOR, ENTITY_COLOR});
-
         GuiPanel content = new GuiPanel().setLayout(new CustomLayout<GuiPanel>() {
 
             @Override
@@ -296,25 +302,23 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         setEditMode(editMode);
     }
 
-    public BlockBox getBounds(EditMode mode) {
-        int index = mode.ordinal();
-        Box2i bounds = overview.getBounds(index);
-        Objects.requireNonNull(bounds);
-        return BlockBox.of(new BlockPos(bounds.getX1(), getLowerDepth(mode), bounds.getY1()),
-                new BlockPos(bounds.getX2(), getUpperLimit(mode), bounds.getY2()));
+    public ChunkSectionBox getBounds(EditMode mode) {
+        Box2i bounds = getBox(mode);
+        return ChunkSectionBox.from(bounds.getX1(), getLowerDepth(mode), bounds.getY1(),
+                bounds.getX2(), getUpperLimit(mode), bounds.getY2());
     }
 
-    public void setBounds(EditMode mode, BlockBox bounds) {
-        getBox(mode).set(bounds.min().getX(), bounds.min().getZ(), bounds.max().getX(), bounds.max().getZ());
-        setLowerDepth(mode, bounds.min().getY());
-        setUpperLimit(mode, bounds.max().getY());
+    public void setBounds(EditMode mode, ChunkSectionBox bounds) {
+        getBox(mode).set(bounds.minX(), bounds.minZ(), bounds.maxXInclusive(), bounds.maxZInclusive());
+        setLowerDepth(mode, bounds.minY());
+        setUpperLimit(mode, bounds.maxYInclusive());
     }
 
-    public void setBounds(BlockBox bounds) {
+    public void setBounds(ChunkSectionBox bounds) {
         setBounds(editMode, bounds);
     }
 
-    public void setBounds(EnumMap<EditMode, ? extends BlockBox> bounds) {
+    public void setBounds(EnumMap<EditMode, ChunkSectionBox> bounds) {
         for (var entry : bounds.entrySet()) {
             setBounds(entry.getKey(), entry.getValue());
         }
@@ -337,14 +341,15 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
         closeListeners.add(r);
     }
 
-    public static CompletableFuture<EnumMap<EditMode, BlockBox>> openEditor(EnumMap<EditMode, BlockBox> defaultBounds, GuiContainer<?> container,
-                                                         Level world, int width, int height, ChunkPos rootPos) {
+    public static CompletableFuture<EnumMap<EditMode, ChunkSectionBox>> openEditor(
+            EnumMap<EditMode, ChunkSectionBox> defaultBounds, GuiContainer<?> container,
+            Level world, int width, int height, ChunkPos rootPos) {
         GuiBoundsEditor editor = new GuiBoundsEditor(container, world, width, height, rootPos);
         editor.setBounds(defaultBounds);
 
-        CompletableFuture<EnumMap<EditMode, BlockBox>> future = new CompletableFuture<>();
+        CompletableFuture<EnumMap<EditMode, ChunkSectionBox>> future = new CompletableFuture<>();
         editor.onClose(() -> {
-            EnumMap<EditMode, BlockBox> map = new EnumMap<>(EditMode.class);
+            EnumMap<EditMode, ChunkSectionBox> map = new EnumMap<>(EditMode.class);
             for (var mode : EditMode.values()) {
                 map.put(mode, editor.getBounds(mode));
             }
