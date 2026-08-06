@@ -113,6 +113,9 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         ReadablePoint glOffset = renderer.getOpenGlOffset();
         matrices.translate(glOffset.getX(), glOffset.getY());
 
+        // jGui's setDrawingArea uses raw glScissor, which the deferred GUI renderer ignores.
+        context.enableScissor(0, 0, size.getWidth(), size.getHeight());
+
         // Center image
         matrices.translate(size.getWidth() / 2f - image.getWidth() / 2f, size.getHeight() / 2f - image.getHeight() / 2f);
 
@@ -144,6 +147,8 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         context.fill(bounds1.x - 1, bounds1.y, bounds1.x, bounds2.y, BORDER_COLOR);
         context.fill(bounds2.x, bounds1.y, bounds2.x + 1, bounds2.y, BORDER_COLOR);
 
+
+        context.disableScissor();
 
         lastGlOffset = glOffset;
         lastTransformMatrix.identity();

@@ -6,6 +6,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiPanel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiSlider;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
+import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.VerticalLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
@@ -22,6 +23,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
+    public enum EditMode {
+        WORLD, UPDATES, ENTITIES
+    }
+
     @Getter
     private final GuiBoundsOverview overview;
 
@@ -29,6 +34,24 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     private int maxSection = 16;
 
     private final List<Runnable> closeListeners = new ArrayList<>();
+
+    @Getter
+    private EditMode editMode = EditMode.WORLD;
+
+    private final GuiToggleBoolButton worldButton = new GuiToggleBoolButton();
+    private final GuiToggleBoolButton updateButton = new GuiToggleBoolButton();
+    private final GuiToggleBoolButton entitiesButton = new GuiToggleBoolButton();
+
+    {
+        worldButton.setI18nLabel("worldexport.gui.export.world_bounds");
+        updateButton.setI18nLabel("worldexport.gui.export.update_bounds");
+        entitiesButton.setI18nLabel("worldexport.gui.export.entity_bounds");
+    }
+
+    private final GuiPopupBackground background = new GuiPopupBackground();
+
+    private final GuiPanel topPanel = new GuiPanel().setLayout(new HorizontalLayout().setSpacing(4))
+            .addElements(null, worldButton, updateButton, entitiesButton);
 
     public final GuiSlider upperLimitSlider = new GuiSlider().onValueChanged(this::handleChangeUpperLimit)
             .setHeight(20).setSteps(32);
@@ -78,25 +101,49 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
     private final GuiPanel bottomPanel = new GuiPanel().setLayout(new VerticalLayout().setSpacing(5))
             .addElements(new VerticalLayout.Data(0.5), upperLimitSlider, lowerDepthSlider, closeButton);
 
+    public void setEditMode(EditMode editMode) {
+        this.editMode = editMode;
+        worldButton.setChecked(editMode == EditMode.WORLD);
+        updateButton.setChecked(editMode == EditMode.UPDATES);
+        entitiesButton.setChecked(editMode == EditMode.ENTITIES);
+    }
+
     public GuiBoundsEditor(GuiContainer<?> container, Level world, int width, int height, ChunkPos rootPos) {
         super(container);
-
+        // jGui's own popup background is quadratic in its quad count; see GuiPopupBackground.
+        disablePopupBackground();
         minSection = world.getMinSectionY();
         maxSection = world.getMaxSectionY();
 
         overview = new GuiBoundsOverview(world, new OverviewData(width, height, rootPos));
 
+        GuiPanel content = new GuiPanel().setLayout(new CustomLayout<GuiPanel>() {
+
+            @Override
+            protected void layout(GuiPanel panel, int width, int height) {
+                pos(topPanel, 0, 0);
+                width(topPanel, width);
+
+                pos(bottomPanel, 0, height - height(bottomPanel));
+                width(bottomPanel, width);
+
+                pos(overview, 0, height(topPanel));
+                width(overview, width);
+                height(overview, height - height(bottomPanel) - height(topPanel) - 5);
+            }
+
+        }).addElements(null, topPanel, overview, bottomPanel);
+
+        // Same shape as jGui's own popup: the frame fills this panel and the content is inset from it.
         popup.setLayout(new CustomLayout<GuiPanel>() {
 
             @Override
             protected void layout(GuiPanel panel, int width, int height) {
-                pos(bottomPanel, 0, height - height(bottomPanel));
-                width(bottomPanel, width);
+                pos(background, 0, 0);
+                size(background, width, height);
 
-                pos(overview, 0, 0);
-                width(overview, width);
-                height(overview, height - height(bottomPanel) - 5);
-
+                pos(content, 10, 10);
+                size(content, width - 20, height - 20);
             }
 
             @Override
@@ -106,7 +153,7 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
                         Math.clamp(screenSize.getHeight() - 64, 128, 384));
             }
 
-        }).addElements(null, overview, bottomPanel);
+        }).addElements(null, background, content);
 
         setLowerDepth(minSection);
         setUpperLimit(maxSection);

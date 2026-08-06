@@ -9,8 +9,13 @@
 
   "worldexport.gui.export.bounds": "Export Bounds",
   "worldexport.gui.export.edit_bounds": "Edit Bounds",
+
+  "worldexport.gui.export.world_bounds": "World",
+  "worldexport.gui.export.update_bounds": "Block Updates",
+  "worldexport.gui.export.entity_bounds": "Entities",
   "worldexport.gui.export.upper_limit": "Upper Limit: %d",
   "worldexport.gui.export.lower_depth": "Lower Depth: %d",
+
   "worldexport.gui.export.apply": "Apply",
 
   "worldexport.gui.exporting.title": "Exporting Replay",
