@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_17",
   "plugin": "com.igrium.worldexport.mixin_helper.ReplayModsMixinPlugin",
   "mixins": [
+    "MixinAbstractGuiButton",
     "MixinGuiExportSettings",
     "MixinReplayMod",
     "MixinVideoRenderer"

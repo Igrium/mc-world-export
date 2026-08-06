@@ -12,6 +12,7 @@ import com.replaymod.lib.de.johni0702.minecraft.gui.popup.AbstractGuiPopup;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.Dimension;
 import com.replaymod.lib.de.johni0702.minecraft.gui.utils.lwjgl.ReadableDimension;
 import lombok.Getter;
+import lombok.Setter;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+// Jesus christ, jGui is a fucking mess
 public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     public enum EditMode {
@@ -35,23 +37,53 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     private final List<Runnable> closeListeners = new ArrayList<>();
 
+    @Setter
     @Getter
     private EditMode editMode = EditMode.WORLD;
 
-    private final GuiToggleBoolButton worldButton = new GuiToggleBoolButton();
-    private final GuiToggleBoolButton updateButton = new GuiToggleBoolButton();
-    private final GuiToggleBoolButton entitiesButton = new GuiToggleBoolButton();
+    private final GuiSelectableButton worldButton = new GuiSelectableButton(() -> editMode == EditMode.WORLD);
+    private final GuiSelectableButton updateButton = new GuiSelectableButton(() -> editMode == EditMode.UPDATES);
+    private final GuiSelectableButton entitiesButton = new GuiSelectableButton(() -> editMode == EditMode.ENTITIES);
 
     {
         worldButton.setI18nLabel("worldexport.gui.export.world_bounds");
         updateButton.setI18nLabel("worldexport.gui.export.update_bounds");
         entitiesButton.setI18nLabel("worldexport.gui.export.entity_bounds");
+
+        worldButton.onClick(() -> setEditMode(EditMode.WORLD));
+        updateButton.onClick(() -> setEditMode(EditMode.UPDATES));
+        entitiesButton.onClick(() -> setEditMode(EditMode.ENTITIES));
     }
 
     private final GuiPopupBackground background = new GuiPopupBackground();
 
     private final GuiPanel topPanel = new GuiPanel().setLayout(new HorizontalLayout().setSpacing(4))
             .addElements(null, worldButton, updateButton, entitiesButton);
+
+    {
+        topPanel.setLayout(new CustomLayout<GuiPanel>() {
+            @Override
+            protected void layout(GuiPanel guiPanel, int width, int height) {
+                int margin = 4;
+                int btnWidth = (width - margin * 4) / 3;
+
+                pos(worldButton, margin, 0);
+                width(worldButton, btnWidth);
+
+                pos(updateButton, margin * 2 + btnWidth, 0);
+                width(updateButton, btnWidth);
+
+                pos(entitiesButton, margin * 3 + btnWidth * 2, 0);
+                width(entitiesButton, btnWidth);
+            }
+
+            @Override
+            public ReadableDimension calcMinSize(GuiContainer<?> container) {
+                return new Dimension(0, worldButton.getMinSize().getHeight());
+            }
+        });
+
+    }
 
     public final GuiSlider upperLimitSlider = new GuiSlider().onValueChanged(this::handleChangeUpperLimit)
             .setHeight(20).setSteps(32);
@@ -100,13 +132,6 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
     private final GuiPanel bottomPanel = new GuiPanel().setLayout(new VerticalLayout().setSpacing(5))
             .addElements(new VerticalLayout.Data(0.5), upperLimitSlider, lowerDepthSlider, closeButton);
-
-    public void setEditMode(EditMode editMode) {
-        this.editMode = editMode;
-        worldButton.setChecked(editMode == EditMode.WORLD);
-        updateButton.setChecked(editMode == EditMode.UPDATES);
-        entitiesButton.setChecked(editMode == EditMode.ENTITIES);
-    }
 
     public GuiBoundsEditor(GuiContainer<?> container, Level world, int width, int height, ChunkPos rootPos) {
         super(container);
