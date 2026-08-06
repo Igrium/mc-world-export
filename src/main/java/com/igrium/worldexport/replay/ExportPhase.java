@@ -1,4 +1,4 @@
-package com.igrium.worldexport.compat.replaymod.util;
+package com.igrium.worldexport.replay;
 
 import lombok.experimental.UtilityClass;
 

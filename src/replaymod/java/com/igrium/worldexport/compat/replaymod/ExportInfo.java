@@ -1,6 +1,6 @@
 package com.igrium.worldexport.compat.replaymod;
 
-import com.igrium.worldexport.compat.replaymod.util.ExportPhase;
+import com.igrium.worldexport.replay.ExportPhase;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;

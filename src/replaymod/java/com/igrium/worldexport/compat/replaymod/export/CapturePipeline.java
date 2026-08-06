@@ -1,12 +1,11 @@
 package com.igrium.worldexport.compat.replaymod.export;
 
 import com.igrium.worldexport.compat.replaymod.ExportInfo;
-import com.igrium.worldexport.compat.replaymod.util.ExportPhase;
+import com.igrium.worldexport.replay.ExportPhase;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.igrium.worldexport.replay.ReplayIO;
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.NonNull;
 import net.minecraft.CrashReport;

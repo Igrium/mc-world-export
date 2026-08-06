@@ -1,33 +1,31 @@
 package com.igrium.worldexport;
 
-import com.igrium.worldexport.command.ProfileDiffsCommand;
-import com.igrium.worldexport.command.WorldCaptureCommand;
-import com.igrium.worldexport.compat.replaymod.ReplayModHooks;
-import com.igrium.worldexport.compat.replaymod.ReplayModInterop;
+import com.google.common.collect.ImmutableMap;
 import com.igrium.worldexport.debugger.ReplayDebugger;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
-import com.igrium.worldexport.replay.ReplayIO;
 import com.igrium.worldexport.replay.ReplayExportSettings;
-import com.replaymod.core.ReplayMod;
+import com.igrium.worldexport.replay.ReplayIO;
 import lombok.Getter;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Util;
-import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class IgriumsReplayExporter implements ClientModInitializer {
     public static final String MOD_ID = "worldexport";
+
+    private static final Map<String, String> COMPAT_ENTRYPOINTS = ImmutableMap.of(
+            "replaymod", "com.igrium.worldexport.compat.replaymod.RMEntrypoint");
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
@@ -36,6 +34,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
 
     @Getter
     private volatile ReplayCapture activeRecording;
+
 
     @Override
     public void onInitializeClient() {
@@ -51,8 +50,18 @@ public class IgriumsReplayExporter implements ClientModInitializer {
             ReplayDebugger.registerMenuButton();
         }
 
-        if (FabricLoader.getInstance().isModLoaded("replaymod")) {
-            ReplayModHooks.onInit(ReplayModInterop::onInitReplayMod);
+
+        FabricLoader fabric = FabricLoader.getInstance();
+        for (var entry : COMPAT_ENTRYPOINTS.entrySet()) {
+            if (fabric.isModLoaded(entry.getKey())) {
+                try {
+                    Class<?> clazz = Class.forName(entry.getValue());
+                    var entrypoint = (ClientModInitializer) clazz.getDeclaredConstructor().newInstance();
+                    entrypoint.onInitializeClient();
+                } catch (Exception e) {
+                    LOGGER.error("Unable to load compatibility entrypoint for '{}'", entry.getKey(), e);
+                }
+            }
         }
     }
 

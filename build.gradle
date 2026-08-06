@@ -19,6 +19,52 @@ repositories {
         url = "https://api.modrinth.com/maven"
     }
 }
+
+// Compat source sets. Each one can see main; main can see none of them, so it can never
+// compile against an optional dependency. They're siblings, so they can't see each other.
+sourceSets {
+    replaymod {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    // Empty for now: no sources, no dependency, no mixin config.
+    flashback {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+// Holds no sources. A Loom run's classpath is exactly one source set's, and the compat sets
+// above are siblings, so this unions them for the dev runs. Add every new compat set here.
+sourceSets {
+    devRuntime {
+        compileClasspath += sourceSets.replaymod.output + sourceSets.replaymod.compileClasspath
+        compileClasspath += sourceSets.flashback.output + sourceSets.flashback.compileClasspath
+        runtimeClasspath += sourceSets.replaymod.output + sourceSets.replaymod.runtimeClasspath
+        runtimeClasspath += sourceSets.flashback.output + sourceSets.flashback.runtimeClasspath
+    }
+}
+
+// The compat source sets are split for compile-time isolation only. At runtime they're all
+// one mod, so Loader has to be told to treat their output dirs as a single classpath group.
+loom {
+    mods {
+        "worldexport" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.replaymod
+            sourceSet sourceSets.flashback
+        }
+    }
+    runs {
+        // devRuntime transitively contains main and every compat source set.
+        client {
+            client();
+            displayName = "Dev Client"
+            sourceSet = sourceSets.devRuntime.name
+        }
+    }
+}
+
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft "net.minecraft:minecraft:${project.minecraft_version}"
@@ -29,7 +75,7 @@ dependencies {
     // For debugging exported replays
     implementation 'com.github.Igrium:CraftUI:26.2-SNAPSHOT'
 //    modCompileOnly "com.github.igrium:craftui:db770015ca"
-    implementation "maven.modrinth:replaymod:${replaymod_version}"
+    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
@@ -61,6 +107,8 @@ jar {
     from("LICENSE") {
         rename { "${it}_${inputs.properties.archivesName}"}
     }
+    from sourceSets.replaymod.output
+    from sourceSets.flashback.output
 }
 // configure the maven publication
 publishing {

@@ -4,7 +4,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.igrium.worldexport.compat.replaymod.ExportInfo;
 import com.igrium.worldexport.compat.replaymod.gui.GuiReplayExporter;
-import com.igrium.worldexport.compat.replaymod.util.ExportPhase;
+import com.igrium.worldexport.replay.ExportPhase;
 import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.mojang.blaze3d.ProjectionType;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
@@ -48,7 +48,6 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;

@@ -101,8 +101,6 @@ public class GuiBoundsEditor extends AbstractGuiPopup<GuiBoundsEditor> {
 
             @Override
             public ReadableDimension calcMinSize(GuiContainer<?> localContainer) {
-                // The screen we've been opened on, resolved at layout time. The container passed to the
-                // constructor is the parent popup, whose min size is always (0, 0).
                 ReadableDimension screenSize = getContainer().getMinSize();
                 return new Dimension(Math.clamp(screenSize.getWidth() - 64, 128, 384),
                         Math.clamp(screenSize.getHeight() - 64, 128, 384));

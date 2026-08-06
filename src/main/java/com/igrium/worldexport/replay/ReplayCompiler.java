@@ -1,6 +1,5 @@
 package com.igrium.worldexport.replay;
 
-import com.igrium.worldexport.compat.replaymod.util.ExportPhase;
 import lombok.Setter;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
