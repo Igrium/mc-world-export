@@ -1,14 +1,21 @@
 package com.igrium.worldexport.math;
 
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.AABB;
+
+import java.io.IOException;
 
 /**
  * Represents a 3D box in chunk section coordinates.
  *
  * @author Igrium
  */
+@JsonAdapter(ChunkSectionBoxAdapter.class)
 public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY, int sizeZ) {
 
     public static final ChunkSectionBox ZERO = new ChunkSectionBox(0, 0, 0, 0, 0, 0);
@@ -276,5 +283,32 @@ public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY
     public static ChunkSectionBox fromRadius(SectionPos center, int radius, int minY, int height) {
         return fromRadius(center.getX(), center.getZ(), radius, minY, height);
     }
+}
 
+class ChunkSectionBoxAdapter extends TypeAdapter<ChunkSectionBox> {
+
+    @Override
+    public void write(JsonWriter out, ChunkSectionBox value) throws IOException {
+        out.beginArray();
+        out.value(value.minX());
+        out.value(value.minY());
+        out.value(value.minZ());
+        out.value(value.sizeX());
+        out.value(value.sizeY());
+        out.value(value.sizeZ());
+        out.endArray();
+    }
+
+    @Override
+    public ChunkSectionBox read(JsonReader in) throws IOException {
+        in.beginArray();
+        int minX = in.nextInt();
+        int minY = in.nextInt();
+        int minZ = in.nextInt();
+        int sizeX = in.nextInt();
+        int sizeY = in.nextInt();
+        int sizeZ = in.nextInt();
+        in.endArray();
+        return new ChunkSectionBox(minX, minY, minZ, sizeX, sizeY, sizeZ);
+    }
 }

@@ -1,5 +1,6 @@
 package com.igrium.worldexport.util;
 
+import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -11,6 +12,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class JsonAdapters {
     static abstract class AbstractPositionAdapter<T extends Position> extends TypeAdapter<T> {
@@ -34,6 +36,14 @@ public class JsonAdapters {
         }
 
         abstract T create(double x, double y, double z);
+    }
+
+    public static class GenericPositionAdapter extends AbstractPositionAdapter<Position> {
+
+        @Override
+        Position create(double x, double y, double z) {
+            return new Vec3(x, y, z);
+        }
     }
 
     public static class Vec3dAdapter extends AbstractPositionAdapter<Vec3> {
@@ -103,5 +113,27 @@ public class JsonAdapters {
             String str = in.nextString();
             return Identifier.parse(str);
         }
+    }
+
+    public static class PathJsonAdapter extends TypeAdapter<Path> {
+
+        @Override
+        public void write(JsonWriter out, Path value) throws IOException {
+            out.value(value.toString());
+        }
+
+        @Override
+        public Path read(JsonReader in) throws IOException {
+            return Path.of(in.nextString());
+        }
+    }
+
+    public static GsonBuilder registerAdapters(GsonBuilder builder) {
+        return builder.registerTypeHierarchyAdapter(Vec3i.class, new Vec3iAdapter())
+                .registerTypeHierarchyAdapter(Position.class, new GenericPositionAdapter())
+                .registerTypeAdapter(BlockPos.class, new BlockPosAdapter())
+                .registerTypeAdapter(BlockPos.class, new BlockPosAdapter())
+                .registerTypeAdapter(Identifier.class, new IdentifierJsonAdapter())
+                .registerTypeHierarchyAdapter(Path.class, new PathJsonAdapter());
     }
 }
