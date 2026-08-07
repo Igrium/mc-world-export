@@ -51,7 +51,7 @@ public class ReplayCapture {
         FINISHED
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayCapture.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/ReplayCapture");
 
     private static final Set<ReplayCapture> activeCaptures = new HashSet<>();
     private static final Set<ReplayCapture> activeCapturesUnmodifiable = Collections.unmodifiableSet(activeCaptures);
@@ -273,6 +273,7 @@ public class ReplayCapture {
                 }
             }
 
+            LOGGER.info("Wrote {} world meshes (base + deltas)", meshes.size());
             return meshes;
         });
     }

@@ -85,13 +85,6 @@ public class CapturePipeline {
 
         replayCapture = new ReplayCapture(Minecraft.getInstance().level, getSettings());
         replayCapture.beginCapture();
-
-        var mesher = replayCapture.getWorldCapture().getMesher();
-        // TODO: calculate this based on total possible chunks; queue size will change
-        info.setTotalChunks(mesher.getTaskManager().getQueue().size());
-
-        AtomicInteger sectionsDone = new AtomicInteger(0);
-        mesher.setOnSectionTessellated(_ -> info.setChunksDone(sectionsDone.incrementAndGet()));
         return replayCapture;
     }
 

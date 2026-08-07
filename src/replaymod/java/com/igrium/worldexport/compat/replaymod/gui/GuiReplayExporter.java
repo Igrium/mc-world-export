@@ -66,8 +66,8 @@ public class GuiReplayExporter extends GuiScreen implements Tickable {
         if (totalFrames != 0) animProgressBar.setProgress(framesDone / (float) totalFrames);
         animProgressBar.setI18nLabel("worldexport.gui.exporting.frame_progress", framesDone, totalFrames);
 
-        int chunksDone = exportInfo.getChunksDone();
-        int totalChunks = exportInfo.getTotalChunks();
+        int chunksDone = exportInfo.getSectionsDone();
+        int totalChunks = exportInfo.getTotalSections();
 
         if (totalChunks != 0) worldProgressBar.setProgress(chunksDone / (float) totalChunks);
         worldProgressBar.setI18nLabel("worldexport.gui.exporting.world_progress", chunksDone, totalChunks);

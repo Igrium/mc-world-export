@@ -73,7 +73,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation(include("de.javagl:obj:0.4.0"))
     // For debugging exported replays
-    implementation 'com.github.Igrium:CraftUI:26.2-SNAPSHOT'
+    implementation 'com.github.Igrium:CraftUI:0.8.0-b2'
 //    modCompileOnly "com.github.igrium:craftui:db770015ca"
     replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
 

@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 public class TextureExtractor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TextureExtractor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/TextureExtractor");
 
     public static CompletableFuture<NativeImage> pullTextureAsync(AbstractTexture texture) {
         if (texture instanceof DynamicTexture dynamicTexture) {

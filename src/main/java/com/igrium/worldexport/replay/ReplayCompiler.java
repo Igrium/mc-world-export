@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * Compiles a replay into a "serialized" state that can be saved to disk.
  */
 public class ReplayCompiler {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplayCompiler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/ReplayCompiler");
 
     private final ReplayCapture replayCapture;
 

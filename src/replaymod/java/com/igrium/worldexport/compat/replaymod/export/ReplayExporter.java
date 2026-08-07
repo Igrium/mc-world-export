@@ -30,6 +30,7 @@ import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.Timeline;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import net.minecraft.CrashReport;
 import net.minecraft.ReportedException;
@@ -83,8 +84,12 @@ public class ReplayExporter implements RenderInfo {
     private int totalFrames;
 
     private final VirtualWindow guiWindow = new VirtualWindow(mc);
-    private final ExportInfo.Mutable exportInfo = new ExportInfo.Mutable();
+    @Getter
+    private final ExportInfo.Mutable exportInfo = new Info();
     private final GuiReplayExporter gui;
+
+    @Getter @Setter @NonNull
+    private String phase = ExportPhase.INIT;
 
     @Getter @Setter
     private boolean paused;
@@ -127,7 +132,7 @@ public class ReplayExporter implements RenderInfo {
         // We need to snapshot the world BEFORE the frame loop starts
         timeline.applyToGame(0, replayHandler);
 
-        exportInfo.setPhase(ExportPhase.CAPTURE);
+        setPhase(ExportPhase.CAPTURE);
         pipeline.run(exportInfo);
 
         Supplier<CrashReport> crashReport = ((BlockableEventLoopAccessor) mc).getDelayedCrash();
@@ -399,5 +404,52 @@ public class ReplayExporter implements RenderInfo {
             return getReplayTime();
         }
     }
+
+    /**
+     * Basically a complete mess that lets relevant parts of the code access relevant data and sometimes update
+     */
+    private class Info implements ExportInfo.Mutable {
+
+        @Override
+        public void setFramesDone(int framesDone) {
+            ReplayExporter.this.framesDone = framesDone;
+        }
+
+        @Override
+        public void setTotalFrames(int totalFrames) {
+            ReplayExporter.this.totalFrames = totalFrames;
+        }
+
+        @Override
+        public void setPhase(String phase) {
+            ReplayExporter.this.setPhase(phase);
+        }
+
+        @Override
+        public int getFramesDone() {
+            return framesDone;
+        }
+
+        @Override
+        public int getTotalFrames() {
+            return totalFrames;
+        }
+
+        @Override
+        public int getSectionsDone() {
+            var cap = pipeline.getReplayCapture();
+            return cap != null ? cap.getWorldCapture().getMesher().getFinishedSections() : 0;
+        }
+
+        @Override
+        public int getTotalSections() {
+            var cap = pipeline.getReplayCapture();
+            return cap != null ? cap.getWorldCapture().getMesher().getTotalSections() : 0;
+        }
+
+        @Override
+        public String getPhase() {
+            return phase;
+        }
+    }
 }
-;

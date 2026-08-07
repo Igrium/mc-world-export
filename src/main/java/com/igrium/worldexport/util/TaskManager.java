@@ -39,6 +39,7 @@ public class TaskManager<K, P, O> {
 
     private final ConcurrentHashMap<K, P> running = new ConcurrentHashMap<>();
 
+
     /**
      * Used during the shutdown sequence
      */
@@ -61,6 +62,41 @@ public class TaskManager<K, P, O> {
 
     public @Nullable Exception getError() {
         return error.get();
+    }
+
+    /**
+     * All the keys which were computed and subsequently discarded
+     */
+    @Getter
+    private final Set<K> redundantExecutions = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Get the number of tasks that have either been canceled or finished.
+     */
+    public int getFinishedTasks() {
+        return results.size();
+    }
+
+    /**
+     * Count the number of tasks that have been canceled.
+     */
+    public int getCanceledTasks() {
+        int canceled = 0;
+        for (var val : results.values()) {
+            if (val.isEmpty()) canceled++;
+        }
+        return canceled;
+    }
+
+    /**
+     * Count the number of tasks that have been fully completed (and not canceled)
+     */
+    public int getCompletedTasks() {
+        int completed = 0;
+        for (var val : results.values()) {
+            if (val.isPresent()) completed++;
+        }
+        return completed;
     }
 
     /**
@@ -139,7 +175,10 @@ public class TaskManager<K, P, O> {
      * @param key Task key
      */
     public void cancelTask(K key) {
-        results.put(key, Optional.empty());
+        //noinspection OptionalAssignedToNull (null means opt wasn't in map)
+        if (results.put(key, Optional.empty()) != null) {
+            redundantExecutions.add(key);
+        }
         queue.remove(key);
     }
 
@@ -229,6 +268,7 @@ public class TaskManager<K, P, O> {
                             //noinspection OptionalAssignedToNull (null and optional.empty mean different things here)
                             if (results.putIfAbsent(entry.getKey(), Optional.of(result)) != null) {
                                 LOGGER.warn("Rejected task result for {}", entry.getKey());
+                                redundantExecutions.add(entry.getKey());
                             }
                         } catch (Exception e) {
                             error.compareAndSet(null, e);

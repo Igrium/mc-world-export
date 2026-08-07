@@ -12,23 +12,30 @@ public interface ExportInfo {
     int getFramesDone();
     int getTotalFrames();
 
-    int getChunksDone();
-    int getTotalChunks();
+    int getSectionsDone();
+    int getTotalSections();
 
     String getPhase();
 
-    /**
-     * A thread-safe, mutable implementation of ExportInfo.
-     */
-    @Setter @Getter
-    class Mutable implements ExportInfo {
-        private volatile int framesDone;
-        private int totalFrames;
+    interface Mutable extends ExportInfo {
+        void setFramesDone(int framesDone);
+        void setTotalFrames(int totalFrames);
 
-        private volatile int chunksDone;
-        private int totalChunks;
-
-        @NonNull
-        private volatile String phase = ExportPhase.INIT;
+        void setPhase(String phase);
     }
+//
+//    /**
+//     * A thread-safe, mutable implementation of ExportInfo.
+//     */
+//    @Setter @Getter
+//    class Mutable implements ExportInfo {
+//        private volatile int framesDone;
+//        private int totalFrames;
+//
+//        private volatile int sectionsDone;
+//        private int totalSections;
+//
+//        @NonNull
+//        private volatile String phase = ExportPhase.INIT;
+//    }
 }

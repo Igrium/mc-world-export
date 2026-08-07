@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class WorldMesher {
@@ -82,6 +83,17 @@ public class WorldMesher {
 
     @Getter
     private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
+
+    // I don't know if this actually needs to be atomic, but better safe than sorry
+    private final AtomicInteger totalSections = new AtomicInteger(0);
+
+    public int getTotalSections() {
+        return totalSections.get();
+    }
+
+    public int getFinishedSections() {
+        return taskManager.getFinishedTasks();
+    }
 
     public WorldMesher(ClientLevel baseWorld) {
         this.baseWorld = baseWorld;
@@ -162,7 +174,6 @@ public class WorldMesher {
     /// === MESHING ===
 
     private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
-        LOGGER.info("Compiling section {}", pos);
         Obj obj = tessellator.compileSection(pos, region);
         return mergeDoubleVertices ? MeshMergeVerts.mergeByDistance(obj, .001f, true, .15f) : obj;
     }
@@ -202,6 +213,7 @@ public class WorldMesher {
         for (int i = minY; i < minY + height; i++) {
             sections.put(SectionPos.of(cPos, i), region);
         }
+        totalSections.addAndGet(sections.size());
         taskManager.addTasks(sections);
     }
 
@@ -292,6 +304,11 @@ public class WorldMesher {
      * @return All the base section OBJs with their section positions
      */
     public CompletableFuture<Map<SectionPos, Obj>> finishBase() {
-        return taskManager.finish();
+        return taskManager.finish().whenComplete((_, _) -> {
+            int tasks = taskManager.getCanceledTasks();
+            if (tasks > 0) {
+                LOGGER.warn("Computed {} redundant section meshes.", tasks);
+            }
+        });
     }
 }
