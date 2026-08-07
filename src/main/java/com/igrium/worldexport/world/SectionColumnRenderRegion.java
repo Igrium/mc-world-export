@@ -68,7 +68,8 @@ public class SectionColumnRenderRegion implements BlockAndTintGetter {
         int localZ = SectionPos.sectionRelative(pos.getZ());
         SimpleSectionColumn column = getColumn(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
 
-        return column != null ? column.getBlockState(localX, pos.getY(), localZ) : Blocks.AIR.defaultBlockState();
+        // Stone default to trigger occlusion clipping
+        return column != null ? column.getBlockState(localX, pos.getY(), localZ) : Blocks.STONE.defaultBlockState();
     }
 
     @Override

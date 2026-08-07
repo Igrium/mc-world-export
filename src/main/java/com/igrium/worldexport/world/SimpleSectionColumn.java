@@ -59,15 +59,16 @@ public class SimpleSectionColumn implements LevelHeightAccessor {
      * @throws IndexOutOfBoundsException If the supplied coordinates are out of range.
      */
     public BlockState getBlockState(int x, int y, int z) throws IndexOutOfBoundsException {
+        // Stone is default instead of air to trigger occlusion culling
         if (x < 0 || x >= 16) {
-            return Blocks.AIR.defaultBlockState();
+            return Blocks.STONE.defaultBlockState();
         }
         if (z < 0 || z >= 16) {
-            return Blocks.AIR.defaultBlockState();
+            return Blocks.STONE.defaultBlockState();
         }
         int yIndex = getSectionIndexFromSectionY(SectionPos.blockToSectionCoord(y));
         if (yIndex < 0 || yIndex >= sections.length)
-            return Blocks.AIR.defaultBlockState();
+            return Blocks.STONE.defaultBlockState();
 
         int localY = SectionPos.sectionRelative(y);
         return sections[yIndex].getBlockState(x, localY, z);
