@@ -47,16 +47,13 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private static final Logger LOGGER = LogManager.getLogger("WorldExport/GuiExportSettings");
 
-    public final GuiPanel contentPanel = new GuiPanel(popup).setBackgroundColor(new Color(0, 0, 0, 230));
-    public final GuiVerticalList settingsList = new GuiVerticalList(contentPanel).setDrawSlider(true);
-    public final GuiPanel buttonPanel = new GuiPanel(contentPanel).setLayout(new HorizontalLayout().setSpacing(4));
+    private final Minecraft client = Minecraft.getInstance();
 
     private final ReplayHandler replayHandler;
     private final Timeline timeline;
     private final AbstractGuiScreen<?> screen;
 
-    private final Minecraft client = Minecraft.getInstance();
-
+    // === Export state ===
 
     @Getter
     private File outputFile;
@@ -70,66 +67,191 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     @Getter @Setter
     private @NonNull ChunkSectionBox boundsEntity;
 
-    public final GuiButton outputFileButton = new GuiButton().setMinSize(new Dimension(0, 20)).onClick(new Runnable() {
-        public void run() {
-            try {
-                createOutputDir();
-            } catch (IOException e) {
-                LOGGER.error("Error creating output directory.", e);
-            }
+    // === Output file ===
 
-            GuiFileChooserPopup popup = GuiFileChooserPopup.openSaveGui(GuiExportSettings.this, "replaymod.gui.save", "replay");
-            popup.setFolder(outputFile.getParentFile());
-            popup.setFileName(outputFile.getName());
-            popup.onAccept(file -> {
-                outputFile = file;
-                outputFileButton.setLabel(file.getName());
-            });
-        }
-    });
+    private final GuiButton outputFileButton = new GuiButton()
+            .setMinSize(new Dimension(0, 20))
+            .onClick(this::chooseOutputFile);
 
-    public final GuiButton boundsEditorButton = new GuiButton().setI18nLabel("worldexport.gui.export.edit_bounds")
-            .setMinSize(new Dimension(122, 20)).onClick(this::openBoundsEditor);
+    // === Bounds ===
+
+    private final GuiButton boundsEditorButton = new GuiButton()
+            .setI18nLabel("worldexport.gui.export.edit_bounds")
+            .setMinSize(new Dimension(122, 20))
+            .onClick(this::openBoundsEditor);
+
+    // === Export center ===
 
     private final GuiNumberField centerXField = createCenterField();
     private final GuiNumberField centerYField = createCenterField();
     private final GuiNumberField centerZField = createCenterField();
 
-    private static GuiNumberField createCenterField() {
-        return new GuiNumberField().setValidateOnFocusChange(true).setSize(38, 20);
-    }
-
-    public final GuiPanel centerFieldPanel = new GuiPanel()
+    private final GuiPanel centerFieldPanel = new GuiPanel()
             .setLayout(new HorizontalLayout().setSpacing(4))
             .addElements(new HorizontalLayout.Data(0.5), centerXField, centerYField, centerZField);
 
-    public final GuiButton useCameraPosButton = new GuiButton()
+    private final GuiButton useCameraPosButton = new GuiButton()
             .setI18nLabel("worldexport.gui.export.use_camera_pos")
             .setMinSize(new Dimension(122, 20))
             .onClick(this::setCenterFromCamera);
 
-    public final GuiPanel exportCenterPanel = new GuiPanel()
+    private final GuiPanel exportCenterPanel = new GuiPanel()
             .setLayout(new VerticalLayout().setSpacing(4))
             .addElements(new VerticalLayout.Data(0.5), centerFieldPanel, useCameraPosButton);
 
-    public SectionPos getExportCenter() {
-        return SectionPos.of(centerXField.getInteger(), centerYField.getInteger(), centerZField.getInteger());
+    private static GuiNumberField createCenterField() {
+        return new GuiNumberField().setValidateOnFocusChange(true).setSize(38, 20);
     }
 
-    public void setExportCenter(SectionPos center) {
-        centerXField.setValue(center.getX());
-        centerYField.setValue(center.getY());
-        centerZField.setValue(center.getZ());
+    // === Settings list (title + rows) ===
+
+    private final GuiPanel mainPanel = new GuiPanel()
+            .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5))
+            .addElements(new GridLayout.Data(1, 0.5),
+                    new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
+                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
+                    new GuiLabel().setI18nText("worldexport.gui.export.export_center"), exportCenterPanel);
+
+    // === Popup root ===
+
+    private final GuiPanel contentPanel = new GuiPanel(popup)
+            .setBackgroundColor(new Color(0, 0, 0, 230));
+
+    private final GuiVerticalList settingsList = new GuiVerticalList(contentPanel)
+            .setDrawSlider(true);
+
+    {
+        settingsList.getListPanel().setLayout(new VerticalLayout().setSpacing(10))
+                .addElements(new VerticalLayout.Data(0.5),
+                        new GuiLabel().setText("Replay Export Settings"),
+                        mainPanel);
     }
 
-    private void setCenterFromCamera() {
+    // === Bottom buttons ===
+
+    private final GuiPanel buttonPanel = new GuiPanel(contentPanel)
+            .setLayout(new HorizontalLayout().setSpacing(4));
+
+    private final GuiButton exportButton = new GuiButton(buttonPanel)
+            .setLabel("Export")
+            .setSize(100, 20)
+            .onClick(this::export);
+
+    private final GuiButton cancelButton = new GuiButton(buttonPanel)
+            .setI18nLabel("replaymod.gui.cancel")
+            .setSize(100, 20)
+            .onClick(this::close);
+
+    public GuiExportSettings(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Timeline timeline) {
+        super(container);
+        disablePopupBackground();
+
+        this.replayHandler = replayHandler;
+        this.timeline = timeline;
+        this.screen = container;
+
+        contentPanel.setLayout(new CustomLayout<GuiPanel>() {
+            @Override
+            protected void layout(GuiPanel container, int width, int height) {
+                size(settingsList, width, height - height(buttonPanel) - 25);
+                pos(settingsList, width / 2 - width(settingsList) / 2, 5);
+                pos(buttonPanel, width / 2 - width(buttonPanel) / 2, y(settingsList) + height(settingsList) + 10);
+            }
+
+            @Override
+            public ReadableDimension calcMinSize(GuiContainer<?> container) {
+                ReadableDimension screenSize = getContainer().getMinSize();
+                return new Dimension(screenSize.getWidth() - 40, screenSize.getHeight() - 40);
+            }
+        });
+
+        initState();
+    }
+
+    /**
+     * Load saved settings (if any) and populate the initial field values.
+     */
+    private void initState() {
+        SavedExportSettings saved = null;
+        try {
+            saved = SavedExportSettings.load(replayHandler.getReplayFile());
+        } catch (Exception e) {
+            LOGGER.error("Error reading export settings from replay file.", e);
+        }
+
+        int minSection = Objects.requireNonNull(client.level).getMinSectionY();
+        int maxSection = client.level.getMaxSectionY();
+
         LocalPlayer player = client.player;
-        if (player != null) {
-            setExportCenter(SectionPos.of(player.blockPosition()));
+        var exportCenter = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+        if (saved != null && saved.exportCenter() != null) {
+            exportCenter = saved.exportCenter();
+        }
+        setExportCenter(exportCenter);
+
+        boundsWorld = ChunkSectionBox.from(exportCenter.x() - 4, minSection, exportCenter.z() - 4,
+                exportCenter.x() + 4, maxSection, exportCenter.z() + 4);
+        boundsEntity = boundsWorld;
+        boundsUpdate = boundsWorld;
+
+        if (saved != null) {
+            if (saved.worldBounds() != null) boundsWorld = saved.worldBounds();
+            if (saved.updateBounds() != null) boundsUpdate = saved.updateBounds();
+            if (saved.entityBounds() != null) boundsEntity = saved.entityBounds();
+        }
+
+        setOutputFile(resolveOutputFile(saved));
+    }
+
+    // === Output file ===
+
+    public void setOutputFile(File outputFile) {
+        this.outputFile = outputFile;
+        outputFileButton.setLabel(outputFile.getName());
+    }
+
+    private void chooseOutputFile() {
+        try {
+            createOutputDir();
+        } catch (IOException e) {
+            LOGGER.error("Error creating output directory.", e);
+        }
+
+        GuiFileChooserPopup popup = GuiFileChooserPopup.openSaveGui(this, "replaymod.gui.save", "replay");
+        popup.setFolder(outputFile.getParentFile());
+        popup.setFileName(outputFile.getName());
+        popup.onAccept(this::setOutputFile);
+    }
+
+    /**
+     * Determine the output file to start with, preferring the one saved in the replay file.
+     */
+    private File resolveOutputFile(@Nullable SavedExportSettings saved) {
+        if (saved == null || saved.outputFile() == null) return generateOutputFile();
+
+        // GuiFileChooserPopup crashes if it opens on a folder that no longer exists.
+        Path parent = saved.outputFile().getParent();
+        if (parent == null || !Files.isDirectory(parent)) return generateOutputFile();
+
+        return saved.outputFile().toFile();
+    }
+
+    private File generateOutputFile() {
+        String fileName = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
+        File folder = FabricLoader.getInstance().getGameDir().resolve("replay_exports").toFile();
+        return new File(folder, fileName + ".replay");
+    }
+
+    private void createOutputDir() throws IOException {
+        Path parent = outputFile.toPath().getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
         }
     }
 
-    public void openBoundsEditor() {
+    // === Bounds ===
+
+    private void openBoundsEditor() {
         var level = client.level;
         if (level == null) return;
 
@@ -154,114 +276,29 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         });
     }
 
+    // === Export center ===
 
-    public final GuiButton exportButton = new GuiButton(buttonPanel)
-            .setLabel("Export")
-            .setSize(100, 20)
-            .onClick(this::export);
-
-    public final GuiButton cancelButton = new GuiButton(buttonPanel)
-            .setI18nLabel("replaymod.gui.cancel")
-            .setSize(100, 20)
-            .onClick(this::close);
-
-    public final GuiPanel mainPanel = new GuiPanel()
-            .addElements(new GridLayout.Data(1, 0.5),
-                    new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
-                    new GuiLabel().setI18nText("worldexport.gui.export.export_center"), exportCenterPanel)
-            .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
-
-    {
-        settingsList.getListPanel().setLayout(new VerticalLayout().setSpacing(10))
-                .addElements(new VerticalLayout.Data(0.5),
-                        new GuiLabel().setText("Replay Export Settings"),
-                        mainPanel);
+    public SectionPos getExportCenter() {
+        return SectionPos.of(centerXField.getInteger(), centerYField.getInteger(), centerZField.getInteger());
     }
 
-    public void setOutputFile(File outputFile) {
-        this.outputFile = outputFile;
-        outputFileButton.setLabel(outputFile.getName());
+    public void setExportCenter(SectionPos center) {
+        centerXField.setValue(center.getX());
+        centerYField.setValue(center.getY());
+        centerZField.setValue(center.getZ());
     }
 
-    public GuiExportSettings(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Timeline timeline) {
-        super(container);
-        disablePopupBackground();
-
-        this.replayHandler = replayHandler;
-        this.timeline = timeline;
-        this.screen = container;
-
-        contentPanel.setLayout(new CustomLayout<GuiPanel>() {
-
-            @Override
-            protected void layout(GuiPanel container, int width, int height) {
-                size(settingsList, width, height - height(buttonPanel) - 25);
-                pos(settingsList, width / 2 - width(settingsList) / 2, 5);
-                pos(buttonPanel, width / 2 - width(buttonPanel) / 2, y(settingsList) + height(settingsList) + 10);
-            }
-
-            @Override
-            public ReadableDimension calcMinSize(GuiContainer<?> container) {
-                ReadableDimension screenSize = getContainer().getMinSize();
-                return new Dimension(screenSize.getWidth() - 40, screenSize.getHeight() - 40);
-            }
-
-        });
-
-        SavedExportSettings saved = null;
-        try {
-            saved = SavedExportSettings.load(replayHandler.getReplayFile());
-        } catch (Exception e) {
-            LOGGER.error("Error reading export settings from replay file.", e);
-        }
-
-        int minSection = Objects.requireNonNull(client.level).getMinSectionY();
-        int maxSection = client.level.getMaxSectionY();
-
+    private void setCenterFromCamera() {
         LocalPlayer player = client.player;
-        var exportCenter = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
-        if (saved != null && saved.exportCenter() != null) {
-            exportCenter = saved.exportCenter();
+        if (player != null) {
+            setExportCenter(SectionPos.of(player.blockPosition()));
         }
-
-        setExportCenter(exportCenter);
-
-        boundsWorld = ChunkSectionBox.from(exportCenter.x() - 4, minSection, exportCenter.z() - 4,
-                exportCenter.x() + 4, maxSection, exportCenter.z() + 4);
-
-        boundsEntity = boundsWorld;
-        boundsUpdate = boundsWorld;
-
-        if (saved != null) {
-            if (saved.worldBounds() != null) boundsWorld = saved.worldBounds();
-            if (saved.updateBounds() != null) boundsUpdate = saved.updateBounds();
-            if (saved.entityBounds() != null) boundsEntity = saved.entityBounds();
-        }
-
-        setOutputFile(resolveOutputFile(saved));
     }
 
-    /**
-     * Determine the output file to start with, preferring the one saved in the replay file.
-     *
-     * @param saved Saved settings, if any.
-     * @return The output file to use.
-     */
-    private File resolveOutputFile(@Nullable SavedExportSettings saved) {
-        if (saved == null || saved.outputFile() == null) return generateOutputFile();
-
-        // GuiFileChooserPopup crashes if it opens on a folder that no longer exists.
-        Path parent = saved.outputFile().getParent();
-        if (parent == null || !Files.isDirectory(parent)) return generateOutputFile();
-
-        return saved.outputFile().toFile();
-    }
+    // === Persistence & export ===
 
     /**
      * Capture the current state of this screen for saving.
-     *
-     * @return The current settings.
      */
     public SavedExportSettings readSettings() {
         return new SavedExportSettings(outputFile.toPath(), boundsWorld, boundsUpdate, boundsEntity, getExportCenter());
@@ -280,14 +317,13 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public void export() {
         close();
 
-        var builder = ReplayExportSettings.builder()
+        ReplayExportSettings exportSettings = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
                 .worldBounds(boundsWorld)
                 .entityBounds(boundsEntity.toBox())
                 .updateBounds(boundsUpdate)
-                .offset(getExportCenter().origin().multiply(-1));
-
-        ReplayExportSettings exportSettings = builder.build();
+                .offset(getExportCenter().origin().multiply(-1))
+                .build();
 
         try {
             createOutputDir();
@@ -298,20 +334,6 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             screen.display();
             Utils.error(LOGGER, screen, CrashReport.forThrowable(e, "Exporting Replay"), () -> {});
         }
-
-    }
-
-    private void createOutputDir() throws IOException {
-        Path parent = outputFile.toPath().getParent();
-        if (parent != null) {
-            Files.createDirectories(parent);
-        }
-    }
-
-    protected File generateOutputFile() {
-        String fileName = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-        File folder = FabricLoader.getInstance().getGameDir().resolve("replay_exports").toFile();
-        return new File(folder, fileName+".replay");
     }
 
     @Override
