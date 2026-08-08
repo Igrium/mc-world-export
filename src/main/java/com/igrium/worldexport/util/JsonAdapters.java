@@ -132,7 +132,7 @@ public class JsonAdapters {
         return builder.registerTypeHierarchyAdapter(Vec3i.class, new Vec3iAdapter())
                 .registerTypeHierarchyAdapter(Position.class, new GenericPositionAdapter())
                 .registerTypeAdapter(BlockPos.class, new BlockPosAdapter())
-                .registerTypeAdapter(BlockPos.class, new BlockPosAdapter())
+                .registerTypeAdapter(SectionPos.class, new ChunkSectionPosAdapter())
                 .registerTypeAdapter(Identifier.class, new IdentifierJsonAdapter())
                 .registerTypeHierarchyAdapter(Path.class, new PathJsonAdapter());
     }

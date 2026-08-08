@@ -1,5 +1,6 @@
 package com.igrium.worldexport.compat.replaymod.gui;
 
+import com.igrium.worldexport.compat.replaymod.SavedExportSettings;
 import com.igrium.worldexport.compat.replaymod.export.ReplayExporter;
 import com.igrium.worldexport.compat.replaymod.gui.GuiBoundsEditor.EditMode;
 import com.igrium.worldexport.math.ChunkSectionBox;
@@ -8,6 +9,7 @@ import com.replaymod.core.utils.Utils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.*;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiNumberField;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.GridLayout;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.HorizontalLayout;
@@ -28,6 +30,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.CrashReport;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
+import org.jetbrains.annotations.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,11 +57,6 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
     private final Minecraft client = Minecraft.getInstance();
 
-    /**
-     * Where the player was when this screen opened. The default bounds and the export offset are both
-     * derived from this, so that they stay consistent if the camera moves before exporting.
-     */
-    private final SectionPos exportCenter;
 
     @Getter
     private File outputFile;
@@ -93,6 +91,44 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiButton boundsEditorButton = new GuiButton().setI18nLabel("worldexport.gui.export.edit_bounds")
             .setMinSize(new Dimension(122, 20)).onClick(this::openBoundsEditor);
 
+    private final GuiNumberField centerXField = createCenterField();
+    private final GuiNumberField centerYField = createCenterField();
+    private final GuiNumberField centerZField = createCenterField();
+
+    private static GuiNumberField createCenterField() {
+        return new GuiNumberField().setValidateOnFocusChange(true).setSize(38, 20);
+    }
+
+    public final GuiPanel centerFieldPanel = new GuiPanel()
+            .setLayout(new HorizontalLayout().setSpacing(4))
+            .addElements(new HorizontalLayout.Data(0.5), centerXField, centerYField, centerZField);
+
+    public final GuiButton useCameraPosButton = new GuiButton()
+            .setI18nLabel("worldexport.gui.export.use_camera_pos")
+            .setMinSize(new Dimension(122, 20))
+            .onClick(this::setCenterFromCamera);
+
+    public final GuiPanel exportCenterPanel = new GuiPanel()
+            .setLayout(new VerticalLayout().setSpacing(4))
+            .addElements(new VerticalLayout.Data(0.5), centerFieldPanel, useCameraPosButton);
+
+    public SectionPos getExportCenter() {
+        return SectionPos.of(centerXField.getInteger(), centerYField.getInteger(), centerZField.getInteger());
+    }
+
+    public void setExportCenter(SectionPos center) {
+        centerXField.setValue(center.getX());
+        centerYField.setValue(center.getY());
+        centerZField.setValue(center.getZ());
+    }
+
+    private void setCenterFromCamera() {
+        LocalPlayer player = client.player;
+        if (player != null) {
+            setExportCenter(SectionPos.of(player.blockPosition()));
+        }
+    }
+
     public void openBoundsEditor() {
         var level = client.level;
         if (level == null) return;
@@ -105,6 +141,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         map.put(EditMode.UPDATE, boundsUpdate);
         map.put(EditMode.ENTITY, boundsEntity);
 
+        var exportCenter = getExportCenter();
         GuiBoundsEditor.openEditor(map, this, level, mapRadius * 2, mapRadius * 2,
                 new ChunkPos(exportCenter.x() - mapRadius, exportCenter.z() - mapRadius)).thenAccept(eMap -> {
             for (var entry : eMap.entrySet()) {
@@ -131,7 +168,8 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     public final GuiPanel mainPanel = new GuiPanel()
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
-                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton)
+                    new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
+                    new GuiLabel().setI18nText("worldexport.gui.export.export_center"), exportCenterPanel)
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5));
 
     {
@@ -171,11 +209,23 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
 
         });
 
+        SavedExportSettings saved = null;
+        try {
+            saved = SavedExportSettings.load(replayHandler.getReplayFile());
+        } catch (Exception e) {
+            LOGGER.error("Error reading export settings from replay file.", e);
+        }
+
         int minSection = Objects.requireNonNull(client.level).getMinSectionY();
         int maxSection = client.level.getMaxSectionY();
 
         LocalPlayer player = client.player;
-        exportCenter = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+        var exportCenter = player != null ? SectionPos.of(player.blockPosition()) : SectionPos.of(0, 0, 0);
+        if (saved != null && saved.exportCenter() != null) {
+            exportCenter = saved.exportCenter();
+        }
+
+        setExportCenter(exportCenter);
 
         boundsWorld = ChunkSectionBox.from(exportCenter.x() - 4, minSection, exportCenter.z() - 4,
                 exportCenter.x() + 4, maxSection, exportCenter.z() + 4);
@@ -183,7 +233,48 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         boundsEntity = boundsWorld;
         boundsUpdate = boundsWorld;
 
-        setOutputFile(generateOutputFile());
+        if (saved != null) {
+            if (saved.worldBounds() != null) boundsWorld = saved.worldBounds();
+            if (saved.updateBounds() != null) boundsUpdate = saved.updateBounds();
+            if (saved.entityBounds() != null) boundsEntity = saved.entityBounds();
+        }
+
+        setOutputFile(resolveOutputFile(saved));
+    }
+
+    /**
+     * Determine the output file to start with, preferring the one saved in the replay file.
+     *
+     * @param saved Saved settings, if any.
+     * @return The output file to use.
+     */
+    private File resolveOutputFile(@Nullable SavedExportSettings saved) {
+        if (saved == null || saved.outputFile() == null) return generateOutputFile();
+
+        // GuiFileChooserPopup crashes if it opens on a folder that no longer exists.
+        Path parent = saved.outputFile().getParent();
+        if (parent == null || !Files.isDirectory(parent)) return generateOutputFile();
+
+        return saved.outputFile().toFile();
+    }
+
+    /**
+     * Capture the current state of this screen for saving.
+     *
+     * @return The current settings.
+     */
+    public SavedExportSettings readSettings() {
+        return new SavedExportSettings(outputFile.toPath(), boundsWorld, boundsUpdate, boundsEntity, getExportCenter());
+    }
+
+    @Override
+    public void close() {
+        try {
+            SavedExportSettings.save(replayHandler.getReplayFile(), readSettings());
+        } catch (Exception e) {
+            LOGGER.error("Error saving export settings to replay file.", e);
+        }
+        super.close();
     }
 
     public void export() {
@@ -194,7 +285,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
                 .worldBounds(boundsWorld)
                 .entityBounds(boundsEntity.toBox())
                 .updateBounds(boundsUpdate)
-                .offset(exportCenter.origin().multiply(-1));
+                .offset(getExportCenter().origin().multiply(-1));
 
         ReplayExportSettings exportSettings = builder.build();
 

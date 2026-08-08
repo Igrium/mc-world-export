@@ -10,6 +10,9 @@
   "worldexport.gui.export.bounds": "Export Bounds",
   "worldexport.gui.export.edit_bounds": "Edit Bounds",
 
+  "worldexport.gui.export.export_center": "Export Origin",
+  "worldexport.gui.export.use_camera_pos": "Use Camera Position",
+
   "worldexport.gui.export.world_bounds": "World",
   "worldexport.gui.export.update_bounds": "Block Updates",
   "worldexport.gui.export.entity_bounds": "Entities",
