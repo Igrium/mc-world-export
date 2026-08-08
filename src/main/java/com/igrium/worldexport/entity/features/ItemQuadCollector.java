@@ -30,7 +30,7 @@ import java.util.List;
 
 public class ItemQuadCollector implements SubmitNodeCollector {
 
-    public record Submission(PoseStack stack, List<BakedQuad> quads, int[] tintLayers,
+    public record Submission(PoseStack.Pose pose, List<BakedQuad> quads, int[] tintLayers,
                       ItemStackRenderState.FoilType foilType) {};
 
     @Getter
@@ -45,9 +45,7 @@ public class ItemQuadCollector implements SubmitNodeCollector {
     public void submitItem(PoseStack poseStack, ItemDisplayContext displayContext, int lightCoords, int overlayCoords,
                            int outlineColor, int[] tintLayers, List<BakedQuad> quads,
                            ItemStackRenderState.FoilType foilType) {
-        PoseStack snapshot = new PoseStack();
-        snapshot.last().pose().set(poseStack.last().pose());
-        submissions.add(new Submission(snapshot, quads, tintLayers, foilType));
+        submissions.add(new Submission(poseStack.last().copy(), quads, tintLayers, foilType));
     }
 
     @Override

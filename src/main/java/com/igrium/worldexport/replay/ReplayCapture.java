@@ -162,6 +162,8 @@ public class ReplayCapture {
      */
     public static String WORLD_TEX = "world.png";
 
+    public static String ITEM_TEX = "item.png";
+
     /**
      * Capture the base world and begin tessellating base meshes.
      */
@@ -185,6 +187,7 @@ public class ReplayCapture {
         gameTick = 0;
 
 
+        materialHolder.getTextures().put(ITEM_TEX, WorldMesher.getDefaultItemTexture());
         materialHolder.getTextures().put(WORLD_TEX, WorldMesher.getDefaultWorldTexture());
         materialHolder.putMtlLib("world.mtl", WorldMesher.getDefaultWorldMtls());
 

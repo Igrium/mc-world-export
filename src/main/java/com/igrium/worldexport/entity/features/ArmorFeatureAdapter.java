@@ -75,7 +75,7 @@ public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends Humano
             if (layers.isEmpty())
                 return;
 
-            Identifier texId = layers.get(0).getTextureLocation(layerType);
+            Identifier texId = layers.getFirst().getTextureLocation(layerType);
             String texName = texId.getNamespace() + "/" + texId.getPath();
             String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 

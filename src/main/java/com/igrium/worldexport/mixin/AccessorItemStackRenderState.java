@@ -9,4 +9,7 @@ public interface AccessorItemStackRenderState {
 
     @Accessor("layers")
     ItemStackRenderState.LayerRenderState[] getLayers();
+
+    @Accessor("activeLayerCount")
+    int getActiveLayerCount();
 }

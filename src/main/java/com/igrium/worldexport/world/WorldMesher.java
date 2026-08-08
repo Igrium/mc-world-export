@@ -171,6 +171,11 @@ public class WorldMesher {
                 .thenApply(NativeImageReplayTexture::new);
     }
 
+    public static CompletableFuture<NativeImageReplayTexture> getDefaultItemTexture() {
+        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.ITEMS)
+                .thenApply(NativeImageReplayTexture::new);
+    }
+
     /// === MESHING ===
 
     private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
