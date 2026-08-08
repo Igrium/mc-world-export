@@ -55,6 +55,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
      * Get (or create) the material for a group of baked quads, keyed by the atlas they sample from.
      */
     public static ReplayMtl getOrCreateItemMaterial(MaterialHolder materials, @Nullable Identifier atlas) {
+        //noinspection deprecation
         boolean blockAtlas = TextureAtlas.LOCATION_BLOCKS.equals(atlas);
 
         String name = blockAtlas ? BLOCK_ITEM_MTL : ITEM_MTL;
@@ -140,9 +141,10 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
     }
 
     private static void writeItem(MaterialHolder materials, PoseStack poseStack, ObjVertexConsumer consumer, ItemStackRenderState item) {
-        var accessor = (AccessorItemStackRenderState) item;
-        var layers = accessor.getLayers();
-        int activeLayerCount = accessor.getActiveLayerCount();
+        var itemAccessor = (AccessorItemStackRenderState) item;
+        var layers = itemAccessor.getLayers();
+        int activeLayerCount = itemAccessor.getActiveLayerCount();
+        boolean leftHand = itemAccessor.getDisplayContext().leftHand();
 
         for (int i = 0; i < activeLayerCount; i++) {
             var layer = (AccessorLayerRenderState) layers[i];
@@ -150,6 +152,11 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             if (quads == null || quads.isEmpty())
                 continue; // TODO: Special models
 
+            poseStack.pushPose();
+            layer.getItemTransform().apply(leftHand, poseStack.last());
+            poseStack.last().mulPose(layer.getLocalTransform());
+
+            //noinspection resource
             Identifier atlas = quads.getFirst().materialInfo().sprite().atlasLocation();
             ReplayMtl mat = getOrCreateItemMaterial(materials, atlas);
             consumer.getObj().setActiveMaterialGroupName(mat.getName());
@@ -159,6 +166,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             }
             // Flush this layer's faces now, before the next layer switches the active material.
             consumer.pushFace();
+            poseStack.popPose();
         }
     }
 }

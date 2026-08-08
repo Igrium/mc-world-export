@@ -107,14 +107,9 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
     }
 
     /**
-     * Extension point for items that need custom rendering, mirroring the way
-     * {@code PlayerItemInHandLayer} overrides {@code submitArmWithItem} to raise the held
-     * item to the eye (spyglass). Not yet implemented: the held-to-eye case is sourced from
-     * {@code AvatarRenderState.heldOnHead} and should be parented to {@code root/head} instead
-     * of an arm.
+     * Override to provide custom rendering for held items.
      *
-     * @return {@code true} if this method fully handled capturing the item, suppressing the
-     *         default in-hand capture.
+     * @return <code>true</code> to suppress the default in-hand capture.
      */
     protected boolean captureSpecial(CapturedEntity capture, MaterialHolder materials, S state,
                                      ItemStackRenderState renderState, ItemStack itemStack, HumanoidArm arm, int tick) {
