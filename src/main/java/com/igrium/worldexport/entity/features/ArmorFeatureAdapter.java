@@ -6,10 +6,7 @@ import com.igrium.worldexport.entity.ModelParts;
 import com.igrium.worldexport.mixin.AccessorHumanoidArmorLayer;
 import com.igrium.worldexport.mixin.AccessorEquipmentLayerRenderer;
 import com.igrium.worldexport.replay.MaterialHolder;
-import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
-import com.igrium.worldexport.tex.TextureExtractor;
-import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.client.resources.model.EquipmentClientInfo;
@@ -24,7 +21,6 @@ import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 
 import java.util.Collections;
 import java.util.List;
@@ -75,20 +71,7 @@ public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends Humano
             if (layers.isEmpty())
                 return;
 
-            Identifier texId = layers.getFirst().getTextureLocation(layerType);
-            String texName = texId.getNamespace() + "/" + texId.getPath();
-            String texPath = texName.endsWith(".png") ? texName : texName + ".png";
-
-            materials.getTextures().computeIfAbsent(texPath, tex ->
-                    TextureExtractor.pullTextureAsync(texId).thenApply(NativeImageReplayTexture::new));
-
-            ReplayMtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
-                ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
-                mtl.mtl().setMapKd(texPath);
-                mtl.mtl().setMapD(texPath);
-                mtl.properties().put("armor", ReplayMtl.Property.of(true));
-                return mtl;
-            });
+            ReplayMtl mat = getEquipmentMaterial(materials, layers.getFirst().getTextureLocation(layerType));
 
             // Create part meshes
             ModelParts.forEachPart(armorModel.root(), "root", (path, part) -> {

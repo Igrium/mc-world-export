@@ -4,6 +4,7 @@ import net.minecraft.client.renderer.entity.layers.HumanoidArmorLayer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
 import net.minecraft.client.renderer.entity.layers.PlayerItemInHandLayer;
+import net.minecraft.client.renderer.entity.layers.WingsLayer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,5 +40,6 @@ public class FeatureAdapters {
         REGISTRY.put(HumanoidArmorLayer.class, ArmorFeatureAdapter::create);
         REGISTRY.put(ItemInHandLayer.class, HeldItemFeatureAdapter::create);
         REGISTRY.put(PlayerItemInHandLayer.class, HeldItemFeatureAdapter::create);
+        REGISTRY.put(WingsLayer.class, ElytraFeatureAdapter::create);
     }
 }
