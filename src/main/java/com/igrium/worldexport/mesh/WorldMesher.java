@@ -1,13 +1,13 @@
-package com.igrium.worldexport.world;
+package com.igrium.worldexport.mesh;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.igrium.worldexport.mesh.BlockTessellator;
-import com.igrium.worldexport.mesh.MeshMergeVerts;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;
+import com.igrium.worldexport.world.*;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -15,16 +15,23 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import lombok.Getter;
 import lombok.Setter;
+import net.fabricmc.fabric.api.client.model.loading.v1.ExtraModelKey;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
+import net.minecraft.client.renderer.block.BlockStateModelSet;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelPart;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +44,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class WorldMesher {
     public static final String WORLD = "world";
@@ -81,8 +89,19 @@ public class WorldMesher {
 
     private final BlockTessellator tessellator;
 
-    @Getter
     private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
+
+    /**
+     * Any block models which should be overwritten during export
+     * <p>
+     * Supplier is used so that these get re-calculated when resourcepacks are reloaded. Called for every block;
+     * should not be expensive.
+     */
+    @Getter
+    private final Map<BlockState, Supplier<BlockModelOverride>> modelOverrides = new HashMap<>();
+
+    // Must be concurrently readable
+    private @Nullable ImmutableMap<BlockState, BlockModelOverride> modelOverrideCache;
 
     // I don't know if this actually needs to be atomic, but better safe than sorry
     private final AtomicInteger totalSections = new AtomicInteger(0);
@@ -99,15 +118,17 @@ public class WorldMesher {
         this.baseWorld = baseWorld;
 
         var modelManager = Minecraft.getInstance().getModelManager();
+        var modelSupplier = new OverrideBlockStateModelSupplier(modelManager.getBlockStateModelSet());
         tessellator = BlockTessellator.builder()
                 .blockColors(Minecraft.getInstance().getBlockColors())
-                .blockModelSet(modelManager.getBlockStateModelSet())
+                .blockModelSet(modelSupplier)
                 .fluidModelSet(modelManager.getFluidStateModelSet())
-                .blockMatFactory(this::getDefaultMaterialName)
+                .blockMatFactory(this::getMaterialName)
                 .fluidMatFactory(this::getDefaultMaterialName)
                 .splitBlocks(this.splitBlocks)
                 .build();
 
+        registerDefaultOverrides();
         taskManager = new TaskManager<>(Runtime.getRuntime().availableProcessors() - 1, this::tessellateSection);
     }
 
@@ -115,6 +136,12 @@ public class WorldMesher {
 
     public String getDefaultMaterialName(BlockState state) {
         return state.propagatesSkylightDown() ? WORLD_TRANS : WORLD;
+    }
+
+    public String getMaterialName(BlockState state) {
+        Supplier<BlockModelOverride> supplier = modelOverrides.get(state);
+        BlockModelOverride override = supplier != null ? supplier.get() : null;
+        return override != null && override.material() != null ? override.material() : getDefaultMaterialName(state);
     }
 
     public String getDefaultMaterialName(FluidState state) {
@@ -185,6 +212,7 @@ public class WorldMesher {
 
     public CompletableFuture<Map<SectionPos, List<WorldMesh>>> tessellateDeltas(WorldCapture capture) {
         BlockUpdateCache cache = BlockUpdateCache.generate(capture);
+        buildOverrideCache();
         Map<SectionPos, List<WorldMesh>> results = new ConcurrentHashMap<>();
 
         var dirtySections = capture.getDirtySections();
@@ -300,6 +328,7 @@ public class WorldMesher {
      * Start the primary world tessellation
      */
     public void startBase() {
+        buildOverrideCache();
         taskManager.start();
     }
 
@@ -315,5 +344,54 @@ public class WorldMesher {
                 LOGGER.warn("Computed {} redundant section meshes.", tasks);
             }
         });
+    }
+
+    public void registerDefaultOverrides() {
+        registerBlockOverride(Blocks.GRASS_BLOCK, ExportModels.GRASS_BLOCK_KEY, GRASS_MAT);
+    }
+
+    public void registerBlockOverride(Block block, ExtraModelKey<BlockStateModel> modelKey, @Nullable String material) {
+        LOGGER.info("Registering model override for {}: {}", block, modelKey);
+        Supplier<BlockModelOverride> supplier = () -> {
+            BlockStateModel model = Minecraft.getInstance().getModelManager().getModel(modelKey);
+            if (model == null) {
+                LOGGER.warn("Export model {} was not baked; falling back to vanilla model.", modelKey);
+                return null;
+            }
+            return new BlockModelOverride(model, material);
+        };
+        for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+            modelOverrides.put(state, supplier);
+        }
+    }
+
+    private void buildOverrideCache() {
+        var builder = ImmutableMap.<BlockState, BlockModelOverride>builder();
+        for (var entry : modelOverrides.entrySet()) {
+            var model = entry.getValue().get();
+            if (model != null)
+                builder.put(entry.getKey(), model);
+        }
+        modelOverrideCache = builder.build();
+    }
+
+    private class OverrideBlockStateModelSupplier implements BlockStateModelSupplier {
+
+        private final BlockStateModelSet base;
+
+        private OverrideBlockStateModelSupplier(BlockStateModelSet base) {
+            this.base = base;
+        }
+
+        @Override
+        public BlockStateModel get(BlockState blockState) {
+            BlockModelOverride override = modelOverrideCache != null ? modelOverrideCache.get(blockState) : null;
+            return override != null ? override.model() : base.get(blockState);
+        }
+
+        @Override
+        public BlockStateModel missingModel() {
+            return base.missingModel();
+        }
     }
 }

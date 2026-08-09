@@ -1,6 +1,6 @@
 package com.igrium.worldexport.world;
 
-import com.google.common.collect.AbstractIterator;
+import com.igrium.worldexport.mesh.WorldMesher;
 import com.igrium.worldexport.util.ChunkDiffs;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;

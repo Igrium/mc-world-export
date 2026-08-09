@@ -31,7 +31,7 @@ import java.util.Collections;
 @Builder
 public class BlockTessellator {
 
-    private final @NonNull BlockStateModelSet blockModelSet;
+    private final @NonNull BlockStateModelSupplier blockModelSet;
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
 
@@ -84,7 +84,6 @@ public class BlockTessellator {
                 addQuad(obj, x, y, z, quad, instance, true);
 
         FluidRenderer.Output fluidOutput = _ -> objConsumer;
-
 
         for (BlockPos pos : blocks) {
             BlockState blockState = region.getBlockState(pos);

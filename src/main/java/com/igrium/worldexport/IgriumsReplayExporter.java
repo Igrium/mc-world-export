@@ -3,6 +3,7 @@ package com.igrium.worldexport;
 import com.google.common.collect.ImmutableMap;
 import com.igrium.worldexport.debugger.ReplayDebugger;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
+import com.igrium.worldexport.mesh.ExportModels;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.replay.ReplayCompiler;
 import com.igrium.worldexport.replay.ReplayExportSettings;
@@ -39,6 +40,8 @@ public class IgriumsReplayExporter implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         instance = this;
+
+        ExportModels.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(ReplayCapture::globalEndClientTick);
         ClientBlockUpdatedEvent.EVENT.register(ReplayCapture::globalClientBlockUpdated);

@@ -6,7 +6,7 @@ import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
-import com.igrium.worldexport.world.WorldMesh;
+import com.igrium.worldexport.mesh.WorldMesh;
 import de.javagl.obj.*;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;

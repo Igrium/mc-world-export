@@ -1,4 +1,4 @@
-package com.igrium.worldexport.world;
+package com.igrium.worldexport.mesh;
 
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.worldexport.util.JsonAdapters;

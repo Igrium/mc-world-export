@@ -3,7 +3,7 @@ package com.igrium.worldexport.replay;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
-import com.igrium.worldexport.world.WorldMesh;
+import com.igrium.worldexport.mesh.WorldMesh;
 import lombok.Getter;
 
 import java.util.HashMap;
