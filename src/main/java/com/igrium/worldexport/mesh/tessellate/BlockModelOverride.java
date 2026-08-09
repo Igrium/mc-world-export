@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.tessellate;
 
 import net.minecraft.client.renderer.block.BlockStateModelSet;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;

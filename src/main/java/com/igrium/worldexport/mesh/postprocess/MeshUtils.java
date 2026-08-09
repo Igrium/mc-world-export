@@ -1,5 +1,6 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.postprocess;
 
+import com.igrium.worldexport.mesh.vertex.ArrayBackedFloatTuple;
 import de.javagl.obj.*;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -7,8 +8,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Vector3fc;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class MeshUtils {

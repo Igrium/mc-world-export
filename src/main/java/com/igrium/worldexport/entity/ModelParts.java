@@ -1,8 +1,8 @@
 package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
-import com.igrium.worldexport.mesh.MeshUtils;
-import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
+import com.igrium.worldexport.mesh.postprocess.MeshUtils;
+import com.igrium.worldexport.mesh.vertex.ObjVertexConsumer;
 import com.igrium.worldexport.mixin.AccessorModelPart;
 import de.javagl.obj.Obj;
 import net.minecraft.client.model.geom.ModelPart;

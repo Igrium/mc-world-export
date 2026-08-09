@@ -1,5 +1,5 @@
-import com.igrium.worldexport.mesh.ColoredVertex;
-import com.igrium.worldexport.mesh.MeshMergeVerts;
+import com.igrium.worldexport.mesh.vertex.ColoredVertex;
+import com.igrium.worldexport.mesh.postprocess.MeshMergeVerts;
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFace;

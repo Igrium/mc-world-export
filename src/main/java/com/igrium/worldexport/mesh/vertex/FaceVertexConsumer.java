@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh.VertexConsumers;
+package com.igrium.worldexport.mesh.vertex;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.PoseStack;

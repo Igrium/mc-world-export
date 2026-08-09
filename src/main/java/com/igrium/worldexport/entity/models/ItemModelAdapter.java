@@ -3,7 +3,7 @@ package com.igrium.worldexport.entity.models;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.ModelAdapter;
-import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
+import com.igrium.worldexport.mesh.vertex.ObjVertexConsumer;
 import com.igrium.worldexport.mixin.AccessorItemStackRenderState;
 import com.igrium.worldexport.mixin.AccessorLayerRenderState;
 import com.igrium.worldexport.replay.MaterialHolder;

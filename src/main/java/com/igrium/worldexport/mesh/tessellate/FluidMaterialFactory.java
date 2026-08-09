@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.tessellate;
 
 import net.minecraft.world.level.material.FluidState;
 

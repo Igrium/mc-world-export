@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh.VertexConsumers;
+package com.igrium.worldexport.mesh.vertex;
 
 import lombok.Getter;
 import org.joml.Vector2fc;

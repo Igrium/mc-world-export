@@ -3,7 +3,7 @@ package com.igrium.worldexport.replay;
 import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.math.ChunkSections;
-import com.igrium.worldexport.mesh.MeshUtils;
+import com.igrium.worldexport.mesh.postprocess.MeshUtils;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.mesh.WorldMesh;

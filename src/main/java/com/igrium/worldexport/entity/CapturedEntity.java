@@ -1,7 +1,7 @@
 package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
-import com.igrium.worldexport.mesh.MeshUtils;
+import com.igrium.worldexport.mesh.postprocess.MeshUtils;
 import de.javagl.obj.*;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;

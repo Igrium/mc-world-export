@@ -1,6 +1,7 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.tessellate;
 
-import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
+import com.igrium.worldexport.mesh.vertex.ColoredVertex;
+import com.igrium.worldexport.mesh.vertex.ObjVertexConsumer;
 import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;

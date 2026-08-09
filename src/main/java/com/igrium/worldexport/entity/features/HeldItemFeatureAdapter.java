@@ -3,7 +3,7 @@ package com.igrium.worldexport.entity.features;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.models.ItemModelAdapter;
-import com.igrium.worldexport.mesh.VertexConsumers.ObjVertexConsumer;
+import com.igrium.worldexport.mesh.vertex.ObjVertexConsumer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.mojang.blaze3d.vertex.QuadInstance;

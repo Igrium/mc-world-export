@@ -1,4 +1,4 @@
-package com.igrium.worldexport.mesh;
+package com.igrium.worldexport.mesh.vertex;
 
 import de.javagl.obj.FloatTuple;
 import lombok.EqualsAndHashCode;

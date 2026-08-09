@@ -1,6 +1,5 @@
-package com.igrium.worldexport.mesh.VertexConsumers;
+package com.igrium.worldexport.mesh.vertex;
 
-import com.igrium.worldexport.mesh.ColoredVertex;
 import de.javagl.obj.Obj;
 import lombok.Getter;
 import lombok.Setter;
