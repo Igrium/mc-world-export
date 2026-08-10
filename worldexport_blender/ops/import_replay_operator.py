@@ -65,7 +65,7 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
     # depends on import_entities
     clean_curves: BoolProperty(
         name="Clean Curves",
-        description="Run a 'clean curves' operator on imported entities",
+        description="(not implemented)",
         default=True
     )
 

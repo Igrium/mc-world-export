@@ -1,5 +1,7 @@
+from typing import Collection
+
 import bpy
-from bpy.types import Context
+from bpy.types import Context, Scene
 import os
 import tempfile
 import zipfile
@@ -32,21 +34,30 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     existing_tex = set(bpy.data.images)
     existing_mats = set(bpy.data.materials)
     
-    scene = bl_context.scene
+    scene: Scene = bl_context.scene
     if not scene: return
     
     world_collection = bpy.data.collections.new("World")
+    if not world_collection:
+        print("Unable to create world collection")
+        return
     scene.collection.children.link(world_collection)
     
     entity_collection = bpy.data.collections.new("Entities")
+    if not entity_collection:
+        print("Unable to create entity collection")
+        return
     scene.collection.children.link(entity_collection)
     
     prefab_datablocks = prefabs.load(prefabs.prefab_file)
 
-    context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection, prefab_datablocks)
+    context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection, prefab_datablocks, settings)
     
-    world_importer.import_world(context)
-    entity_loader.import_entities(context)
+    if context.settings.import_world:
+        world_importer.import_world(context)
+
+    if context.settings.import_entities:
+        entity_loader.import_entities(context)
     
     new_meshes = set(bpy.data.meshes) - existing_meshes
     new_mats = set(bpy.data.materials) - existing_mats
