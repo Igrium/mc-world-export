@@ -1,13 +1,13 @@
 import bpy
-import struct
 import os.path
-from .. import common
-from ..anim.animation_curve import AnimationCurve
+from .. import binary_io, common, obj_loader
+from ..anim.animation_curve import AnimationCurve, TickToFrame
+from ..anim.curve_types import AnimationProvider
 from ..anim import timeline_bounds
 from ..anim.timeline_bounds import TimelineRange
 from ..mesh import mesh_utils
 
-from ..replay_types import ReplayImportContext, CurveLike, AnimationProvider
+from ..replay_types import ReplayImportContext
 from typing import BinaryIO, Iterable
 from bpy.types import Object, EditBone
 
@@ -22,7 +22,6 @@ class CapturedEntity(AnimationProvider):
     """A map of model part names and their parent (optional)
     """
     
-    # curves: list[tuple[str, AnimationCurve]]
     curves: dict[str, list[AnimationCurve]]
     
     armature: Object | None
@@ -48,7 +47,7 @@ class CapturedEntity(AnimationProvider):
         self.part_meshes = {}
         self.entity_ranges = []
         
-    def load_anim_file(self, entity_folder: str, context: ReplayImportContext):
+    def load_anim_file(self, entity_folder: str):
         path = os.path.join(entity_folder, self.name + '.anim')
         with open(path, 'rb') as f:
             read_anim_file(f, self.curves)
@@ -75,13 +74,12 @@ class CapturedEntity(AnimationProvider):
         
         return split_parts
             
-    def load_mesh(self, entity_folder: str, context: ReplayImportContext, split_parts: set[str] | None = None):
+    def load_mesh(self, entity_folder: str, context: ReplayImportContext):
         path = os.path.join(entity_folder, self.name + '.obj')
         if not os.path.exists(path):
             return
-        
-        context.bl_context.collection
-        imported = set(common.load_obj_python(context.bl_context, path, import_vertex_groups=True).values())
+
+        imported = obj_loader.load_obj_bundled(context.bl_context, path, import_vertex_groups=True)
         if (imported):
             self.mesh = imported.pop()
             # split parts
@@ -90,7 +88,8 @@ class CapturedEntity(AnimationProvider):
                 print(split_parts)
                 self.part_meshes = mesh_utils.split_vertex_groups(self.mesh, lambda p: p in split_parts)
                 print(self.part_meshes)
-            
+
+
             for m in self.part_meshes.values():
                 context.entity_collection.objects.link(m)
             
@@ -155,14 +154,14 @@ class CapturedEntity(AnimationProvider):
         
     
     def load(self, entity_folder: str, context: ReplayImportContext):
-        self.load_anim_file(entity_folder, context)
+        self.load_anim_file(entity_folder)
         self.gen_armature(context)
         self.load_mesh(entity_folder, context)
 
     
     def apply_animation(self, context: ReplayImportContext):
-        if (self.armature == None):
-            raise Exception("Armature has not been generated yet!")
+        if (self.armature is None):
+            raise RuntimeError("Armature has not been generated yet!")
         
         action, fcurves = common.create_action(self.armature, f'{self.name}_action')
 
@@ -179,30 +178,18 @@ class CapturedEntity(AnimationProvider):
             
             
             for curve in curve_list:
-                for ref, vals in curve.to_key_arrays(data_prefix, context, transform_operator).items():
-                    existing = flattened_curves.get(ref)
-                    if existing:
-                        existing.extend(vals)
-                    else:
-                        flattened_curves[ref] = vals
-                        
-                # TODO: Don't create visibility keyframes 
-            
+                for ref, vals in curve.to_key_arrays(data_prefix, context.tick_to_frame, transform_operator).items():
+                    flattened_curves.setdefault(ref, []).extend(vals)
+
+                # TODO: Don't create visibility keyframes
+
             # Part visibility
             part_mesh = self.part_meshes.get(part_name)
             if part_mesh:
                 ranges = timeline_bounds.merge_ranges((TimelineRange.from_curve(c) for c in curve_list))
-                first_range = True
-                for r in ranges:
-                    start_frame = context.tick_to_frame(r.start_tick)
-                    end_frame = start_frame + context.tick_to_frame(r.length)
-                    
-                    if first_range:
-                        common.add_vis_keyframe(part_mesh, False, start_frame - 1)
-                        first_range = False
-                    common.add_vis_keyframe(part_mesh, True, start_frame)
-                    common.add_vis_keyframe(part_mesh, False, end_frame)
-                    
+                _apply_visibility_keyframes(part_mesh, ranges, context.tick_to_frame)
+
+
         # Apply anim curves
         for (data_path, index), keys in flattened_curves.items():
             curve = fcurves.new(data_path, index=index)
@@ -216,34 +203,33 @@ class CapturedEntity(AnimationProvider):
         # Entity visibility keyframes
         
         if self.mesh:
-            first_range = True
-            for r in self.entity_ranges:
-                start_frame = context.tick_to_frame(r.start_tick)
-                end_frame = start_frame + context.tick_to_frame(r.length)
-                
-                if first_range:
-                    common.add_vis_keyframe(self.mesh, False, start_frame - 1)
-                    first_range = False
-                common.add_vis_keyframe(self.mesh, True, start_frame)
-                common.add_vis_keyframe(self.mesh, False, end_frame)
-        
-            
-        
+            _apply_visibility_keyframes(self.mesh, self.entity_ranges, context.tick_to_frame)
+
+
+def _apply_visibility_keyframes(obj: Object, ranges: Iterable[TimelineRange], tick_to_frame: TickToFrame):
+    """Keyframe `obj` visible for each of `ranges` and hidden everywhere else."""
+    first_range = True
+    for r in ranges:
+        start_frame = tick_to_frame(r.start_tick)
+        end_frame = start_frame + tick_to_frame(r.length)
+
+        if first_range:
+            common.add_vis_keyframe(obj, False, start_frame - 1)
+            first_range = False
+        common.add_vis_keyframe(obj, True, start_frame)
+        common.add_vis_keyframe(obj, False, end_frame)
+
+
 def read_anim_file(f: BinaryIO, curves: dict[str, list[AnimationCurve]]):
-    size: int = struct.unpack('>i', f.read(4))[0]
-    for i in range(0, size): 
-        name = common.read_utf(f)
+    size = binary_io.read_int(f)
+    for _ in range(size):
+        name = binary_io.read_utf(f)
         curve = AnimationCurve()
         curve.read(f)
-        
-        if name in curves:
-            curve_list = curves[name]
-        else:
-            curve_list = []
-            curves[name] = curve_list
-        
-        curve_list.append(curve)
-    
+
+        curves.setdefault(name, []).append(curve)
+
+
 def ranges_need_split(child: Iterable[TimelineRange], parent: Iterable[TimelineRange]) -> bool:
     """Check if a model part needs splitting by comparing its timeline ranges with that of the parent entity.
     If there are any instances of a child timeline range where no parent timeline range fits completely,

@@ -9,14 +9,7 @@ def merge_duplicate_materials(meshes: Iterable[Mesh]):
     
     for mesh in meshes:
         for mat in mesh.materials:
-            
-            bname = get_base_name(mat.name)
-            bname_list = base_names.get(bname)
-            if not bname_list:
-                bname_list = []
-                base_names[bname] = bname_list
-            
-            bname_list.append(mat.name)
+            base_names.setdefault(get_base_name(mat.name), []).append(mat.name)
     
     original_variants = {
         bname: _find_original_variant(bname_list) 
@@ -24,10 +17,9 @@ def merge_duplicate_materials(meshes: Iterable[Mesh]):
     }
     
     for mesh in meshes:
-        for i in range(0, len(mesh.materials)):
-            orig = mesh.materials[i]
+        for i, orig in enumerate(mesh.materials):
             if not orig: continue
-            
+
             mesh.materials[i] = bpy.data.materials[original_variants[get_base_name(orig.name)]]
  
 def get_base_name(name: str) -> str:

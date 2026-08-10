@@ -1,27 +1,8 @@
-import struct
+"""Small Blender helpers shared across the importer."""
+
 import bpy
 
-from typing import BinaryIO, Literal
-from bpy.types import Context, Object
-from bpy_extras.io_utils import axis_conversion
-
-from .mesh import import_obj
-
-def load_obj(filepath: str, use_split_objects=True, use_split_groups=False,
-               import_vertex_groups=False, validate_meshes=True):
-    existing = set(bpy.data.objects)
-    bpy.ops.wm.obj_import(filepath=filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
-                          import_vertex_groups=import_vertex_groups, validate_meshes=validate_meshes)
-    new = set(bpy.data.objects)
-    return new - existing
-
-def load_obj_python(context: Context, filepath: str, use_split_objects=False, use_split_groups=False,
-               import_vertex_groups=False, validate_meshes=True):
-    # bpy.ops.wm.obj_import(filepath=filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
-    #                       import_vertex_groups=import_vertex_groups, validate_meshes=validate_meshes)
-    return import_obj.load(context, filepath, use_split_objects=use_split_objects, use_split_groups=use_split_groups,
-                    use_groups_as_vgroups=import_vertex_groups, global_matrix=axis_conversion('-Z', 'Y').to_4x4())
-
+from bpy.types import Object
 
 
 def create_action(id_data, name: str, id_type: str = 'OBJECT'):
@@ -62,26 +43,3 @@ def add_vis_keyframe(obj: Object, visible: bool, frame: float):
                         for kp in fcurve.keyframe_points:
                             if kp.co.x == frame:
                                 kp.interpolation = 'CONSTANT'
-
-def read_int(f: BinaryIO) -> int:
-    data: bytes = f.read(4)
-    if len(data) != 4:
-        raise EOFError("Unexpected end of file while reading int")
-    return struct.unpack('>i', data)[0]
-
-def read_float(f: BinaryIO) -> float:
-    data: bytes = f.read(4)
-    if len(data) != 4:
-        raise EOFError("Unexpected end of file while reading float")
-    return struct.unpack('>f', data)[0]
-
-
-def read_utf(f: BinaryIO) -> str:
-    length_bytes: bytes = f.read(2)
-    if len(length_bytes) != 2:
-        raise EOFError("Unexpected end of file while reading UTF length")
-    length: int = struct.unpack('>H', length_bytes)[0]
-    utf8_bytes: bytes = f.read(length)
-    if len(utf8_bytes) != length:
-        raise EOFError("Unexpected end of file while reading UTF data")
-    return utf8_bytes.decode('utf-8')

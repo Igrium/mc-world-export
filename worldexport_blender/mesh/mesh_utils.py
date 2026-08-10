@@ -1,4 +1,3 @@
-import bpy
 import bmesh
 from bmesh.types import BMFace
 
@@ -17,7 +16,7 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
         dict[str, Object]: A dict with all split group names and their corrisponding objects
     """
     if obj.type != 'MESH':
-        raise Exception("Object is not a mesh!")
+        raise TypeError("Object is not a mesh!")
     
     mesh = cast(Mesh, obj.data)
     
@@ -42,7 +41,6 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
 
     # Map original vert indices to bmesh verts
     bm.verts.ensure_lookup_table()
-    # bm_new_map: dict[int, BMesh] = {}
     result: dict[str, Object] = {}
     
     to_delete: list[BMFace] = []
@@ -63,10 +61,7 @@ def split_vertex_groups(obj: Object, should_split: Callable[[str], bool]) -> dic
         bmesh.ops.delete(bm_new, geom=retain_faces, context='FACES')
         
         name = group_names[vg]
-        # mesh_new = bpy.data.meshes.new(name)
-        # bm_new.to_mesh(mesh_new)
-        # bm_new.free()
-        
+
         mesh_new = mesh.copy()
         mesh_new.name = name
         bm_new.to_mesh(mesh_new)

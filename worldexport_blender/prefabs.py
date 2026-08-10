@@ -1,13 +1,34 @@
 import bpy
 from os import path
 
-from pprint import pprint
-import inspect
-
-from bpy.types import NodeTree
-from .replay_types import PrefabDatablocks
+from bpy.types import ShaderNodeTree
 
 prefab_file = path.join(path.dirname(path.realpath(__file__)), 'prefabs.blend')
+
+
+class PrefabDatablocks:
+    mul_vertex_color: ShaderNodeTree
+    grass_tint_pre: ShaderNodeTree
+    grass_tint_post: ShaderNodeTree
+
+    def clear_unused(self):
+        """Remove any prefab node group that nothing ended up referencing.
+
+        Repeats until nothing more can be removed: the prefabs nest (GrassTintPost
+        contains a MulVertexColor node), so dropping one group can be what finally
+        orphans another.
+        """
+        remaining = [self.mul_vertex_color, self.grass_tint_pre, self.grass_tint_post]
+
+        removed_any = True
+        while removed_any:
+            removed_any = False
+            for group in list(remaining):
+                if group and group.users == 0:
+                    bpy.data.node_groups.remove(group)
+                    remaining.remove(group)
+                    removed_any = True
+
 
 def load(filepath: str):
     with bpy.data.libraries.load(filepath, assets_only=True) as (data_from, data_to):

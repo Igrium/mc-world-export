@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Iterable, Tuple, Callable
-from ..replay_types import CurveLike, AnimationProvider
-from typing import Self
+from typing import Iterable
+from .curve_types import CurveLike, AnimationProvider
 
 @dataclass
 class TimelineRange:
@@ -98,6 +97,9 @@ def merge_ranges(ranges: Iterable[TimelineRange]):
 
 # Max exclusive
 def _merge_overlap(arr: list[list[int]]) -> list[list[int]]:
+    if not arr:
+        return []
+
     # Sort intervals based on start values
     arr.sort()
 

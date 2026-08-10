@@ -1,11 +1,11 @@
-from enum import Enum, IntEnum
+from enum import IntEnum
 import struct
 
 from typing import BinaryIO, Callable, TypeAlias
-from bpy.types import Action
-from ..replay_importer import ReplayImportContext
-from ..replay_types import CurveLike
-    
+from .. import binary_io
+from .curve_types import CurveLike
+
+
 class CurveFormat(IntEnum):
     NO_DATA = 0
     POS = 1
@@ -27,6 +27,8 @@ class CurveFormat(IntEnum):
     
 VectorOperator: TypeAlias = Callable[[float, float, float], tuple[float, float, float]]
 QuaternionOperator: TypeAlias = Callable[[float, float, float, float], tuple[float, float, float, float]]
+TickToFrame: TypeAlias = Callable[[int], float]
+"""Maps a replay tick onto a scene frame. See `ReplayImportContext.tick_to_frame`."""
 
 class AnimationCurve(CurveLike):
     format: CurveFormat = CurveFormat.POS_ROT_SCALE
@@ -76,8 +78,8 @@ class AnimationCurve(CurveLike):
     def read(self, f: BinaryIO):
         
         self.format = CurveFormat(struct.unpack('>b', f.read(1))[0])
-        self.tick_offset = struct.unpack('>i', f.read(4))[0]
-        length: int = struct.unpack('>i', f.read(4))[0]
+        self.tick_offset = binary_io.read_int(f)
+        length: int = binary_io.read_int(f)
         self.length = length
         
         def read_channel(curve: list[float]):
@@ -101,7 +103,7 @@ class AnimationCurve(CurveLike):
             read_channel(self.scale_y)
             read_channel(self.scale_z)
     
-    def to_key_arrays(self, base_datapath: str, context: ReplayImportContext,
+    def to_key_arrays(self, base_datapath: str, tick_to_frame: TickToFrame,
                       pos_transform: VectorOperator | None = None,
                       rot_transform: QuaternionOperator | None = None,
                       scale_transform: VectorOperator | None = None):
@@ -109,7 +111,7 @@ class AnimationCurve(CurveLike):
 
         Args:
             base_datapath (Data path prefix): prefix the curve datapath with this.
-            context (ReplayImportContext): Import context
+            tick_to_frame (TickToFrame): Maps a replay tick onto a scene frame.
 
         Returns:
             _type_: A dictionary of datpaths and their curve arrays
@@ -129,7 +131,7 @@ class AnimationCurve(CurveLike):
         def to_key_array(values: list[float]):
             # Create list of keyframes, with the frame as the first element and the value as the second element
             keyframes = [(
-                context.tick_to_frame(tick + self.tick_offset),
+                tick_to_frame(tick + self.tick_offset),
                 val
             ) for tick, val in enumerate(values)]
             
@@ -162,8 +164,8 @@ def _apply_vector_operator(x: list[float], y: list[float], z: list[float], opera
         yp = [0.0] * len(y)
         zp = [0.0] * len(z)
         
-        for i in range(0, len(x)):
-            xp[i], yp[i], zp[i] = operator(x[i], y[i], z[i])
+        for i, (xi, yi, zi) in enumerate(zip(x, y, z)):
+            xp[i], yp[i], zp[i] = operator(xi, yi, zi)
         return (xp, yp, zp)
     else:
         return (x, y, z)
@@ -175,8 +177,8 @@ def _apply_quat_operator(w: list[float], x: list[float], y: list[float], z: list
         dy = [0.0] * len(y)
         dz = [0.0] * len(z)
         
-        for i in range(0, len(x)):
-            dw[i], dx[i], dy[i], dz[i] = operator(w[i], x[i], y[i], z[i])
+        for i, (wi, xi, yi, zi) in enumerate(zip(w, x, y, z)):
+            dw[i], dx[i], dy[i], dz[i] = operator(wi, xi, yi, zi)
         return (dw, dx, dy, dz)
     else:
         return (w, x, y, z)

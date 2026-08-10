@@ -1,6 +1,5 @@
 import bpy
-from dataclasses import dataclass
-from bpy.types import Context, Collection
+from bpy.types import Context
 import os
 import tempfile
 import zipfile
@@ -8,14 +7,14 @@ from .replay_types import ReplayImportSettings, ReplayImportContext
 
 from . import world_importer
 from . import prefabs
-from . import datablocks
+from . import material_merge
 from . import materials
 
 from .entity import entity_loader
 
 
 def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context, extract_zip: bool | None = None):
-    if extract_zip == None:
+    if extract_zip is None:
         extract_zip = os.path.isfile(file)
     
     if extract_zip:
@@ -42,9 +41,9 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     entity_collection = bpy.data.collections.new("Entities")
     scene.collection.children.link(entity_collection)
     
-    prefab_datablcks = prefabs.load(prefabs.prefab_file)
-    
-    context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection, prefab_datablcks)
+    prefab_datablocks = prefabs.load(prefabs.prefab_file)
+
+    context = ReplayImportContext(replay_root, bl_context, world_collection, entity_collection, prefab_datablocks)
     
     world_importer.import_world(context)
     entity_loader.import_entities(context)
@@ -53,7 +52,7 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     new_mats = set(bpy.data.materials) - existing_mats
     new_tex = set(bpy.data.images) - existing_tex
     
-    datablocks.merge_duplicate_materials(new_meshes)
+    material_merge.merge_duplicate_materials(new_meshes)
     
     # Cleanup excess datablocks
     orphaned_meshes = [m for m in new_meshes if m.users == 0]
@@ -75,5 +74,5 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
                 tex.pack()
         
         temp_dir.cleanup()
-    
-    prefab_datablcks.clear_unused()
+
+    prefab_datablocks.clear_unused()

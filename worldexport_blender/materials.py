@@ -2,42 +2,33 @@ import json
 import os
 from typing import Any, Iterable, cast
 
-import bpy
-from bpy.types import ShaderNodeTexImage, ShaderNodeTree
 from bpy.types import (
     Material,
     ShaderNodeBsdfPrincipled,
     ShaderNodeGroup,
     ShaderNodeTexImage,
+    ShaderNodeTree,
 )
 
-from . import prefabs
-from .replay_types import PrefabDatablocks, ReplayImportContext
+from .replay_types import ReplayImportContext
+
 
 def process_materials(mats: Iterable[Material], context: ReplayImportContext):
-    
-    prefabs.load(prefabs.prefab_file)
-    
     custom_props: dict[str, dict] = {}
     for root, dirs, files in os.walk(context.replay_root):
         for file in files:
             if not file.endswith('.mtl.json'): continue
-            
+
             with open(os.path.join(context.replay_root, file), 'r') as f:
                 json_data: dict[str, dict] = json.load(f)
-            
+
             for mat_name, mat_props in json_data.items():
-                props = custom_props.get(mat_name)
-                if not props:
-                    custom_props[mat_name] = mat_props
-                else:
-                    props.update(mat_props)
-                    
+                custom_props.setdefault(mat_name, {}).update(mat_props)
+
     for mat in mats:
         process_material(mat, custom_props.get(mat.name), context)
-    
+
 def process_material(mat: Material, custom_props: dict[str, Any] | None, context: ReplayImportContext):
-    print(custom_props)
     node_tree = mat.node_tree
     if not node_tree: return
     
@@ -84,9 +75,7 @@ def apply_custom_props(mat: Material, custom_props: dict[str, Any], context: Rep
 
         node_tree.links.new(from_socket, vert_tint_node.inputs[0])
         node_tree.links.new(vert_tint_node.outputs[0], color_socket)
-    
 
-    ...
 
 def apply_grass_overlay(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled, overlay: tuple[float, float], context: ReplayImportContext):
     nodes = node_tree.nodes
