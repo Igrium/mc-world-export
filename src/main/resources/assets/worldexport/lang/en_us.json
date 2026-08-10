@@ -5,7 +5,6 @@
   "command.worldcapture.save.confirmed": "Saved to %s in %d ms.",
   "command.worldcapture.save.failed": "Failed to save replay. See console for details. (%s)",
 
-  "menu.worldexport.replaydebugger": "Open Replay Debugger",
 
   "worldexport.gui.export.bounds": "Export Bounds",
   "worldexport.gui.export.edit_bounds": "Edit Bounds",

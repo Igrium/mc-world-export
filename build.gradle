@@ -32,6 +32,12 @@ sourceSets {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
+    // Not a compat layer: a separate dev-only mod with its own fabric.mod.json.
+    // Deliberately absent from loom.mods, devRuntime and the jar.
+    debugger {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
 }
 
 // Holds no sources. A Loom run's classpath is exactly one source set's, and the compat sets
@@ -42,6 +48,16 @@ sourceSets {
         compileClasspath += sourceSets.flashback.output + sourceSets.flashback.compileClasspath
         runtimeClasspath += sourceSets.replaymod.output + sourceSets.replaymod.runtimeClasspath
         runtimeClasspath += sourceSets.flashback.output + sourceSets.flashback.runtimeClasspath
+    }
+}
+
+// Also sourceless: devRuntime plus the debugger test mod, for the Debugger Client run.
+sourceSets {
+    debuggerRuntime {
+        compileClasspath += sourceSets.devRuntime.output + sourceSets.devRuntime.compileClasspath
+        compileClasspath += sourceSets.debugger.output + sourceSets.debugger.compileClasspath
+        runtimeClasspath += sourceSets.devRuntime.output + sourceSets.devRuntime.runtimeClasspath
+        runtimeClasspath += sourceSets.debugger.output + sourceSets.debugger.runtimeClasspath
     }
 }
 
@@ -62,6 +78,12 @@ loom {
             displayName = "Dev Client"
             sourceSet = sourceSets.devRuntime.name
         }
+        // Same, plus the worldexport-debugger test mod.
+        debuggerClient {
+            client();
+            displayName = "Debugger Client"
+            sourceSet = sourceSets.debuggerRuntime.name
+        }
     }
 }
 
@@ -73,8 +95,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation(include("de.javagl:obj:0.4.0"))
     // For debugging exported replays
-    implementation 'com.github.Igrium:CraftUI:0.8.0-b2'
-//    modCompileOnly "com.github.igrium:craftui:db770015ca"
+    debuggerImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
     replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
@@ -83,6 +104,13 @@ dependencies {
 
 }
 processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+// processResources only covers main; the debugger has its own fabric.mod.json.
+processDebuggerResources {
     inputs.property "version", project.version
     filesMatching("fabric.mod.json") {
         expand "version": inputs.properties.version

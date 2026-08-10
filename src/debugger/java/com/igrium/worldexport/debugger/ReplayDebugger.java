@@ -40,7 +40,7 @@ public final class ReplayDebugger extends CraftApp {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen tScreen) {
                 Screens.getWidgets(screen).add(Button
-                        .builder(Component.translatable("menu.worldexport.replaydebugger"), (b) -> open(client))
+                        .builder(Component.translatable("menu.worldexport-debugger.open"), (b) -> open(client))
                         .build());
             }
         });

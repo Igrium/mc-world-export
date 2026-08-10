@@ -1,7 +1,6 @@
 package com.igrium.worldexport;
 
 import com.google.common.collect.ImmutableMap;
-import com.igrium.worldexport.debugger.ReplayDebugger;
 import com.igrium.worldexport.event.ClientBlockUpdatedEvent;
 import com.igrium.worldexport.mesh.ExportModels;
 import com.igrium.worldexport.replay.ReplayCapture;
@@ -48,11 +47,6 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         ClientChunkEvents.CHUNK_LOAD.register(ReplayCapture::globalClientChunkLoad);
 
         ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register(ReplayCapture::globalClientWorldChange);
-
-        if (FabricLoader.getInstance().isModLoaded("craftui")) {
-            ReplayDebugger.registerMenuButton();
-        }
-
 
         FabricLoader fabric = FabricLoader.getInstance();
         for (var entry : COMPAT_ENTRYPOINTS.entrySet()) {
