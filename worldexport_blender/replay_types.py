@@ -7,6 +7,8 @@ from typing import Protocol, TypeVar, Generic, Iterable, Mapping
 
 class PrefabDatablocks:
     mul_vertex_color: ShaderNodeTree
+    grass_tint_pre: ShaderNodeTree
+    grass_tint_post: ShaderNodeTree
 
     def clear_unused(self):
         if self.mul_vertex_color and self.mul_vertex_color.users == 0:
