@@ -1,8 +1,7 @@
 package com.igrium.worldexport.mesh.tessellate;
 
-import net.minecraft.client.renderer.block.BlockStateModelSet;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -10,9 +9,11 @@ import org.jetbrains.annotations.Nullable;
  *
  * @param model    Model to use
  * @param material Material to assign the block. <code>null</code> to use the default world material.
+ * @param faceMats If set, faces with specific tint indices will use a different material.
+ * @apiNote For any given export section, any tint indices present in <code>faceMats</code> will be proxied to 0.
+ * Choose values that won't conflict with other mods.
  */
-public record BlockModelOverride(BlockStateModel model, @Nullable String material) {
-    public interface Factory {
-        @Nullable BlockModelOverride get(BlockStateModelSet models, BlockState state);
-    }
+public record BlockModelOverride(BlockStateModel model, @Nullable String material,
+                                 @Nullable Int2ObjectMap<String> faceMats) {
+
 }

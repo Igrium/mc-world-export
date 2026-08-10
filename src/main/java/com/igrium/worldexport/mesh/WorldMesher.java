@@ -14,13 +14,14 @@ import com.igrium.worldexport.util.TaskManager;
 import com.igrium.worldexport.world.*;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.*;
 import lombok.Getter;
 import lombok.Setter;
 import net.fabricmc.fabric.api.client.model.loading.v1.ExtraModelKey;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.block.BlockColors;
+import net.minecraft.client.color.block.BlockTintSource;
+import net.minecraft.client.color.block.BlockTintSources;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
@@ -35,9 +36,11 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.FluidState;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,13 +119,16 @@ public class WorldMesher {
         return taskManager.getFinishedTasks();
     }
 
+    private final ExportBlockColors blockColors;
+
     public WorldMesher(ClientLevel baseWorld) {
         this.baseWorld = baseWorld;
 
         var modelManager = Minecraft.getInstance().getModelManager();
         var modelSupplier = new OverrideBlockStateModelSupplier(modelManager.getBlockStateModelSet());
+        blockColors = new ExportBlockColors(Minecraft.getInstance().getBlockColors());
         tessellator = BlockTessellator.builder()
-                .blockColors(Minecraft.getInstance().getBlockColors())
+                .blockColors(blockColors)
                 .blockModelSet(modelSupplier)
                 .fluidModelSet(modelManager.getFluidStateModelSet())
                 .blockMatFactory(this::getMaterialName)
@@ -141,8 +147,7 @@ public class WorldMesher {
     }
 
     public String getMaterialName(BlockState state) {
-        Supplier<BlockModelOverride> supplier = modelOverrides.get(state);
-        BlockModelOverride override = supplier != null ? supplier.get() : null;
+        var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
         return override != null && override.material() != null ? override.material() : getDefaultMaterialName(state);
     }
 
@@ -349,10 +354,10 @@ public class WorldMesher {
     }
 
     public void registerDefaultOverrides() {
-        registerBlockOverride(Blocks.GRASS_BLOCK, ExportModels.GRASS_BLOCK_KEY, GRASS_MAT);
+        registerBlockOverride(Blocks.GRASS_BLOCK, ExportModels.GRASS_BLOCK_KEY, null, Int2ObjectMaps.singleton(5, GRASS_MAT));
     }
 
-    public void registerBlockOverride(Block block, ExtraModelKey<BlockStateModel> modelKey, @Nullable String material) {
+    public void registerBlockOverride(Block block, ExtraModelKey<BlockStateModel> modelKey, @Nullable String material, @Nullable Int2ObjectMap<String> faceMats) {
         LOGGER.info("Registering model override for {}: {}", block, modelKey);
         Supplier<BlockModelOverride> supplier = () -> {
             BlockStateModel model = Minecraft.getInstance().getModelManager().getModel(modelKey);
@@ -360,7 +365,7 @@ public class WorldMesher {
                 LOGGER.warn("Export model {} was not baked; falling back to vanilla model.", modelKey);
                 return null;
             }
-            return new BlockModelOverride(model, material);
+            return new BlockModelOverride(model, material, faceMats);
         };
         for (BlockState state : block.getStateDefinition().getPossibleStates()) {
             modelOverrides.put(state, supplier);
@@ -375,6 +380,7 @@ public class WorldMesher {
                 builder.put(entry.getKey(), model);
         }
         modelOverrideCache = builder.build();
+        blockColors.build();
     }
 
     private class OverrideBlockStateModelSupplier implements BlockStateModelSupplier {
@@ -394,6 +400,71 @@ public class WorldMesher {
         @Override
         public BlockStateModel missingModel() {
             return base.missingModel();
+        }
+    }
+
+    /**
+     * Overrides block colors during rendering for models where tint idx is being used to pass data
+     */
+    private class ExportBlockColors extends BlockColors {
+
+        private static final BlockTintSource BLANK = BlockTintSources.constant(-1);
+        private final BlockColors base;
+
+        private ImmutableMap<BlockState, List<BlockTintSource>> tintSources = ImmutableMap.of();
+
+        private ExportBlockColors(BlockColors base) {
+            this.base = base;
+        }
+
+        public void build() {
+            var builder = ImmutableMap.<BlockState, List<BlockTintSource>>builder();
+            var cache = modelOverrideCache;
+            if (cache != null) {
+                for (var entry : cache.entrySet()) {
+                    BlockModelOverride override = entry.getValue();
+                    if (override.faceMats() != null && !override.faceMats().isEmpty()) {
+                        builder.put(entry.getKey(), compute(entry.getKey()));
+                    }
+                }
+            }
+            tintSources = builder.build();
+        }
+
+        @Override
+        public @NonNull List<BlockTintSource> getTintSources(@NonNull BlockState state) {
+            List<BlockTintSource> computed = tintSources.get(state);
+            return computed != null ? computed : base.getTintSources(state);
+        }
+
+        private List<BlockTintSource> compute(BlockState state) {
+            BlockModelOverride override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
+            if (override == null || override.faceMats() == null || override.faceMats().isEmpty())
+                return Collections.emptyList();
+
+            int maxIdx = 0;
+            IntIterator iter = override.faceMats().keySet().iterator();
+            while (iter.hasNext()) {
+                maxIdx = Math.max(maxIdx, iter.nextInt());
+            }
+
+            // Pad the list to the desired idx. Blank except for indices with overrides
+            List<BlockTintSource> list = new ArrayList<>(base.getTintSources(state));
+            BlockTintSource first = list.isEmpty() ? BLANK : list.getFirst();
+            for (int i = list.size(); i <= maxIdx; i++) {
+                list.add(override.faceMats().containsKey(i) ? first : BLANK);
+            }
+            return list;
+        }
+
+        @Override
+        public void register(@NonNull List<BlockTintSource> layers, Block @NonNull ... blocks) {
+            base.register(layers, blocks);
+        }
+
+        @Override
+        public @NonNull Set<Property<?>> getColoringProperties(@NonNull Block block) {
+            return base.getColoringProperties(block);
         }
     }
 }
