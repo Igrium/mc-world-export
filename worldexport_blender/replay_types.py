@@ -11,6 +11,22 @@ class ReplayImportSettings:
     If unset, assumes 1 frame = 1 tick.
     """
 
+    process_materials: bool = True
+    """Run post-processing on the materials to set interpolation mode, etc.
+    """
+
+    import_world: bool = True
+    """ Import the block world
+    """
+
+    merge_vertices: bool = False
+    """Run a 'merge by distance' operation of the imported world
+    """
+
+    import_entities: bool = True
+    """Import entities
+    """
+
     local_root_bone: bool = False
     """Create a root bone in the armature rather than animating the armature's position.
     """
@@ -19,9 +35,6 @@ class ReplayImportSettings:
     """Run a 'clean curves' operator on the imported entities.
     """
 
-    process_materials: bool = True
-    """Run post-processing on the materials to set interpolation mode, etc.
-    """
 
 @dataclass
 class ReplayImportContext:
