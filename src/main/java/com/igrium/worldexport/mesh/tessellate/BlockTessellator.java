@@ -22,9 +22,14 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
+import org.apache.commons.lang3.mutable.Mutable;
+import org.apache.commons.lang3.mutable.MutableObject;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.Collections;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Reimplementation of SectionCompiler to tessellate base world chunks
@@ -32,12 +37,26 @@ import java.util.Collections;
 @Builder
 public class BlockTessellator {
 
+    public interface FaceMaterialFactory {
+        String get(BlockState state, int tintIdx);
+    }
+
+    /**
+     * Data pertaining to block materials
+     *
+     * @param name    Obj material name
+     * @param perFace If set, blockFaceMatFactory will be called for each face of the block
+     */
+    public record BlockMaterialInfo(String name, boolean perFace) {};
+
     private final @NonNull BlockStateModelSupplier blockModelSet;
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
 
-    private final @NonNull BlockMaterialFactory blockMatFactory;
-    private final @NonNull FluidMaterialFactory fluidMatFactory;
+    private final @NonNull Function<BlockState, BlockMaterialInfo> blockMatFactory;
+    private final @NonNull Function<FluidState, String> fluidMatFactory;
+
+    private final @Nullable FaceMaterialFactory blockFaceMatFactory;
 
     @Builder.Default
     private final boolean splitBlocks = true;
@@ -82,7 +101,15 @@ public class BlockTessellator {
         ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
 
         BlockQuadOutput quadOutput = (x, y, z, quad, instance) ->
-                addQuad(obj, x, y, z, quad, instance, true);
+                addQuad(obj, x, y, z, quad, instance);
+
+        final Mutable<BlockState> curBlockState = new MutableObject<>();
+
+        BlockQuadOutput perFaceQuadOutput = (x, y, z, quad, instance) -> {
+            //noinspection DataFlowIssue (should only be called of blockFaceMatFactory is non-null)
+            obj.setActiveMaterialGroupName(blockFaceMatFactory.get(curBlockState.get(), quad.materialInfo().tintIndex()));
+            addQuad(obj, x, y, z, quad, instance);
+        };
 
         FluidRenderer.Output fluidOutput = _ -> objConsumer;
 
@@ -102,7 +129,7 @@ public class BlockTessellator {
 
                 FluidState fluidState = blockState.getFluidState();
                 if (!fluidState.isEmpty()) {
-                    obj.setActiveMaterialGroupName(fluidMatFactory.getMaterial(fluidState));
+                    obj.setActiveMaterialGroupName(fluidMatFactory.apply(fluidState));
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.FLUID.getKey(fluidState.getType());
                         obj.setActiveGroupNames(Collections.singletonList("fluid." + id));
@@ -111,13 +138,15 @@ public class BlockTessellator {
                 }
 
                 if (blockState.getRenderShape() == RenderShape.MODEL) {
-                    obj.setActiveMaterialGroupName(blockMatFactory.getMaterial(blockState));
+                    BlockMaterialInfo mat = blockMatFactory.apply(blockState);
+                    obj.setActiveMaterialGroupName(blockMatFactory.apply(blockState).name());
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
                         obj.setActiveGroupNames(Collections.singletonList(id.toString()));
                     }
+                    curBlockState.setValue(blockState);
                     blockRenderer.tesselateBlock(
-                            quadOutput,
+                            mat.perFace() && blockFaceMatFactory != null ? perFaceQuadOutput : quadOutput,
                             pos.getX() - origin.getX(),
                             pos.getY() - origin.getY(),
                             pos.getZ() - origin.getZ(),
@@ -139,16 +168,12 @@ public class BlockTessellator {
     }
 
 
-    private static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance, boolean colored) {
+    private static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance) {
         int n = obj.getNumVertices();
         for (int v = 0; v < 4; v++) {
             // Quad positions are model-local
             var pos = quad.position(v).add(x, y, z, new Vector3f());
-            if (colored) {
-                obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(v), new Vector3f())));
-            } else {
-                obj.addVertex(pos.x(), pos.y(), pos.z());
-            }
+            obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(v), new Vector3f())));
 
             long packedUv = quad.packedUV(v);
             obj.addTexCoord(UVPair.unpackU(packedUv), 1 - UVPair.unpackV(packedUv));

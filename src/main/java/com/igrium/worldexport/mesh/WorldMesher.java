@@ -6,6 +6,7 @@ import com.igrium.worldexport.mesh.postprocess.MeshMergeVerts;
 import com.igrium.worldexport.mesh.tessellate.BlockModelOverride;
 import com.igrium.worldexport.mesh.tessellate.BlockStateModelSupplier;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
+import com.igrium.worldexport.mesh.tessellate.BlockTessellator.BlockMaterialInfo;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
@@ -131,7 +132,8 @@ public class WorldMesher {
                 .blockColors(blockColors)
                 .blockModelSet(modelSupplier)
                 .fluidModelSet(modelManager.getFluidStateModelSet())
-                .blockMatFactory(this::getMaterialName)
+                .blockMatFactory(this::getMaterial)
+                .blockFaceMatFactory(this::getFaceMaterial)
                 .fluidMatFactory(this::getDefaultMaterialName)
                 .splitBlocks(this.splitBlocks)
                 .build();
@@ -143,12 +145,29 @@ public class WorldMesher {
     /// === MATERIALS & TEXTURES ===
 
     public String getDefaultMaterialName(BlockState state) {
-        return state.propagatesSkylightDown() ? WORLD_TRANS : WORLD;
+        return state.isSolidRender() ? WORLD : WORLD_TRANS;
     }
 
-    public String getMaterialName(BlockState state) {
+    public BlockMaterialInfo getMaterial(BlockState state) {
+        // I don't like that we're doing allocations per-block, but I can't think of something better rn
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        return override != null && override.material() != null ? override.material() : getDefaultMaterialName(state);
+        if (override != null) {
+            String matName = override.material() != null ? override.material() : getDefaultMaterialName(state);
+            return new BlockMaterialInfo(matName, override.faceMats() != null && !override.faceMats().isEmpty());
+        } else {
+            return new BlockMaterialInfo(getDefaultMaterialName(state), false);
+        }
+    }
+
+    public String getFaceMaterial(BlockState state, int tintIdx) {
+        var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
+        if (override == null) return getDefaultMaterialName(state);
+
+        if (override.faceMats() != null && override.faceMats().containsKey(tintIdx)) {
+            return override.faceMats().get(tintIdx);
+        } else {
+            return override.material() != null ? override.material() : getDefaultMaterialName(state);
+        }
     }
 
     public String getDefaultMaterialName(FluidState state) {
