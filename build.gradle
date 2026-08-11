@@ -187,7 +187,7 @@ tasks.register("stageAddon", Sync) {
 
 tasks.register("buildAddon", Exec) {
     group = "build"
-    description = "Packages the blendcer addon into an installable zip. Requires Blender 4.2+ in PATH."
+    description = "Packages the blender addon into an installable zip. Requires Blender 4.2+ in PATH."
     dependsOn tasks.named("stageAddon")
 
     def outputZip = layout.buildDirectory.file("libs/worldexport_blender-${addonVersion}.zip")

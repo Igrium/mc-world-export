@@ -44,10 +44,11 @@ public class ReplayCompiler {
                 .thenApply(this::compileEntities)
                 .thenCompose(this::compileTextures)
                 .thenApply(this::packMtls)
+                .thenApply(this::writeMeta)
                 .thenApply(r -> {
-            LOGGER.info("Compiled replay export in {}ms", Util.getMillis() - startTime);
-            return r;
-        });
+                    LOGGER.info("Compiled replay export in {}ms", Util.getMillis() - startTime);
+                    return r;
+                });
     }
 
     private CompletableFuture<CompiledReplay> compileWorld(CompiledReplay replay) {
@@ -84,6 +85,10 @@ public class ReplayCompiler {
         return replay;
     }
 
+    private CompiledReplay writeMeta(CompiledReplay replay) {
+        replay.getMeta().setOrigin(replayCapture.getSettings().getOffset().multiply(-1));
+        return replay;
+    }
 
     public static String getUniqueName(String baseName, Collection<? extends String> existing) {
         String name = baseName;

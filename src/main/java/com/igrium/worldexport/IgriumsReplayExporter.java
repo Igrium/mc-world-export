@@ -29,6 +29,11 @@ public class IgriumsReplayExporter implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    /**
+     * The version tag to be included in replay files written by this version of them mod
+     */
+    public static final String REPLAY_VERSION = "1.0";
+
     @Getter
     private static IgriumsReplayExporter instance;
 

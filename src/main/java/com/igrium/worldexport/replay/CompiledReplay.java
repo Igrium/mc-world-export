@@ -1,10 +1,16 @@
 package com.igrium.worldexport.replay;
 
+import com.google.gson.annotations.JsonAdapter;
+import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.mesh.WorldMesh;
+import com.igrium.worldexport.util.JsonAdapters;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import net.minecraft.core.BlockPos;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +22,8 @@ import java.util.Map;
 @Getter
 public class CompiledReplay {
 
-    ;
+    @Setter
+    private @NonNull ReplayMeta meta = new ReplayMeta();
 
     /**
      * All the meshes that belong to the world.
@@ -35,5 +42,17 @@ public class CompiledReplay {
 
     private final Map<String, CapturedEntity> entities = new HashMap<>();
 
+    @Getter @Setter
+    public static class ReplayMeta {
+        /**
+         * The version string
+         */
+        private @NonNull String version = IgriumsReplayExporter.REPLAY_VERSION;
 
+        /**
+         * The global block pos of the export origin
+         */
+        @JsonAdapter(JsonAdapters.BlockPosAdapter.class)
+        private @NonNull BlockPos origin = BlockPos.ZERO;
+    }
 }

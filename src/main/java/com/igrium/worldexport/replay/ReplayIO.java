@@ -1,12 +1,14 @@
 package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.mesh.WorldMesh;
+import com.igrium.worldexport.util.JsonAdapters;
 import de.javagl.obj.*;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -24,7 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
 public class ReplayIO {
-    private static final Gson GSON = new Gson();
+
+
+
+    private static final Gson GSON = JsonAdapters.registerAdapters(new GsonBuilder()).create();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayIO.class);
 
@@ -61,7 +66,8 @@ public class ReplayIO {
         return saveWorldAsync(root, replay, executor)
                 .thenCompose(v -> saveEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> saveTexturesAsync(root, replay, executor))
-                .thenRun(() -> saveMtls(root, replay));
+                .thenRun(() -> saveMtls(root, replay))
+                .thenRun(() -> saveMeta(root, replay));
     }
 
     public static CompletableFuture<?> saveReplayZip(Path zipFile, CompiledReplay replay, Executor executor) {
@@ -88,12 +94,14 @@ public class ReplayIO {
                 .thenCompose(v -> loadEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> loadTexturesAsync(root, replay, executor))
                 .thenRun(() -> loadMtls(root, replay))
+                .thenRun(() -> loadMeta(root, replay))
                 .thenApply(v -> replay);
     }
 
     public static CompletableFuture<CompiledReplay> loadReplayZip(Path zipFile, Executor executor) {
         ZipFileRoot zip;
         try {
+            //noinspection resource (closed in future)
             zip = openZipFile(zipFile, false);
         } catch (IOException e) {
             return CompletableFuture.failedFuture(e);
@@ -109,7 +117,6 @@ public class ReplayIO {
     }
 
 
-
     /**
      * Maps world mesh names to their metadata. All meshes must be present, even with empty metadata.
      */
@@ -119,6 +126,22 @@ public class ReplayIO {
      * Maps entity names to their parent declaration. All entities must be present, even with empty parents.
      */
     public static TypeToken<Map<String, Map<String, String>>> entityJsonType = new TypeToken<>() {};
+
+    private static void saveMeta(Path dir, CompiledReplay replay) {
+        try (var writer = Files.newBufferedWriter(dir.resolve("meta.json"))) {
+            GSON.toJson(replay.getMeta(), writer);
+        } catch (Exception e) {
+            throw new RuntimeException("Error saving replay meta", e);
+        }
+    }
+
+    private static void loadMeta(Path dir, CompiledReplay replay) {
+        try (var reader = Files.newBufferedReader(dir.resolve("meta.json"))) {
+            replay.setMeta(GSON.fromJson(reader, CompiledReplay.ReplayMeta.class));
+        } catch (Exception e) {
+            throw new RuntimeException("Error loading replay meta", e);
+        }
+    }
 
     private static CompletableFuture<?> saveEntitiesAsync(Path dir, CompiledReplay replay, Executor executor) {
         List<CompletableFuture<?>> entityFutures = new ArrayList<>(replay.getEntities().size());
@@ -138,7 +161,7 @@ public class ReplayIO {
             try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("entities.json"))) {
                 GSON.toJson(entityJson, writer);
             } catch (IOException e) {
-                throw ExceptionUtils.asRuntimeException(e);
+                throw new RuntimeException("Error saving entities", e);
             }
         }, executor);
     }
@@ -224,7 +247,7 @@ public class ReplayIO {
             try (BufferedWriter writer = Files.newBufferedWriter(dir.resolve("world.json"))) {
                 GSON.toJson(worldJson, writer);
             } catch (IOException e) {
-                throw ExceptionUtils.asRuntimeException(e);
+                throw new RuntimeException("Error saving world meshes", e);
             }
         }, executor);
     }
@@ -341,6 +364,7 @@ public class ReplayIO {
             }
         }
     }
+
 
     private static void saveMtl(Path root, String name, Collection<? extends ReplayMtl> rMtls) throws IOException {
         if (!name.endsWith(".mtl")) {
