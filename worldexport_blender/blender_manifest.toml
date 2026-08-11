@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "worldexport_blender"
-version = "0.10.0"
+version = "1.0.0"
 name = "Igrium's Replay Importer"
 tagline = "The Blender side of Igrium's Replay Exporter"
 maintainer = "Igrium"

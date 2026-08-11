@@ -133,7 +133,7 @@ java {
 jar {
     inputs.property "archivesName", project.base.archivesName
     from("LICENSE") {
-        rename { "${it}_${inputs.properties.archivesName}"}
+        rename { "${it}_${inputs.properties.archivesName}" }
     }
     from sourceSets.replaymod.output
     from sourceSets.flashback.output
@@ -152,5 +152,66 @@ publishing {
         // Notice: This block does NOT have the same function as the block in the top level.
         // The repositories here will be used for publishing your artifact, not for
         // retrieving dependencies.
+    }
+}
+
+// === BLENDER EXTENSION ===
+def blenderExecutable = providers.gradleProperty("blender_executable")
+        .orElse(providers.environmentVariable("BLENDER_EXECUTABLE"))
+        .orElse(providers.environmentVariable("PATH").map { pathVar ->
+            def names = System.getProperty("os.name").toLowerCase().contains("windows") ? ["blender.exe", "blender.bat"] : ["blender"]
+            pathVar.tokenize(File.pathSeparator)
+                    .collectMany { dir -> names.collect { new File(dir, it) } }
+                    .find { it.isFile() }
+                    ?.absolutePath
+        })
+
+def blenderAddonDir = layout.projectDirectory.dir("worldexport_blender")
+def blenderStageDir = layout.buildDirectory.dir("blender/src")
+def addonVersion = project.version.toString()
+
+tasks.register("stageAddon", Sync) {
+    group = "build"
+    description = "Copies the Blender addon into build/, stamping version into manifest"
+
+    from blenderAddonDir
+    into blenderStageDir
+
+    exclude ".venv/**", "**/__pycache__/**", "**/*.blend1", ".vscode/**", ".gitignore"
+
+    inputs.property "version", addonVersion
+    filesMatching("blender_manifest.toml") {
+        filter { String line -> line.replaceFirst(/^version\s*=\s*".*"$/, "version = \"${addonVersion}\"") }
+    }
+}
+
+tasks.register("buildAddon", Exec) {
+    group = "build"
+    description = "Packages the blendcer addon into an installable zip. Requires Blender 4.2+ in PATH."
+    dependsOn tasks.named("stageAddon")
+
+    def outputZip = layout.buildDirectory.file("libs/worldexport_blender-${addonVersion}.zip")
+
+    inputs.dir blenderStageDir
+    outputs.file outputZip
+
+    args "--command", "extension", "build",
+            "--source-dir", blenderStageDir.get().asFile.absolutePath,
+            "--output-filepath", outputZip.get().asFile.absolutePath
+
+    doFirst {
+        if (!blenderExecutable.isPresent()) {
+            throw new GradleException("""
+                Blender was not found on PATH.
+                Set it with one of:
+                  ~/.gradle/gradle.properties   ->  blender_executable=/path/to/blender
+                  environment variable          ->  BLENDER_EXECUTABLE=/path/to/blender
+                  this invocation only          ->  -Pblender_executable=/path/to/blender
+                Windows: ...\\Blender Foundation\\Blender 4.5\\blender.exe
+                macOS:   /Applications/Blender.app/Contents/MacOS/Blender
+            """.stripIndent().trim())
+        }
+        executable blenderExecutable.get()
+        outputZip.get().asFile.parentFile.mkdirs()
     }
 }
