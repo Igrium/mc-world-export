@@ -19,7 +19,7 @@ classes/
 # vscode
 
 .settings/
-.vscode/
+/.vscode/
 bin/
 .classpath
 .project
@@ -32,6 +32,12 @@ bin/
 
 run/
 
-logo/
+# java
+
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
 dev/
-*.blend1
+logs/

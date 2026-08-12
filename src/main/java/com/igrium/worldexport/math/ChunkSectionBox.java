@@ -1,0 +1,314 @@
+package com.igrium.worldexport.math;
+
+import com.google.gson.TypeAdapter;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import net.minecraft.core.SectionPos;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.AABB;
+
+import java.io.IOException;
+
+/**
+ * Represents a 3D box in chunk section coordinates.
+ *
+ * @author Igrium
+ */
+@JsonAdapter(ChunkSectionBoxAdapter.class)
+public record ChunkSectionBox(int minX, int minY, int minZ, int sizeX, int sizeY, int sizeZ) {
+
+    public static final ChunkSectionBox ZERO = new ChunkSectionBox(0, 0, 0, 0, 0, 0);
+
+    /**
+     * Constructs a {@code ChunkSectionBox} with the given minimum position and size.
+     *
+     * @param min  The minimum position of the box as a {@link SectionPos}.
+     * @param size The size of the box as a {@link SectionPos}.
+     */
+    public ChunkSectionBox(SectionPos min, SectionPos size) {
+        this(min.getX(), min.getY(), min.getZ(), size.getX(), size.getY(), size.getZ());
+    }
+
+    /**
+     * Returns the minimum position of the box as a {@link SectionPos}.
+     *
+     * @return The minimum corner of the box.
+     */
+    public SectionPos minPos() {
+        return SectionPos.of(minX, minY, minZ);
+    }
+
+    /**
+     * Returns the size of the box as a {@link SectionPos}.
+     *
+     * @return The size of the box in chunk sections.
+     */
+    public SectionPos size() {
+        return SectionPos.of(sizeX, sizeY, sizeZ);
+    }
+
+    /**
+     * Returns the number of sections in the box.
+     * @return Number of sections in the box.
+     */
+    public int count() {
+        return sizeX * sizeY * sizeZ;
+    }
+
+    /**
+     * Returns the maximum X coordinate (exclusive) of the box.
+     *
+     * @return The maximum exclusive X coordinate.
+     */
+    public int maxX() {
+        return minX + sizeX;
+    }
+
+    /**
+     * Returns the maximum Y coordinate (exclusive) of the box.
+     *
+     * @return The maximum exclusive Y coordinate.
+     */
+    public int maxY() {
+        return minY + sizeY;
+    }
+
+    /**
+     * Returns the maximum Z coordinate (exclusive) of the box.
+     *
+     * @return The maximum exclusive Z coordinate.
+     */
+    public int maxZ() {
+        return minZ + sizeZ;
+    }
+
+    /**
+     * Returns the maximum position (exclusive) of the box as a {@link SectionPos}.
+     *
+     * @return The exclusive maximum corner of the box.
+     */
+    public SectionPos maxPos() {
+        return SectionPos.of(maxX(), maxY(), maxZ());
+    }
+
+    /**
+     * Returns the maximum X coordinate (inclusive) of the box.
+     *
+     * @return The maximum inclusive X coordinate.
+     */
+    public int maxXInclusive() {
+        return minX + sizeX - 1;
+    }
+
+    /**
+     * Returns the maximum Y coordinate (inclusive) of the box.
+     *
+     * @return The maximum inclusive Y coordinate.
+     */
+    public int maxYInclusive() {
+        return minY + sizeY - 1;
+    }
+
+    /**
+     * Returns the maximum Z coordinate (inclusive) of the box.
+     *
+     * @return The maximum inclusive Z coordinate.
+     */
+    public int maxZInclusive() {
+        return minZ + sizeZ - 1;
+    }
+
+    /**
+     * Returns the maximum position (inclusive) of the box as a {@link SectionPos}.
+     *
+     * @return The inclusive maximum corner of the box.
+     */
+    public SectionPos maxPosInclusive() {
+        return SectionPos.of(maxXInclusive(), maxYInclusive(), maxZInclusive());
+    }
+
+    /**
+     * Get a world-space, floating-point box containing the entire volume of this section box.
+     */
+    public AABB toBox() {
+        SectionPos minPos = minPos();
+        int minX = minPos.minBlockX();
+        int minY = minPos.minBlockY();
+        int minZ = minPos.minBlockZ();
+
+        SectionPos maxPos = maxPosInclusive();
+        int maxX = maxPos.maxBlockX();
+        int maxY = maxPos.maxBlockY();
+        int maxZ = maxPos.maxBlockZ();
+
+        return new AABB(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+    }
+
+    /**
+     * Checks if the given chunk section coordinates are within the bounds of this box.
+     *
+     * @param x The X coordinate to check.
+     * @param y The Y coordinate to check.
+     * @param z The Z coordinate to check.
+     * @return {@code true} if the coordinates are inside the box (inclusive lower bound, exclusive upper bound), {@code false} otherwise.
+     */
+    public boolean isInBounds(int x, int y, int z) {
+        return minX <= x && x < maxX()
+                && minY <= y && y < maxY()
+                && minZ <= z && z < maxZ();
+    }
+
+    /**
+     * Checks if the given {@link SectionPos} is within the bounds of this box.
+     *
+     * @param pos The position to check.
+     * @return {@code true} if the position is inside the box (inclusive lower bound, exclusive upper bound), {@code false} otherwise.
+     */
+    public boolean isInBounds(SectionPos pos) {
+        return isInBounds(pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    /**
+     * Check if the given chunk coordinates overlap with this box.
+     * @param x The X coordinate to check.
+     * @param z The Z coordinate to check.
+     * @return {@code true} if the coordinates overlap the box (inclusive lower bound, exclusive upper bound), {@code false} otherwise.
+     */
+    public boolean isInBounds(int x, int z) {
+        return minX <= x && x < maxX()
+                && minZ <= z && z < maxZ();
+    }
+
+    /**
+     * Check if the given chunk coordinates overlap with this box.
+     * @param pos The position to check.
+     * @return {@code true} if the coordinates overlap the box (inclusive lower bound, exclusive upper bound), {@code false} otherwise.
+     */
+    public boolean isInBounds(ChunkPos pos) {
+        return isInBounds(pos.x(), pos.z());
+    }
+
+    /**
+     * Iterate over all the section positions within this box.
+     * @return An iterable
+     */
+    public Iterable<SectionPos> iterate() {
+        return ChunkSections.iterate(minX, minY, minZ, maxXInclusive(), maxYInclusive(), maxZInclusive());
+    }
+
+    public Iterable<ChunkPos> iterateChunks() {
+        return ChunkSections.iterate(minX, minZ, maxXInclusive(), maxZInclusive());
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} from two corners (inclusive).
+     * The resulting box includes both (x1, y1, z1) and (x2, y2, z2).
+     *
+     * @param x1 The X coordinate of the first corner.
+     * @param y1 The Y coordinate of the first corner.
+     * @param z1 The Z coordinate of the first corner.
+     * @param x2 The X coordinate of the second corner.
+     * @param y2 The Y coordinate of the second corner.
+     * @param z2 The Z coordinate of the second corner.
+     * @return A new {@code ChunkSectionBox} that spans the two corners.
+     */
+    public static ChunkSectionBox from(int x1, int y1, int z1, int x2, int y2, int z2) {
+        int minX = Math.min(x1, x2);
+        int minY = Math.min(y1, y2);
+        int minZ = Math.min(z1, z2);
+
+        int maxX = Math.max(x1, x2) + 1;
+        int maxY = Math.max(y1, y2) + 1;
+        int maxZ = Math.max(z1, z2) + 1;
+
+        return new ChunkSectionBox(minX, minY, minZ, maxX - minX, maxY - minY, maxZ - minZ);
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} from two {@link SectionPos} corners (inclusive).
+     * The resulting box includes both positions.
+     *
+     * @param pos1 The first corner position.
+     * @param pos2 The second corner position.
+     * @return A new {@code ChunkSectionBox} that spans the two positions.
+     */
+    public static ChunkSectionBox from(SectionPos pos1, SectionPos pos2) {
+        return from(pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX(), pos2.getY(), pos2.getZ());
+    }
+
+    /**
+     * Creates a cubic {@code ChunkSectionBox} centered on the given section.
+     *
+     * @param centerX The X coordinate of the center section.
+     * @param centerY The Y coordinate of the center section.
+     * @param centerZ The Z coordinate of the center section.
+     * @param radius  The number of sections to include on each side of the center.
+     * @return A box measuring <code>radius * 2 + 1</code> sections on each axis.
+     */
+    public static ChunkSectionBox fromRadius(int centerX, int centerY, int centerZ, int radius) {
+        int size = radius * 2 + 1;
+        return new ChunkSectionBox(centerX - radius, centerY - radius, centerZ - radius, size, size, size);
+    }
+
+    public static ChunkSectionBox fromRadius(SectionPos center, int radius) {
+        return fromRadius(center.getX(), center.getY(), center.getZ(), radius);
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} with a horizontal radius around a center column and an explicit vertical range.
+     *
+     * @param centerX The X coordinate of the center section.
+     * @param centerZ The Z coordinate of the center section.
+     * @param radius  The number of sections to include on each side of the center, horizontally.
+     * @param minY    The section coordinate of the bottom of the box.
+     * @param height  The number of sections in the box vertically.
+     * @return A box measuring <code>radius * 2 + 1</code> sections horizontally and <code>height</code> vertically.
+     */
+    public static ChunkSectionBox fromRadius(int centerX, int centerZ, int radius, int minY, int height) {
+        int size = radius * 2 + 1;
+        return new ChunkSectionBox(centerX - radius, minY, centerZ - radius, size, height, size);
+    }
+
+    /**
+     * Creates a {@code ChunkSectionBox} with a horizontal radius around a center column and an explicit vertical range.
+     * The center's Y coordinate is ignored.
+     *
+     * @param center The center section. Only its horizontal coordinates are used.
+     * @param radius The number of sections to include on each side of the center, horizontally.
+     * @param minY   The section coordinate of the bottom of the box.
+     * @param height The number of sections in the box vertically.
+     * @return A box measuring <code>radius * 2 + 1</code> sections horizontally and <code>height</code> vertically.
+     */
+    public static ChunkSectionBox fromRadius(SectionPos center, int radius, int minY, int height) {
+        return fromRadius(center.getX(), center.getZ(), radius, minY, height);
+    }
+}
+
+class ChunkSectionBoxAdapter extends TypeAdapter<ChunkSectionBox> {
+
+    @Override
+    public void write(JsonWriter out, ChunkSectionBox value) throws IOException {
+        out.beginArray();
+        out.value(value.minX());
+        out.value(value.minY());
+        out.value(value.minZ());
+        out.value(value.sizeX());
+        out.value(value.sizeY());
+        out.value(value.sizeZ());
+        out.endArray();
+    }
+
+    @Override
+    public ChunkSectionBox read(JsonReader in) throws IOException {
+        in.beginArray();
+        int minX = in.nextInt();
+        int minY = in.nextInt();
+        int minZ = in.nextInt();
+        int sizeX = in.nextInt();
+        int sizeY = in.nextInt();
+        int sizeZ = in.nextInt();
+        in.endArray();
+        return new ChunkSectionBox(minX, minY, minZ, sizeX, sizeY, sizeZ);
+    }
+}

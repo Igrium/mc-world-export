@@ -1,0 +1,44 @@
+package com.igrium.worldexport.compat.replaymod.mixin;
+
+import com.igrium.worldexport.compat.replaymod.gui.GuiExportSettings;
+import com.replaymod.core.ReplayMod;
+import com.replaymod.lib.de.johni0702.minecraft.gui.container.AbstractGuiScreen;
+import com.replaymod.lib.de.johni0702.minecraft.gui.container.GuiScreen;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
+import com.replaymod.render.gui.GuiRenderSettings;
+import com.replaymod.replay.ReplayHandler;
+import com.replaymod.replaystudio.pathing.path.Timeline;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(value = GuiRenderSettings.class, remap = false)
+public abstract class MixinGuiExportSettings {
+    @Unique
+    GuiButton exportButton;
+
+    @Shadow
+    public abstract void close();
+
+    @Shadow
+    public abstract AbstractGuiScreen<?> getScreen();
+
+    @Inject(method = "<init>", at = @At("RETURN"))
+    public void worldexport$onInit(AbstractGuiScreen<?> container, ReplayHandler replayHandler, Timeline timeline, CallbackInfo ci) {
+        exportButton = new GuiButton(((GuiRenderSettings)(Object) this).buttonPanel).onClick(() -> ReplayMod.instance.runLaterWithoutLock(() -> {
+            GuiScreen exportScreen = GuiExportSettings.createBaseScreen();
+            GuiExportSettings settings = new GuiExportSettings(exportScreen, replayHandler, timeline) {
+                @Override
+                public void close() {
+                    super.close();
+                    getScreen().display();
+                }
+            };
+            settings.open();
+            exportScreen.display();
+        })).setSize(100, 20).setI18nLabel("worldexport.gui.export_replay");
+    }
+}

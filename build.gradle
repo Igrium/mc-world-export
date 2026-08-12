@@ -1,99 +1,215 @@
 plugins {
-	id 'fabric-loom' version '1.6-SNAPSHOT'
-	id 'maven-publish'
+    id 'net.fabricmc.fabric-loom' version '1.17.16'
+    id 'maven-publish'
+    id 'io.freefair.lombok' version '8.14'
 }
-
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
-
+base {
+    archivesName = project.archives_base_name
+}
 repositories {
-	repositories {
-		ivy {
-			setName("ReplayMod")
-			setUrl("https://minio.replaymod.com/replaymod/")
-			patternLayout { artifact("[artifact]-[revision](-[classifier])(.[ext])") }
-			metadataSources { artifact() }
-			content { includeGroup("com.replaymod") }
-		}
-		maven {
-                name = "Modrinth"
-                url = "https://api.modrinth.com/maven"
-            }
-		maven { url 'https://jitpack.io' }
-	}
+    maven { url 'https://jitpack.io' }
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+    }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+}
+
+// Compat source sets. Each one can see main; main can see none of them, so it can never
+// compile against an optional dependency. They're siblings, so they can't see each other.
+sourceSets {
+    replaymod {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    // Empty for now: no sources, no dependency, no mixin config.
+    flashback {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    // Not a compat layer: a separate dev-only mod with its own fabric.mod.json.
+    // Deliberately absent from loom.mods, devRuntime and the jar.
+    debugger {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+// Holds no sources. A Loom run's classpath is exactly one source set's, and the compat sets
+// above are siblings, so this unions them for the dev runs. Add every new compat set here.
+sourceSets {
+    devRuntime {
+        compileClasspath += sourceSets.replaymod.output + sourceSets.replaymod.compileClasspath
+        compileClasspath += sourceSets.flashback.output + sourceSets.flashback.compileClasspath
+        runtimeClasspath += sourceSets.replaymod.output + sourceSets.replaymod.runtimeClasspath
+        runtimeClasspath += sourceSets.flashback.output + sourceSets.flashback.runtimeClasspath
+    }
+}
+
+// Also sourceless: devRuntime plus the debugger test mod, for the Debugger Client run.
+sourceSets {
+    debuggerRuntime {
+        compileClasspath += sourceSets.devRuntime.output + sourceSets.devRuntime.compileClasspath
+        compileClasspath += sourceSets.debugger.output + sourceSets.debugger.compileClasspath
+        runtimeClasspath += sourceSets.devRuntime.output + sourceSets.devRuntime.runtimeClasspath
+        runtimeClasspath += sourceSets.debugger.output + sourceSets.debugger.runtimeClasspath
+    }
+}
+
+// The compat source sets are split for compile-time isolation only. At runtime they're all
+// one mod, so Loader has to be told to treat their output dirs as a single classpath group.
+loom {
+    mods {
+        "worldexport" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.replaymod
+            sourceSet sourceSets.flashback
+        }
+    }
+    runs {
+        // devRuntime transitively contains main and every compat source set.
+        client {
+            client();
+            displayName = "Dev Client"
+            sourceSet = sourceSets.devRuntime.name
+        }
+        // Same, plus the worldexport-debugger test mod.
+        debuggerClient {
+            client();
+            displayName = "Debugger Client"
+            sourceSet = sourceSets.debuggerRuntime.name
+        }
+    }
 }
 
 dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // To change the versions see the gradle.properties file
+    minecraft "net.minecraft:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    // Fabric API. This is technically optional, but you probably want it anyway.
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    implementation(include("de.javagl:obj:0.4.0"))
+    // For debugging exported replays
+    debuggerImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
+    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	// Replay Mod
-	modImplementation "maven.modrinth:replaymod:${project.replaymod_version}"
-	implementation("com.github.LlamaLad7:MixinExtras:0.1.1")
-    annotationProcessor("com.github.LlamaLad7:MixinExtras:0.1.1")
-	
-	implementation(include('de.javagl:obj:0.3.0'))
-	implementation('org.joml:joml:1.10.2')
-
-	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
 }
-
 processResources {
-	inputs.property "version", project.version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
 }
-
+// processResources only covers main; the debugger has its own fabric.mod.json.
+processDebuggerResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
 tasks.withType(JavaCompile).configureEach {
-	// ensure that the encoding is set to UTF-8, no matter what the system default is
-	// this fixes some edge cases with special characters not displaying correctly
-	// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-	// If Javadoc is generated, this must be specified in that task too.
-	it.options.encoding = "UTF-8"
+    it.options.release = 25
 }
-
-java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-}
-
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.archivesBaseName}"}
-	}
-}
-
 test {
     useJUnitPlatform()
 }
-
-// Thanks to Modmuss for helping with this task!
-tasks.register('addon', Zip) {
-    from "addon"
-    archiveBaseName = "import_vcap"
-    destinationDirectory = project.layout.buildDirectory.dir("libs")
-    
-    filesMatching("**/__init__.py") {
-        filter {
-            it.replace("(0, 0, 0)", "(${version.replaceAll("[^\\d.]", "").split("\\.").join(", ")})")
-            
+java {
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+jar {
+    inputs.property "archivesName", project.base.archivesName
+    from("LICENSE") {
+        rename { "${it}_${inputs.properties.archivesName}" }
+    }
+    from sourceSets.replaymod.output
+    from sourceSets.flashback.output
+}
+// configure the maven publication
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
         }
     }
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
+    }
+}
 
-    exclude "**/__pycache__*"
-    exclude "*.py[cod]"
-    exclude "*.py.class"
+// === BLENDER EXTENSION ===
+def blenderExecutable = providers.gradleProperty("blender_executable")
+        .orElse(providers.environmentVariable("BLENDER_EXECUTABLE"))
+        .orElse(providers.environmentVariable("PATH").map { pathVar ->
+            def names = System.getProperty("os.name").toLowerCase().contains("windows") ? ["blender.exe", "blender.bat"] : ["blender"]
+            pathVar.tokenize(File.pathSeparator)
+                    .collectMany { dir -> names.collect { new File(dir, it) } }
+                    .find { it.isFile() }
+                    ?.absolutePath
+        })
+
+def blenderAddonDir = layout.projectDirectory.dir("worldexport_blender")
+def blenderStageDir = layout.buildDirectory.dir("blender/src")
+def addonVersion = project.version.toString()
+
+tasks.register("stageAddon", Sync) {
+    group = "build"
+    description = "Copies the Blender addon into build/, stamping version into manifest"
+
+    from blenderAddonDir
+    into blenderStageDir
+
+    exclude ".venv/**", "**/__pycache__/**", "**/*.blend1", ".vscode/**", ".gitignore"
+
+    inputs.property "version", addonVersion
+    filesMatching("blender_manifest.toml") {
+        filter { String line -> line.replaceFirst(/^version\s*=\s*".*"$/, "version = \"${addonVersion}\"") }
+    }
+}
+
+tasks.register("buildAddon", Exec) {
+    group = "build"
+    description = "Packages the blender addon into an installable zip. Requires Blender 4.2+ in PATH."
+    dependsOn tasks.named("stageAddon")
+
+    def outputZip = layout.buildDirectory.file("libs/worldexport_blender-${addonVersion}.zip")
+
+    inputs.dir blenderStageDir
+    outputs.file outputZip
+
+    args "--command", "extension", "build",
+            "--source-dir", blenderStageDir.get().asFile.absolutePath,
+            "--output-filepath", outputZip.get().asFile.absolutePath
+
+    doFirst {
+        if (!blenderExecutable.isPresent()) {
+            throw new GradleException("""
+                Blender was not found on PATH.
+                Specify it manually with one of:
+                  ~/.gradle/gradle.properties   ->  blender_executable=/path/to/blender
+                  environment variable          ->  echo BLENDER_EXECUTABLE=/path/to/blender
+                  this invocation only          ->  -Pblender_executable=/path/to/blender
+            """.stripIndent().trim())
+        }
+        executable blenderExecutable.get()
+        outputZip.get().asFile.parentFile.mkdirs()
+    }
 }

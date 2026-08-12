@@ -1,0 +1,8 @@
+{
+    "python.languageServer": "None",
+    "basedpyright.analysis.typeCheckingMode": "standard",
+    "basedpyright.analysis.diagnosticSeverityOverrides": {
+        "reportInvalidTypeForm": "none"
+    },
+    "basedpyright.analysis.useTypingExtensions": true
+}
