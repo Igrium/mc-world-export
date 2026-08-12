@@ -39,6 +39,6 @@ public abstract class MixinGuiExportSettings {
             };
             settings.open();
             exportScreen.display();
-        })).setSize(100, 20).setLabel("Export replay file");
+        })).setSize(100, 20).setI18nLabel("worldexport.gui.export_replay");
     }
 }
