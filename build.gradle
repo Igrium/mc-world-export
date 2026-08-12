@@ -203,12 +203,10 @@ tasks.register("buildAddon", Exec) {
         if (!blenderExecutable.isPresent()) {
             throw new GradleException("""
                 Blender was not found on PATH.
-                Set it with one of:
+                Specify it manually with one of:
                   ~/.gradle/gradle.properties   ->  blender_executable=/path/to/blender
                   environment variable          ->  BLENDER_EXECUTABLE=/path/to/blender
                   this invocation only          ->  -Pblender_executable=/path/to/blender
-                Windows: ...\\Blender Foundation\\Blender 4.5\\blender.exe
-                macOS:   /Applications/Blender.app/Contents/MacOS/Blender
             """.stripIndent().trim())
         }
         executable blenderExecutable.get()
