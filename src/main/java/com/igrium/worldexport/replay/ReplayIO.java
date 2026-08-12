@@ -27,8 +27,6 @@ import java.util.concurrent.Executor;
 
 public class ReplayIO {
 
-
-
     private static final Gson GSON = JsonAdapters.registerAdapters(new GsonBuilder()).create();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReplayIO.class);

@@ -55,3 +55,50 @@ update the UI while it is processing. (It might do to enable the system console 
 
 Once it is finished importing, you should have a Minecraft world and most of its entities in your scene! If something
 goes wrong, make sure to submit a bug report!
+
+# Contributing
+
+Replay Exporter is a Fabric mod, so building it follows the same basic principles as any other mod (which will not be
+reiterated here). However, due to it's nature as a "companion mod", Replay Exporter ships with slightly more complex
+build features than others.
+
+## Mod Integrations
+
+Mod integrations are split into separate source sets: `main` holds only the common code for encoding replay animations,
+and `replaymod` is responsible for actually triggering the export process while using Replay Mod. This is intended to
+support for other mods such as Flashback and ReplayLab in the future, but only Replay Mod is implemented for now.
+
+This segregation of disciplines ensures that no code dependencies from integrations find their way into contexts where
+the target mod might not be present. If you were to try and depend on code from Replay Mod (or anything from the
+`replaymod` source set) in `main`, you would get a compile error. However, this is purely a compile-time construct. At
+runtime, Replay Exporter is still packaged as a singular mod, avoiding code-paths depending on mods that are not
+present.
+
+## Debugger
+
+The exception to this is the `debugger` source set:
+
+`debugger` is a separate "test" mod which provides an imgui-based UI for inspecting exported replay files. This is
+useful for debugging entity model adapters, but it's not of any concern to the average user, so that code isn't shipped
+with the full build.
+
+Keep in mind that the debugger isn't exactly the *cleanest* code. It relies on native libraries that might be fragile
+across different operating systems, and as a niche development tool, maintaining it not a priority.
+
+It can be launched with `./gradlew runDebuggerClient`
+
+## Blender Addon
+
+Version 2 of the addon is structured very differently than Version 1. The primary change is the addition of a
+`prefabs.blend` file.
+
+Unlike the first version, which generated all its shaders in code, the new version includes a number of manually-created
+assets that get appended as needed. This makes it much easier to ship stock effects such as enchantment glints, as the
+node-tree can be created using the Blender interface, rather than having to do it in code.
+
+`./gradlew buildAddon` will compile the addon into a zip and place it in `build/libs`, updating the version tag to
+whatever is defined in `gradle.properties`. Note that this requires Blender in your PATH, for that's what's used to
+build the extension.
+
+The addon is slated to support Blender `4.4 - Current`. **Do *not* save the prefabs file in any version newer than 4.4!**
+

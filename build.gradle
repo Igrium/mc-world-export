@@ -205,7 +205,7 @@ tasks.register("buildAddon", Exec) {
                 Blender was not found on PATH.
                 Specify it manually with one of:
                   ~/.gradle/gradle.properties   ->  blender_executable=/path/to/blender
-                  environment variable          ->  BLENDER_EXECUTABLE=/path/to/blender
+                  environment variable          ->  echo BLENDER_EXECUTABLE=/path/to/blender
                   this invocation only          ->  -Pblender_executable=/path/to/blender
             """.stripIndent().trim())
         }
