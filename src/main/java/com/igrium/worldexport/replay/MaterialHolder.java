@@ -1,5 +1,6 @@
 package com.igrium.worldexport.replay;
 
+import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
@@ -12,7 +13,7 @@ import java.util.function.Function;
 
 public class MaterialHolder {
     @Getter
-    private final Map<String, CompletableFuture<? extends ReplayTexture>> textures = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<? extends ManagedNativeImage>> textures = new ConcurrentHashMap<>();
 
     private final Map<String, Map<String, ReplayMtl>> mtlLibs = new ConcurrentHashMap<>();
 

@@ -8,6 +8,7 @@ import com.igrium.worldexport.mesh.tessellate.BlockStateModelSupplier;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator.BlockMaterialInfo;
 import com.igrium.worldexport.replay.ReplayCapture;
+import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
@@ -219,14 +220,12 @@ public class WorldMesher {
      *
      * @return The cpu-bound atlas texture. Should be saved at <code>world/world.png</code>
      */
-    public static CompletableFuture<NativeImageReplayTexture> getDefaultWorldTexture() {
-        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.BLOCKS)
-                .thenApply(NativeImageReplayTexture::new);
+    public static CompletableFuture<ManagedNativeImage> getDefaultWorldTexture() {
+        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.BLOCKS);
     }
 
-    public static CompletableFuture<NativeImageReplayTexture> getDefaultItemTexture() {
-        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.ITEMS)
-                .thenApply(NativeImageReplayTexture::new);
+    public static CompletableFuture<ManagedNativeImage> getDefaultItemTexture() {
+        return TextureExtractor.pullAtlasTextureAsync(AtlasIds.ITEMS);
     }
 
     /// === MESHING ===

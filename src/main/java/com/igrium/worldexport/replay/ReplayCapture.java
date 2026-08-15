@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.entity.EntityCapture;
 import com.igrium.worldexport.math.ChunkSections;
 import com.igrium.worldexport.mesh.postprocess.MeshUtils;
+import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.world.WorldCapture;
 import com.igrium.worldexport.mesh.WorldMesh;
@@ -290,8 +291,8 @@ public class ReplayCapture {
      *
      * @return A map of all texture paths and their values.
      */
-    public CompletableFuture<Map<String, ReplayTexture>> getAllTextures() {
-        Map<String, ReplayTexture> result = new ConcurrentHashMap<>(materialHolder.getTextures().size());
+    public CompletableFuture<Map<String, ManagedNativeImage>> getAllTextures() {
+        Map<String, ManagedNativeImage> result = new ConcurrentHashMap<>(materialHolder.getTextures().size());
         List<CompletableFuture<?>> futures = new ArrayList<>(materialHolder.getTextures().size());
 
         for (var entry : materialHolder.getTextures().entrySet()) {

@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.TextureContents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,9 +26,9 @@ public class TextureExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/TextureExtractor");
 
-    public static CompletableFuture<NativeImage> pullTextureAsync(AbstractTexture texture) {
+    public static CompletableFuture<ManagedNativeImage> pullTextureAsync(AbstractTexture texture) {
         if (texture instanceof DynamicTexture dynamicTexture) {
-            return CompletableFuture.completedFuture(copyNativeImage(dynamicTexture.getPixels()));
+            return CompletableFuture.completedFuture(ManagedNativeImage.copyOf(dynamicTexture.getPixels()));
         }
 
         return CompletableFuture.supplyAsync(() -> downloadTexture(texture.getTexture()), TextureExtractor::onRenderThread)
@@ -40,27 +41,27 @@ public class TextureExtractor {
     }
 
 
-    public static NativeImage pullTexture(Identifier texID) {
+    public static ManagedNativeImage pullTexture(Identifier texID) {
         LOGGER.info("Fetching texture: {}", texID);
         AbstractTexture texture = getTexture(texID);
         if (texture instanceof DynamicTexture dynamicTexture) {
-            return copyNativeImage(dynamicTexture.getPixels());
+            return ManagedNativeImage.copyOf(dynamicTexture.getPixels());
         } else {
             try {
-                return loadTextureFromResources(texID);
+                return ManagedNativeImage.of(loadTextureFromResources(texID));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
-    public static CompletableFuture<NativeImage> pullTextureAsync(Identifier texID) {
+    public static CompletableFuture<ManagedNativeImage> pullTextureAsync(Identifier texID) {
         LOGGER.info("Fetching texture: {}", texID);
         AbstractTexture texture = getTexture(texID);
         if (texture instanceof DynamicTexture dynamicTexture) {
-            return CompletableFuture.completedFuture(copyNativeImage(dynamicTexture.getPixels()));
+            return CompletableFuture.completedFuture(ManagedNativeImage.copyOf(dynamicTexture.getPixels()));
         }
-        return loadTextureFromResourcesAsync(texID);
+        return loadTextureFromResourcesAsync(texID).thenApply(ManagedNativeImage::of);
     }
 
     @SuppressWarnings("resource") // Not closed: ownership of the image transfers to the caller.
@@ -73,7 +74,7 @@ public class TextureExtractor {
             try {
                 return loadTextureFromResources(texID);
             } catch (IOException e) {
-                throw ExceptionUtil.wrap(e);
+                throw ExceptionUtils.asRuntimeException(e);
             }
         }, Util.ioPool());
     }
@@ -83,7 +84,7 @@ public class TextureExtractor {
     }
 
 
-    public static CompletableFuture<NativeImage> pullAtlasTextureAsync(Identifier atlasID) {
+    public static CompletableFuture<ManagedNativeImage> pullAtlasTextureAsync(Identifier atlasID) {
         AbstractTexture atlas = getAtlasTexture(atlasID);
         return pullTextureAsync(atlas);
     }
@@ -93,7 +94,7 @@ public class TextureExtractor {
      * <b>Must be called on the render thread.</b> The source texture must have been created with
      * <code>GpuTexture.USAGE_COPY_SRC</code>.
      */
-    private static CompletableFuture<NativeImage> downloadTexture(GpuTexture texture) {
+    private static CompletableFuture<ManagedNativeImage> downloadTexture(GpuTexture texture) {
         int width = texture.getWidth(0);
         int height = texture.getHeight(0);
         int blockSize = texture.getFormat().blockSize();
@@ -102,7 +103,7 @@ public class TextureExtractor {
         GpuBuffer buffer = device.createBuffer(() -> "Texture readback buffer",
                 GpuBuffer.USAGE_MAP_READ | GpuBuffer.USAGE_COPY_DST, (long) width * height * blockSize);
 
-        CompletableFuture<NativeImage> future = new CompletableFuture<>();
+        CompletableFuture<ManagedNativeImage> future = new CompletableFuture<>();
         device.createCommandEncoder().copyTextureToBuffer(texture, buffer, 0L, () -> {
             try (GpuBufferSlice.MappedView view = buffer.map(true, false)) {
                 NativeImage image = new NativeImage(width, height, false);
@@ -112,7 +113,7 @@ public class TextureExtractor {
                         image.setPixelABGR(x, y, data.getInt((x + y * width) * blockSize));
                     }
                 }
-                future.complete(image);
+                future.complete(ManagedNativeImage.of(image));
             } catch (Exception e) {
                 future.completeExceptionally(e);
             } finally {
@@ -131,6 +132,7 @@ public class TextureExtractor {
         }
     }
 
+    @Deprecated
     private static NativeImage copyNativeImage(NativeImage from) {
         NativeImage to = new NativeImage(from.format(), from.getWidth(), from.getHeight(), false);
         to.copyFrom(from);

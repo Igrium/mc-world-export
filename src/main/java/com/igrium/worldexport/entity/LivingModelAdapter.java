@@ -157,7 +157,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
         materials.getTextures().computeIfAbsent(texName, tex ->
-                CompletableFuture.completedFuture(new NativeImageReplayTexture(TextureExtractor.pullTexture(texId))));
+                CompletableFuture.completedFuture(TextureExtractor.pullTexture(texId)));
 
         ReplayMtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));

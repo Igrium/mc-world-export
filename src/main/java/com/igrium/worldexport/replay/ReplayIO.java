@@ -4,11 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
+import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.PngReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.mesh.WorldMesh;
 import com.igrium.worldexport.util.JsonAdapters;
+import com.mojang.blaze3d.platform.NativeImage;
 import de.javagl.obj.*;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -314,9 +316,9 @@ public class ReplayIO {
         return CompletableFuture.allOf(textureFutures.toArray(new CompletableFuture[0]));
     }
 
-    private static void saveTexture(ReplayTexture texture, Path imagePath) throws IOException {
+    private static void saveTexture(ManagedNativeImage img, Path imagePath) throws IOException {
         Files.createDirectories(imagePath.getParent());
-        texture.writeToFile(imagePath);
+        img.writeToFile(imagePath);
     }
 
     private static CompletableFuture<?> loadTexturesAsync(Path root, CompiledReplay replay, Executor executor) {
@@ -328,7 +330,7 @@ public class ReplayIO {
         }
 
         List<CompletableFuture<?>> futures = new ArrayList<>(texturePaths.size());
-        Map<String, ReplayTexture> result = new ConcurrentHashMap<>();
+        Map<String, ManagedNativeImage> result = new ConcurrentHashMap<>();
 
         for (var texPath : texturePaths) {
             futures.add(CompletableFuture.runAsync(() -> {
@@ -344,12 +346,10 @@ public class ReplayIO {
                 .thenRun(() -> replay.getTextures().putAll(result));
     }
 
-    private static ReplayTexture loadTexture(Path imagePath) throws IOException {
-        byte[] data;
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(imagePath))) {
-            data = in.readAllBytes();
+    private static ManagedNativeImage loadTexture(Path imagePath) throws IOException {
+        try (InputStream stream = new BufferedInputStream(Files.newInputStream(imagePath))) {
+            return ManagedNativeImage.of(NativeImage.read(stream));
         }
-        return new PngReplayTexture(data);
     }
 
     // No need to overcomplicate this part with multithreading; these files are really small.

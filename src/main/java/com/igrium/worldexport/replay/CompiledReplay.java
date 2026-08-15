@@ -3,6 +3,7 @@ package com.igrium.worldexport.replay;
 import com.google.gson.annotations.JsonAdapter;
 import com.igrium.worldexport.IgriumsReplayExporter;
 import com.igrium.worldexport.entity.CapturedEntity;
+import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.ReplayTexture;
 import com.igrium.worldexport.mesh.WorldMesh;
@@ -33,7 +34,7 @@ public class CompiledReplay {
     /**
      * A map of texture names (relative to the replay root) and their texture data.
      */
-    private final Map<String, ReplayTexture> textures = new HashMap<>();
+    private final Map<String, ManagedNativeImage> textures = new HashMap<>();
 
     /**
      * A map of mtl file names (relative to the replay root) and the materials in them.

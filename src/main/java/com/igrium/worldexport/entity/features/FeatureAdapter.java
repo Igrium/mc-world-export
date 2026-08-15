@@ -49,7 +49,7 @@ public abstract class FeatureAdapter<S extends EntityRenderState, M extends Enti
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
         materials.getTextures().computeIfAbsent(texPath, tex ->
-                TextureExtractor.pullTextureAsync(texId).thenApply(NativeImageReplayTexture::new));
+                TextureExtractor.pullTextureAsync(texId));
 
         return materials.getOrCreateMtl("entities.mtl", texName, n -> {
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
