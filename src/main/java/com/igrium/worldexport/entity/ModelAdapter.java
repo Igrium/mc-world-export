@@ -1,15 +1,11 @@
 package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.replay.MaterialHolder;
-import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 
 /**

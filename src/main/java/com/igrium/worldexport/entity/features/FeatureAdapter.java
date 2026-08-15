@@ -3,14 +3,13 @@ package com.igrium.worldexport.entity.features;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.mixin.AccessorRenderLayer;
 import com.igrium.worldexport.replay.MaterialHolder;
-import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import de.javagl.obj.Mtls;
 import lombok.Getter;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
-import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.model.EntityModel;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.resources.Identifier;
 

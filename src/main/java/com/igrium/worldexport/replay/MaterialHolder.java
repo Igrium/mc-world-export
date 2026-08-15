@@ -2,11 +2,12 @@ package com.igrium.worldexport.replay;
 
 import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.ReplayMtl;
-import com.igrium.worldexport.tex.ReplayTexture;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;

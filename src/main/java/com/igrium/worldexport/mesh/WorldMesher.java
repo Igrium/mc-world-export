@@ -9,7 +9,6 @@ import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator.BlockMaterialInfo;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ManagedNativeImage;
-import com.igrium.worldexport.tex.NativeImageReplayTexture;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;

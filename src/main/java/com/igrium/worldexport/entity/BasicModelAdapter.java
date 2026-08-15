@@ -2,16 +2,12 @@ package com.igrium.worldexport.entity;
 
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.replay.MaterialHolder;
-import com.igrium.worldexport.tex.ReplayTexture;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Math;
 import org.joml.Quaternionf;
-
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public class BasicModelAdapter<T extends Entity> extends ModelAdapter<T, EntityRenderState> {
     protected BasicModelAdapter(EntityRenderer<? super T, ? extends EntityRenderState> renderer) {
