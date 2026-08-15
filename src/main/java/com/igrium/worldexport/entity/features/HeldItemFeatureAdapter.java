@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Obj;
 import de.javagl.obj.Objs;
 import net.minecraft.client.model.effects.SpearAnimations;
+import net.minecraft.client.renderer.item.ItemStackRenderState.FoilType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.layers.ItemInHandLayer;
@@ -136,7 +137,7 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
                 //noinspection resource
                 Identifier atlas = submission.quads().isEmpty() ? null
                         : submission.quads().getFirst().materialInfo().sprite().atlasLocation();
-                ReplayMtl mat = ItemModelAdapter.getOrCreateItemMaterial(materials, atlas);
+                ReplayMtl mat = ItemModelAdapter.getOrCreateItemMaterial(materials, submission.foilType() != FoilType.NONE, atlas);
 
                 Obj obj = Objs.create();
                 obj.setMtlFileNames(Set.of("entities.mtl"));
