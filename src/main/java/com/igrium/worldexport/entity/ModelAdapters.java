@@ -3,6 +3,7 @@ package com.igrium.worldexport.entity;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.igrium.worldexport.entity.models.ItemModelAdapter;
+import com.igrium.worldexport.entity.models.PlayerModelAdapter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.ItemEntityRenderer;
@@ -10,7 +11,6 @@ import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.item.ItemEntity;
 import org.jetbrains.annotations.Nullable;
 
 public class ModelAdapters {
@@ -53,5 +53,6 @@ public class ModelAdapters {
 
     static {
         register(EntityTypes.ITEM, r -> new ItemModelAdapter((ItemEntityRenderer) r));
+        register(EntityTypes.PLAYER, PlayerModelAdapter::fromRenderer);
     }
 }

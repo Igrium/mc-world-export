@@ -150,6 +150,16 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             capture.addFrame("root", tick, rootCurve.getFormat(), rootPos, rootRot, rootScale);
         }
 
+        captureBaseModel(entity, state, capture, materials);
+
+        if (getRendererAccessor(renderer).invokeShouldRenderLayers(state)) {
+            for (var feature : features) {
+                feature.capture(capture, materials, state, state.yRot, state.xRot, tick);
+            }
+        }
+    }
+
+    protected void captureBaseModel(T entity, S state, CapturedEntity capture, MaterialHolder materials) {
         // Extract texture
         Identifier texId = renderer.getTextureLocation(state);
         String texName = EntityCapture.getEntityTexturePath(texId);
@@ -167,6 +177,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         });
 
         // TODO: Check if doing this every frame causes performance issues.
+        if (model == null) return;
         ModelParts.buildParentHierarchy(model.root(), "root", capture.getParents()::put);
 
         // Add part meshes if needed.
@@ -178,16 +189,10 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
                 return ModelParts.modelPartToMesh(part, obj);
             });
         });
-
-        if (getRendererAccessor(renderer).invokeShouldRenderLayers(state)) {
-            for (var feature : features) {
-                feature.capture(capture, materials, state, state.yRot, state.xRot, tick);
-            }
-        }
     }
 
     @Override
-    public M getModel() {
+    public @NonNull M getModel() {
         if (model == null) {
             throw new NullPointerException("Model must be initialized before getModel is called.");
         }
