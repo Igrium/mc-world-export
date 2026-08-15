@@ -49,6 +49,13 @@ class ReplayImportContext:
 
     settings: ReplayImportSettings = field(default_factory=ReplayImportSettings)
 
+    def fps(self) -> float:
+        scene = self.bl_context.scene
+        if scene is not None:
+            return scene.render.fps / float(scene.render.fps_base)
+        else:
+            return 24
+
     def tick_to_frame(self, tick: int) -> float:
         """Return the global scene frame that a replay tick falls on.
 

@@ -76,6 +76,9 @@ def apply_custom_props(mat: Material, custom_props: dict[str, Any], context: Rep
         node_tree.links.new(from_socket, vert_tint_node.inputs[0])
         node_tree.links.new(vert_tint_node.outputs[0], color_socket)
 
+    if custom_props.get('glint'):
+        apply_glint(node_tree, principled_node, context)
+
 
 def apply_grass_overlay(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled, overlay: tuple[float, float], context: ReplayImportContext):
     nodes = node_tree.nodes
@@ -119,3 +122,33 @@ def apply_grass_overlay(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPri
     links.new(overlay_tex.outputs['Alpha'], post.inputs['OverlayMask'])  # pyright: ignore[reportOptionalSubscript]
     links.new(post.outputs['Result'], principled.inputs['Base Color'])
 
+def apply_glint(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled, context: ReplayImportContext):
+    nodes = node_tree.nodes
+    if not principled.inputs: return
+
+    group = cast(ShaderNodeGroup, nodes.new('ShaderNodeGroup'))
+    group.node_tree = context.prefabs.glint
+    group.location = (-500, -20)
+    group.name = "Glint"
+
+    # It looks good with 200 at 30 fps; remap that to real fps
+    divisor = (context.fps() * 200) / 30
+
+    fcurve = group.inputs['W'].driver_add('default_value')
+    driver = fcurve.driver
+    driver.type = 'SCRIPTED'
+    driver.expression = f'frame / {divisor}'
+
+    links = node_tree.links
+
+    links.new(group.outputs['Color'], principled.inputs['Emission Color'])
+    links.new(group.outputs['Strength'], principled.inputs['Emission Strength'])
+
+    # Identify the base color output so we can use as input to the node group
+    color_socket = principled.inputs['Base Color']  # pyright: ignore[reportOptionalSubscript]
+    color_links = color_socket.links
+    from_socket = color_links[0].from_socket if color_links else None
+    if not from_socket:
+        return
+
+    links.new(from_socket, group.inputs['Texture'])
