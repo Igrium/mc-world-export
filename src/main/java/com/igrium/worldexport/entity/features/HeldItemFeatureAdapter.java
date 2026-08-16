@@ -1,5 +1,6 @@
 package com.igrium.worldexport.entity.features;
 
+import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.models.ItemModelAdapter;
@@ -37,7 +38,7 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
         super(renderer);
     }
 
-    private record HandedModel(HumanoidArm hand, List<BakedQuad> model) {
+    private record HandedModel(HumanoidArm hand, boolean glint, ImmutableList<BakedQuad> model) {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -129,15 +130,17 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
         List<String> names = new ArrayList<>();
         // TODO: does a submission represent an entire item or each item model part?
         for (var submission : collector.getSubmissions()) {
-            String name = itemModelNames.computeIfAbsent(new HandedModel(arm, submission.quads()),
-                    m -> "item." + itemModelNames.size());
+            boolean glint = submission.foilType() != FoilType.NONE;
+            var model = new HandedModel(arm, glint, ImmutableList.copyOf(submission.quads()));
+
+            String name = itemModelNames.computeIfAbsent(model, m -> "item." + itemModelNames.size());
             names.add(name);
 
             capture.getModelParts().computeIfAbsent(name, n -> {
                 //noinspection resource
                 Identifier atlas = submission.quads().isEmpty() ? null
                         : submission.quads().getFirst().materialInfo().sprite().atlasLocation();
-                ReplayMtl mat = ItemModelAdapter.getOrCreateItemMaterial(materials, submission.foilType() != FoilType.NONE, atlas);
+                ReplayMtl mat = ItemModelAdapter.getOrCreateItemMaterial(materials, glint, atlas);
 
                 Obj obj = Objs.create();
                 obj.setMtlFileNames(Set.of("entities.mtl"));

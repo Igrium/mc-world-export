@@ -40,21 +40,28 @@ public abstract class FeatureAdapter<S extends EntityRenderState, M extends Enti
      * Register equipment texture and get or create its material.
      *
      * @param materials Material holder to write into.
+     * @param glint     Whether to apply a glint material
      * @param texId     Equipment texture to register.
      * @return The material.
      */
-    public static ReplayMtl getEquipmentMaterial(MaterialHolder materials, Identifier texId) {
+    public static ReplayMtl getEquipmentMaterial(MaterialHolder materials, boolean glint, Identifier texId) {
         String texName = texId.getNamespace() + "/" + texId.getPath();
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
         materials.getTextures().computeIfAbsent(texPath, tex ->
                 TextureExtractor.pullTextureAsync(texId));
 
-        return materials.getOrCreateMtl("entities.mtl", texName, n -> {
+        String baseName = texName.endsWith(".png") ? texName.substring(0, texName.length() - 4) : texName;
+        String matName = glint ? baseName + ".glint" : baseName;
+
+        return materials.getOrCreateMtl("entities.mtl", matName, n -> {
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texPath);
             mtl.mtl().setMapD(texPath);
             mtl.properties().put("armor", ReplayMtl.Property.of(true));
+            if (glint) {
+                mtl.properties().put("glint", ReplayMtl.Property.of(true));
+            }
             return mtl;
         });
     }

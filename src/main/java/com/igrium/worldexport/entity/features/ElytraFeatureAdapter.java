@@ -70,7 +70,8 @@ public class ElytraFeatureAdapter<S extends HumanoidRenderState, M extends Entit
         if (layers.isEmpty())
             return;
 
-        ReplayMtl mat = getEquipmentMaterial(materials, getTexture(layers.getFirst(), state));
+        // TODO: figure out how to detect glint on elytra
+        ReplayMtl mat = getEquipmentMaterial(materials, false, getTexture(layers.getFirst(), state));
 
         // The capture happens outside the render pass, so the wings haven't been posed for us.
         ElytraModel model = state.isBaby ? renderAccessor().getElytraBabyModel() : renderAccessor().getElytraModel();

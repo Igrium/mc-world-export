@@ -71,17 +71,19 @@ public class ArmorFeatureAdapter<S extends HumanoidRenderState, M extends Humano
             if (layers.isEmpty())
                 return;
 
-            ReplayMtl mat = getEquipmentMaterial(materials, layers.getFirst().getTextureLocation(layerType));
+            boolean glint = stack.hasFoil();
+            ReplayMtl mat = getEquipmentMaterial(materials, glint, layers.getFirst().getTextureLocation(layerType));
 
             // Create part meshes
             ModelParts.forEachPart(armorModel.root(), "root", (path, part) -> {
                 String armorPath = BuiltInRegistries.ITEM.getKey(stack.getItem()) + "." + path;
+                if (glint) armorPath += ".glint";
                 capture.getModelParts().computeIfAbsent(armorPath, p -> {
                     Obj obj = Objs.create();
                     obj.setMtlFileNames(Collections.singleton("entities.mtl"));
                     obj.setActiveMaterialGroupName(mat.getName());
 
-                    capture.getParents().put(armorPath, path);
+                    capture.getParents().put(p, path);
                     return ModelParts.modelPartToMesh(part, obj);
                 });
 
