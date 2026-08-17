@@ -1,3 +1,4 @@
+import json
 from typing import Collection
 
 import bpy
@@ -14,6 +15,39 @@ from . import materials
 
 from .entity import entity_loader
 
+REPLAY_FORMAT_VERSION = (2, 0)
+"""The replay format version this addon-implements (see doc/ReplayFormat.md)
+"""
+
+def read_replay_version(file: str, extract_zip: bool | None = None) -> tuple[int, int] | None:
+    """Extract the major and minor version from a replay zip file
+
+    Args:
+        file (str): The file to read
+        extract_zip (bool | None, optional): If `true`, attempt to extract it as a zip file.
+        If `None`, detect automatically.
+
+    Returns:
+        tuple[int, int] | None: The major and minor versions. 
+        `None` if it couldn't be loaded for whatever reason.
+    """
+    if extract_zip == None:
+        extract_zip = os.path.isfile(file)
+    
+    try:
+        if extract_zip:
+            with zipfile.ZipFile(file, 'r') as zip:
+                raw = zip.read('meta.json')
+        else:
+            with open(os.path.join(file, 'meta.json'), 'r') as f:
+                raw = f.read()
+        
+        version = str(json.loads(raw)['version'])
+        major, minor = version.split('.')
+
+        return (int(major), int(minor))
+    except Exception:
+        return None
 
 def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context, extract_zip: bool | None = None):
     if extract_zip is None:

@@ -1,13 +1,16 @@
 import bpy
 
 from bpy.props import BoolProperty, StringProperty
-from bpy.types import Context, Operator, Panel
+from bpy.types import Context, Event, Operator, Panel
 # ImportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
 from bpy_extras.io_utils import ImportHelper
 
 from .. import replay_importer
 from ..replay_types import ReplayImportSettings
+
+_pending_import: tuple[str, ReplayImportSettings] | None = None
+"""Import deferred behind the version confirmation popup, if any."""
 
 
 class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
@@ -69,7 +72,11 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
         default=True
     )
 
+
     def execute(self, context): # type: ignore
+        supported = replay_importer.REPLAY_FORMAT_VERSION
+        version = replay_importer.read_replay_version(self.filepath)
+
         settings = ReplayImportSettings(
             use_scene_framerate=self.use_scene_framerate,
             process_materials=self.process_materials,
@@ -79,7 +86,32 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
             local_root_bone=self.local_root_bone,
             clean_curves=self.clean_curves,
         )
-        replay_importer.import_replay(self.filepath, settings, context) # type: ignore
+
+        if version is None:
+            self.report({'WARNING'}, "Unable to determine replay format version. Import might be broken.")
+
+        elif version[0] > supported[0]:
+            self.report({'ERROR'},
+            f"Cannot import format version {version[0]}.{version[1]}. Please update the addon.")
+            return {'CANCELLED'}
+
+        elif version > supported:
+            global _pending_import
+            _pending_import = (self.filepath, settings)
+            ver_string = f"{version[0]}.{version[1]}";
+            support_string = f"{supported[0]}.{supported[1]}";
+
+            # The popup is modal: it runs the import itself once confirmed.
+            bpy.ops.worldexport.confirm_replay_version(
+                'INVOKE_DEFAULT',
+                message=(f"This replay was exported with a format version newer than what this addon supports"
+                        f" ({ver_string} > {support_string}). Some features may be missing."
+                )
+            )
+
+            return {'CANCELLED'}
+
+        replay_importer.import_replay(self.filepath, settings, context)
         return {'FINISHED'}
 
     def draw(self, context): # type: ignore
@@ -155,7 +187,32 @@ class WORLDEXPORT_PT_import_entities(Panel):
         layout.prop(operator, 'clean_curves') # type: ignore
 
 
-# Only needed if you want to add into a dynamic menu.
+class WORLDEXPORT_OT_confirm_replay_version(Operator):
+    bl_idname = "worldexport.confirm_replay_version"
+    bl_label = "Import Anyway"
+    bl_options = {'INTERNAL'}
+
+    message: StringProperty(options={'HIDDEN', 'SKIP_SAVE'})
+
+    def invoke(self, context: Context | None, event: Event | None):
+        return context.window_manager.invoke_confirm(
+            self, event,
+            title="Newer Replay Format",
+            message=self.message,
+            confirm_text="Import Anyway",
+            icon='WARNING'
+        )
+
+    def execute(self, context: Context | None): # type: ignore
+        global _pending_import
+        pending = _pending_import
+        _pending_import = None
+        if pending is None:
+            return {'CANCELLED'}
+
+        replay_importer.import_replay(pending[0], pending[1], context)
+        return {'FINISHED'}
+
 def menu_func_import(self, context):
     self.layout.operator(WORLDEXPORT_OT_import_replay.bl_idname, text="Minecraft Replay")
 
@@ -164,6 +221,7 @@ classes = (
     WORLDEXPORT_OT_import_replay,
     WORLDEXPORT_PT_import_world,
     WORLDEXPORT_PT_import_entities,
+    WORLDEXPORT_OT_confirm_replay_version,
 )
 
 
