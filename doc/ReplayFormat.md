@@ -108,6 +108,8 @@ The core of exported replays come in the form of `.anim` files, scattered throug
 
 These binary files contain a number of **curves**. Each curve pertains to a specific model part, and contain a number of **channels**, each a continuous float array, values mapped to a specific tick in the replay.
 
+### Layout
+
 These binary files are **big-endian**, using the following primitives:
 
 | Type    | Length   | Meaning                                                                                                                                             |
@@ -116,8 +118,6 @@ These binary files are **big-endian**, using the following primitives:
 | `int`   | 4        | 32-bit signed integer.                                                                                                                              |
 | `float` | 4        | IEEE-754 single precision floating-point number                                                                                                     |
 | `str`   | variable | `u2`, byte length, followed by [modified UTF-8](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/io/DataInput.html#modified-utf-8) |
-
-### Layout
 
 ```
 anim file
@@ -163,4 +163,39 @@ Transforms are defined in a coordinate space relative to their parent defined in
 If a curve belonging to a given model part begins on tick 10, and is 5 ticks in length, the model part will appear on tick 10 and disappear on tick 15. 
 
 A second curve may be used to make it re-appear later in the file. If you need a model part to remain visible without any animation data, use curve format `NONE`.
+
+## Materials
+
+(The flow of this needs to be cleaned up)
+
+By default, materials are handled natively by the OBJ importer. They're defined in `.mtl` files alongside the `.obj` files, which reference them with `mtllib` and `usemtl` as per the [OBJ standard](https://en.wikipedia.org/wiki/Wavefront_.obj_file#Reference_materials)
+
+However, many features of replay materials don't exist in traditional a traditional OBJ pipeline. To solve this, an optional `<mtlname>.mtl.json` can be included next to the mtl, containing additional flags that can be applied to materials on import.
+
+```json
+{
+    "world": {
+        "vertexTint": true
+    },
+    "items.glint": {
+        "renderMode": "blended",
+        "glint": true
+    }
+}
+```
+
+These flags instruct importers to apply additional effects on imported materials, such as enchantment glint shaders.
+
+The Minecraft exporter includes the following properties:
+
+| Property                         | Type                        | Meaning                                                                                                  |
+| -------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `vertexTint`                     | bool                        | Multiply base color by the mesh's vertex color.                                                          |
+| `glint`                          | bool                        | Apply an enchantment glint shader.                                                                       |
+| `renderMode`                     | `"dithered"` \| `"blended"` | Alpha handling. Default `"dithered"`.                                                                    |
+| `grassOverlayU`, `grassOverlayV` | float                       | If either is nonzero, overlay a second tinted layer sampled at these UV offsets. Overrides `vertexTint`. |
+| `armor`                          | bool                        | Material came from an equipment layer.                                                                   |
+
+**This property list is non-exhaustive.** If an importer encounters a property it doesn't recognize it, it should ignore it, and likewise, the exporter must anticipate that a given property might not be respected.
+
 
