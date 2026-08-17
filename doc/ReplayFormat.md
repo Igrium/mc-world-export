@@ -1,12 +1,12 @@
 # The Replay Format
 
-This document specifies the format used to export `.replay` files from Minecraft and into 3D. The format is specific to Minecraft, though designed to be agnostic when it comes to 3D software.
+This document specifies the format used to export `.replay` files from Minecraft and into 3D software. The format is specific to Minecraft, though designed to be agnostic when it comes to 3D software.
 
 ## Versioning
 
 Replay files use [Semantic Versioning](https://semver.org/). This document covers version `2.0`.
 
-Versions should strive to be backward-compatible. If an importer attempts to import a replay file with a version greater than what it supports, various features may be missing, but it shouldn't break entirely.
+Versions should strive to be backward-compatible. If an importer attempts to load a replay file with a version greater than what it supports, various features may be missing, but it shouldn't break entirely.
 
 ## Overview
 
@@ -62,11 +62,11 @@ All JSON vectors in the format are 3-dimensional arrays: `[x, y, z]`
 }
 ```
 
-| Field       | Type           | Meaning                                                                       |
-|:----------- |:-------------- | ----------------------------------------------------------------------------- |
+| Field       | Type           | Meaning                                                                           |
+|:----------- |:-------------- | --------------------------------------------------------------------------------- |
 | `offset`    | vector         | The mesh origin in replay space; vertices in the OBJ are relative to this origin. |
-| `startTick` | int (optional) | First tick the mesh is visible. Absent = visible from the start.              |
-| `endTick`   | int (optional) | Last tick the mesh is visible (inclusive). Absent = visible to the end.       |
+| `startTick` | int (optional) | First tick the mesh is visible. Absent = visible from the start.                  |
+| `endTick`   | int (optional) | Last tick the mesh is visible (inclusive). Absent = visible to the end.           |
 
 Every entry must have a matching `<name>.obj` defined within the archive. These are resolved relative to the replay root. If the world mesh key contains `/`, the OBJ should be nested within a folder.
 
@@ -80,7 +80,7 @@ Each entity is composed of a series of **model parts**. Each model part represen
 
 They are all defined in the `entities.json` file, which lists all entities and their model parts' parent-child relationships:
 
-```jsonc
+```json
 {
     "Igrium": {
         "hat": "head", // 'hat' is parented to 'head'
@@ -102,7 +102,7 @@ Each **model part** is one OBJ **group** (`g <part name>`) inside a single objec
 
 ## Animation
 
-The core of exported replays comes in the form of `.anim` files, scattered throughout the replay file. Every entity defined in `entities.json` **must** have an associated `<name>.anim` file.
+The core of exported replays comes in the form of `.anim` files. Every entity defined in `entities.json` **must** have an associated `<name>.anim` file.
 
 These binary files contain a number of **curves**. Each curve pertains to a specific model part, and contains a number of **channels**, each channel a continuous float array with values mapped to a specific tick in the replay.
 
@@ -163,7 +163,7 @@ Channels absent from a given format will have no keyframes inserted.
 
 If a curve belonging to a given model part begins on tick 10 and is 5 ticks in length, the model part will appear on tick 10 and disappear on tick 15. 
 
-A second curve may be used to make it reappear later in the file (multiple curves may belong to one part). If you need a model part to remain visible without any animation data, use curve format `NO_DATA`.
+A second curve may be used to make it reappear later in the file (multiple curves may belong to one part). If a model part must remain visible without any animation data, use curve format `NO_DATA`.
 
 ## Materials
 
@@ -185,7 +185,7 @@ However, many features of replay materials don't exist in a traditional OBJ pipe
 
 These flags instruct importers to apply additional effects on imported materials, such as enchantment glint shaders.
 
-The Minecraft exporter includes the following properties:
+The Replay Exporter mod uses the following properties:
 
 | Property                         | Type                        | Meaning                                         |
 | -------------------------------- | --------------------------- | ----------------------------------------------- |
@@ -194,16 +194,14 @@ The Minecraft exporter includes the following properties:
 | `renderMode`                     | `"dithered"` \| `"blended"` | Alpha handling. Default `"dithered"`.           |
 | `grassOverlayU`, `grassOverlayV` | float                       | (see below)                                     |
 
-**This property list is non-exhaustive.** If an importer encounters a property it doesn't recognize, it should ignore it, and likewise, the exporter must anticipate that a given property might not be respected.
+**This property list is non-exhaustive.** If an importer encounters a property it doesn't recognize, it should be ignored, and likewise, the exporter must anticipate that a given property might not be respected.
 
 ### Grass Overlay
 
-Some blocks, namely grass, render as two stacked texture layers: a base layer and a tinted overlay. Minecraft handles this by drawing two faces on top of each other, tinting one of them with the block tint. This, however, causes z-fighting in most rendering engines.
+Some blocks, namely grass, render as two stacked texture layers: a base layer and a tinted overlay. Minecraft handles this by drawing two quads on top of each other, tinting one of them with the block tint. This, however, causes z-fighting in most rendering engines.
 
-The solution is a special material type which emulates this behavior in a shader. If `grassOverlayU` or `grassOverlayV` are specified, they define an offset in UV space (0-1) from which the base texture is sampled a second time, tinted with the vertex color, and mixed with the base color using its alpha channel.
+The solution is a special material type which emulates this behavior in a shader. If `grassOverlayU` or `grassOverlayV` is specified, they define an offset in UV space (0-1) from which the base texture is sampled a second time, tinted with the vertex color, and mixed with the base color using its alpha channel.
 
 ## Specification Updates
 
 This spec is subject to change with updates to Replay Exporter, although it strives to remain backwards-compatible. The official Blender addon follows the release tags of the mod, and it will always implement the same version of the spec as the mod.
-
-
