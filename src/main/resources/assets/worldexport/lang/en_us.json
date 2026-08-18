@@ -13,6 +13,11 @@
   "worldexport.gui.export.export_center": "Export Origin (Chunks)",
   "worldexport.gui.export.use_camera_pos": "Use Camera Position",
 
+  "worldexport.gui.export.include": "Include",
+  "worldexport.gui.export.world": "World",
+  "worldexport.gui.export.updates": "Block Updates",
+  "worldexport.gui.export.entities": "Entities",
+
   "worldexport.gui.export.world_bounds": "World",
   "worldexport.gui.export.update_bounds": "Block Updates",
   "worldexport.gui.export.entity_bounds": "Entities",

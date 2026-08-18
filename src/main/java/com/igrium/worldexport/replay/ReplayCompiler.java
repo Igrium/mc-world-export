@@ -61,8 +61,10 @@ public class ReplayCompiler {
     }
 
     private CompiledReplay compileEntities(CompiledReplay replay) {
+        var entCap = replayCapture.getEntityCapture();
+        if (entCap == null) return replay;
         setPhase(ExportPhase.ENTITIES);
-        for (var entEntry : replayCapture.getEntityCapture().getEntities().entrySet()) {
+        for (var entEntry : entCap.getEntities().entrySet()) {
             String name = getUniqueName(entEntry.getKey().getName().getString(), replay.getEntities().keySet());
             replay.getEntities().put(name, entEntry.getValue());
         }

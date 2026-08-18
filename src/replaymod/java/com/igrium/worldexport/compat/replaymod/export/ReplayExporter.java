@@ -438,13 +438,13 @@ public class ReplayExporter implements RenderInfo {
         @Override
         public int getSectionsDone() {
             var cap = pipeline.getReplayCapture();
-            return cap != null ? cap.getWorldCapture().getMesher().getFinishedSections() : 0;
+            return cap != null && cap.getWorldCapture() != null ? cap.getWorldCapture().getMesher().getFinishedSections() : 0;
         }
 
         @Override
         public int getTotalSections() {
             var cap = pipeline.getReplayCapture();
-            return cap != null ? cap.getWorldCapture().getMesher().getTotalSections() : 0;
+            return cap != null && cap.getWorldCapture() != null ? cap.getWorldCapture().getMesher().getTotalSections() : 0;
         }
 
         @Override

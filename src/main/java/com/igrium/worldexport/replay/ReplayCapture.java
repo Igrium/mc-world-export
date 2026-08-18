@@ -21,6 +21,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,15 +105,20 @@ public class ReplayCapture {
     @Getter
     private final ReplayExportSettings settings;
 
+    /**
+     * The world capture in use; <code>null</code> if world export is off.
+     */
     @Getter
-    private final WorldCapture worldCapture;
+    private final @Nullable WorldCapture worldCapture;
 
+    /**
+     * The entity capture in use; <code>null</code> if entity export is off.
+     */
     @Getter
-    private final EntityCapture entityCapture;
+    private final @Nullable EntityCapture entityCapture;
 
     @Getter
     private final MaterialHolder materialHolder = new MaterialHolder();
-
 
     @Getter
     private final Executor executor;
@@ -140,21 +146,29 @@ public class ReplayCapture {
                     SectionPos.blockToSectionCoord(pos.getZ()));
         };
 
-        worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
-                bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY());
+        if (settings.isExportWorld()) {
+            worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
+                    bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY(),
+                    settings.isExportUpdates());
 
-        // WorldMesher owns its own worker threads, so it takes no executor.
-        var worldMesher = worldCapture.getMesher();
-        worldMesher.setOffset(settings.getOffset());
-        worldMesher.setSplitBlocks(settings.isSplitBlocks());
-        worldMesher.setMaxThreads(settings.getMaxThreads());
-        // TODO: WorldMesher stores these but doesn't act on them yet.
-        worldMesher.setMergeBaseMeshes(settings.isMergeBaseMeshes());
-        worldMesher.setMergeDoubleVertices(settings.isMergeDoubleVertices());
-
-        entityCapture = new EntityCapture(settings.entityBounds());
-        entityCapture.setGlobalOffset(settings.getOffset());
-        entityCapture.setMaterialHolder(materialHolder);
+            // WorldMesher owns its own worker threads, so it takes no executor.
+            var worldMesher = worldCapture.getMesher();
+            worldMesher.setOffset(settings.getOffset());
+            worldMesher.setSplitBlocks(settings.isSplitBlocks());
+            worldMesher.setMaxThreads(settings.getMaxThreads());
+            // TODO: WorldMesher stores these but doesn't act on them yet.
+            worldMesher.setMergeBaseMeshes(settings.isMergeBaseMeshes());
+            worldMesher.setMergeDoubleVertices(settings.isMergeDoubleVertices());
+        } else {
+            worldCapture = null;
+        }
+        if (settings.isExportEntities()) {
+            entityCapture = new EntityCapture(settings.entityBounds());
+            entityCapture.setGlobalOffset(settings.getOffset());
+            entityCapture.setMaterialHolder(materialHolder);
+        } else {
+            entityCapture = null;
+        }
     }
 
     /**
@@ -179,11 +193,12 @@ public class ReplayCapture {
 
         long captureStart = Util.getMillis();
 
-        worldCapture.captureBaseWorld();
-        LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
+        if (worldCapture != null) {
+            worldCapture.captureBaseWorld();
+            LOGGER.info("Cloned base world in {}ms", Util.getMillis() - captureStart);
+            worldCapture.getMesher().startBase();
+        }
 
-
-        worldCapture.getMesher().startBase();
         gameTick = 0;
 
 
@@ -198,20 +213,22 @@ public class ReplayCapture {
     public void onEndTick() {
         int stride = settings.getTickStride();
         if (gameTick % stride == 0) {
-            entityCapture.captureFrame(world, replayTick);
+            if (entityCapture != null) {
+                entityCapture.captureFrame(world, replayTick);
+            }
             replayTick++;
         }
         gameTick++;
     }
 
     public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, Level world) {
-        if (world == this.world) {
+        if (world == this.world && worldCapture != null) {
             worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
         }
     }
 
     public void onLoadChunk(Level world, LevelChunk chunk) {
-        if (world == this.world) {
+        if (world == this.world && worldCapture != null) {
             worldCapture.onChunkLoaded(chunk, replayTick);
         }
     }
@@ -222,6 +239,9 @@ public class ReplayCapture {
      * @return A future that completes with a map of mesh names and their meshes.
      */
     public CompletableFuture<Map<String, WorldMesh>> compileWorldMeshes() {
+        if (worldCapture == null) {
+            return CompletableFuture.completedFuture(Collections.emptyMap());
+        }
         var baseFuture = worldCapture.getMesher().finishBase();
         var deltaFuture = worldCapture.getMesher().tessellateDeltas(worldCapture);
 

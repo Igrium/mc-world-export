@@ -67,7 +67,10 @@ public class WorldCapture {
     @Getter
     private final int height;
 
-    public WorldCapture(ClientLevel world, Set<ChunkPos> chunks, Predicate<BlockPos> processDeltas, int minY, int height) {
+    @Getter
+    private final boolean doUpdates;
+
+    public WorldCapture(ClientLevel world, Set<ChunkPos> chunks, Predicate<BlockPos> processDeltas, int minY, int height, boolean doUpdates) {
         this.world = world;
         this.chunks = Set.copyOf(chunks);
         this.processDeltas = processDeltas;
@@ -76,6 +79,7 @@ public class WorldCapture {
 
         mesher = new WorldMesher(world);
         factory = PalettedContainerFactory.create(world.registryAccess());
+        this.doUpdates = doUpdates;
     }
 
     /// === BASE WORLD CAPTURE ===
@@ -122,11 +126,12 @@ public class WorldCapture {
 
         // The chunk has been previously loaded; diff it and add block updates
         if (oldVal != null) {
-            var diffs = ChunkDiffs.diff(oldVal, newVal);
-
-            for (var diff : diffs) {
-                BlockPos globalPos = cPos.getBlockAt(diff.x(), diff.y(), diff.z());
-                addBlockUpdate(globalPos, diff.secondVal(), tick);
+            if (doUpdates) {
+                var diffs = ChunkDiffs.diff(oldVal, newVal);
+                for (var diff : diffs) {
+                    BlockPos globalPos = cPos.getBlockAt(diff.x(), diff.y(), diff.z());
+                    addBlockUpdate(globalPos, diff.secondVal(), tick);
+                }
             }
         } else {
             mesher.queueChunk(cPos, copiedBaseWorld, minY, height);
@@ -140,7 +145,7 @@ public class WorldCapture {
      * @param update The update data.
      */
     public void addBlockUpdate(BlockPos pos, BlockUpdate update) {
-        if (!processDeltas.test(pos) || !chunks.contains(ChunkPos.containing(pos))) return;
+        if (!doUpdates || !processDeltas.test(pos) || !chunks.contains(ChunkPos.containing(pos))) return;
         Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(new BlockPos(pos),
                 p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
         map.put(update.tick(), update);

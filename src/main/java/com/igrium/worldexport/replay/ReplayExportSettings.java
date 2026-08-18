@@ -62,6 +62,24 @@ public class ReplayExportSettings {
     }
 
     /**
+     * Export the block world as a mesh
+     */
+    @Builder.Default
+    private boolean exportWorld = true;
+
+    /**
+     * Export block updates (depends on {@link #exportWorld})
+     */
+    @Builder.Default
+    private boolean exportUpdates = true;
+
+    /**
+     * Export entity animations
+     */
+    @Builder.Default
+    private boolean exportEntities = true;
+
+    /**
      * An offset to apply to the export
      */
     @Builder.Default @NonNull

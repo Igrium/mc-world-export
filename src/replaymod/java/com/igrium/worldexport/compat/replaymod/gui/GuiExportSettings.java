@@ -8,6 +8,7 @@ import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.replaymod.core.utils.Utils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.*;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
+import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiCheckbox;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiLabel;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiNumberField;
 import com.replaymod.lib.de.johni0702.minecraft.gui.layout.CustomLayout;
@@ -103,14 +104,65 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         return new GuiNumberField().setValidateOnFocusChange(true).setSize(38, 20);
     }
 
-    // === Settings list (title + rows) ===
+    // === FIELDS ===
+
+    private final GuiCheckbox exportWorld = new GuiCheckbox()
+            .setI18nLabel("worldexport.gui.export.world")
+            .setChecked(true)
+            .onClick(this::updateExportUpdatesEnabled);
+
+    public boolean isExportWorld() {
+        return exportWorld.isChecked();
+    }
+
+    public void setExportWorld(boolean exportWorld) {
+        this.exportWorld.setChecked(exportWorld);
+    }
+
+    private final GuiCheckbox exportUpdates = new GuiCheckbox()
+            .setI18nLabel("worldexport.gui.export.updates")
+            .setChecked(true);
+
+    public boolean isExportUpdates() {
+        return exportUpdates.isChecked();
+    }
+
+    public void setExportUpdates(boolean exportUpdates) {
+        this.exportUpdates.setChecked(exportUpdates);
+    }
+
+    private void updateExportUpdatesEnabled() {
+        exportUpdates.setEnabled(exportWorld.isChecked());
+    }
+
+    private final GuiCheckbox exportEntities = new GuiCheckbox()
+            .setI18nLabel("worldexport.gui.export.entities")
+            .setChecked(true);
+
+    public boolean isExportEntities() {
+        return exportEntities.isChecked();
+    }
+
+    public void setExportEntities(boolean exportEntities) {
+        this.exportEntities.setChecked(exportEntities);
+    }
+    
+    private final GuiPanel flagsPanel = new GuiPanel()
+            .setLayout(new VerticalLayout().setSpacing(4))
+            .addElements(new VerticalLayout.Data(0), exportWorld, exportUpdates, exportEntities);
+
+    // === Settings list ===
 
     private final GuiPanel mainPanel = new GuiPanel()
             .setLayout(new GridLayout().setCellsEqualSize(false).setColumns(2).setSpacingX(5).setSpacingY(5))
             .addElements(new GridLayout.Data(1, 0.5),
                     new GuiLabel().setI18nText("replaymod.gui.rendersettings.outputfile"), outputFileButton,
                     new GuiLabel().setI18nText("worldexport.gui.export.bounds"), boundsEditorButton,
-                    new GuiLabel().setI18nText("worldexport.gui.export.export_center"), exportCenterPanel);
+                    new GuiLabel().setI18nText("worldexport.gui.export.export_center"), exportCenterPanel)
+            // Align label with the top of the row
+            .addElements(new GridLayout.Data(1, 0), new GuiLabel().setI18nText("worldexport.gui.export.include"))
+            // Left-align checkboxes
+            .addElements(new GridLayout.Data(0, 0.5), flagsPanel);
 
     // === Popup root ===
 
@@ -198,7 +250,11 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             if (saved.worldBounds() != null) boundsWorld = saved.worldBounds();
             if (saved.updateBounds() != null) boundsUpdate = saved.updateBounds();
             if (saved.entityBounds() != null) boundsEntity = saved.entityBounds();
+            if (saved.exportWorld() != null) exportWorld.setChecked(saved.exportWorld());
+            if (saved.exportUpdates() != null) exportUpdates.setChecked(saved.exportUpdates());
+            if (saved.exportEntities() != null) exportEntities.setChecked(saved.exportEntities());
         }
+        updateExportUpdatesEnabled();
 
         setOutputFile(resolveOutputFile(saved));
     }
@@ -300,14 +356,15 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     /**
      * Capture the current state of this screen for saving.
      */
-    public SavedExportSettings readSettings() {
-        return new SavedExportSettings(outputFile.toPath(), boundsWorld, boundsUpdate, boundsEntity, getExportCenter());
+    public SavedExportSettings captureSettings() {
+        return new SavedExportSettings(outputFile.toPath(), boundsWorld, boundsUpdate, boundsEntity, getExportCenter(),
+                exportWorld.isChecked(), exportUpdates.isChecked(), exportEntities.isChecked());
     }
 
     @Override
     public void close() {
         try {
-            SavedExportSettings.save(replayHandler.getReplayFile(), readSettings());
+            SavedExportSettings.save(replayHandler.getReplayFile(), captureSettings());
         } catch (Exception e) {
             LOGGER.error("Error saving export settings to replay file.", e);
         }
@@ -323,6 +380,9 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
                 .entityBounds(boundsEntity.toBox())
                 .updateBounds(boundsUpdate)
                 .offset(getExportCenter().origin().multiply(-1))
+                .exportWorld(exportWorld.isChecked())
+                .exportUpdates(exportWorld.isChecked() && exportUpdates.isChecked())
+                .exportEntities(exportEntities.isChecked())
                 .build();
 
         try {

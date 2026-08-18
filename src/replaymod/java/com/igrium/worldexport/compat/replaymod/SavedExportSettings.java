@@ -15,7 +15,10 @@ public record SavedExportSettings(@Nullable Path outputFile,
                                   @Nullable ChunkSectionBox worldBounds,
                                   @Nullable ChunkSectionBox updateBounds,
                                   @Nullable ChunkSectionBox entityBounds,
-                                  @Nullable SectionPos exportCenter) {
+                                  @Nullable SectionPos exportCenter,
+                                  @Nullable Boolean exportWorld,
+                                  @Nullable Boolean exportUpdates,
+                                  @Nullable Boolean exportEntities) {
     private static final String SETTINGS_FILE = "worldexport-settings.json";
 
     private static final Gson GSON = JsonAdapters.registerAdapters(new GsonBuilder())
