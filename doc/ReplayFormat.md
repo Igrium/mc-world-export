@@ -4,7 +4,7 @@ This document specifies the format used to export `.replay` files from Minecraft
 
 ## Versioning
 
-Replay files use [Semantic Versioning](https://semver.org/). This document covers version `2.0`.
+Replay files use [Semantic Versioning](https://semver.org/). This document covers version `2.1`.
 
 Versions should strive to be backward-compatible. If an importer attempts to load a replay file with a version greater than what it supports, various features may be missing, but it shouldn't break entirely.
 

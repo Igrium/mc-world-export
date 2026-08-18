@@ -32,7 +32,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
     /**
      * The version tag to be included in replay files written by this version of them mod
      */
-    public static final String REPLAY_VERSION = "2.0";
+    public static final String REPLAY_VERSION = "2.1";
 
     @Getter
     private static IgriumsReplayExporter instance;
