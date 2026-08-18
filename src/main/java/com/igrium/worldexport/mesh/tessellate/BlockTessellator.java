@@ -24,11 +24,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.Collections;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -38,7 +36,21 @@ import java.util.function.Function;
 public class BlockTessellator {
 
     public interface FaceMaterialFactory {
-        String get(BlockState state, BakedQuad quad);
+        /**
+         * Called once per block to do per-block operations (override checking, etc.)
+         *
+         * @param state Block being tessellated
+         * @return Face resolver for that block
+         */
+        FaceMaterialResolver forState(BlockState state);
+    }
+
+    /**
+     * Chooses the material to use for each face in a block. Keep as cheap as possible.
+     */
+    @FunctionalInterface
+    public interface FaceMaterialResolver {
+        String get(BakedQuad quad);
     }
 
     /**
@@ -53,10 +65,7 @@ public class BlockTessellator {
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
 
-    @Deprecated
-    private final @NonNull Function<BlockState, BlockMaterialInfo> blockMatFactory;
     private final @NonNull Function<FluidState, String> fluidMatFactory;
-
     private final @NonNull FaceMaterialFactory blockFaceMatFactory;
 
     @Builder.Default
@@ -100,14 +109,19 @@ public class BlockTessellator {
         Obj obj = Objs.create();
 
         ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
-
-        BlockQuadOutput quadOutput = (x, y, z, quad, instance) ->
-                addQuad(obj, x, y, z, quad, instance);
-
-        final Mutable<BlockState> curBlockState = new MutableObject<>();
+        
+        // The material resolver for the current block
+        final Mutable<FaceMaterialResolver> curResolver = new MutableObject<>();
+        
+        final Mutable<String> curMat = new MutableObject<>();
 
         BlockQuadOutput perFaceQuadOutput = (x, y, z, quad, instance) -> {
-            obj.setActiveMaterialGroupName(blockFaceMatFactory.get(curBlockState.get(), quad));
+            // Don't change the material if we don't have to
+            String mat = curResolver.get().get(quad);
+            if (!mat.equals(curMat.get())) {
+                obj.setActiveMaterialGroupName(mat);
+                curMat.setValue(mat);
+            }
             addQuad(obj, x, y, z, quad, instance);
         };
 
@@ -129,7 +143,9 @@ public class BlockTessellator {
 
                 FluidState fluidState = blockState.getFluidState();
                 if (!fluidState.isEmpty()) {
-                    obj.setActiveMaterialGroupName(fluidMatFactory.apply(fluidState));
+                    String fluidMat = fluidMatFactory.apply(fluidState);
+                    obj.setActiveMaterialGroupName(fluidMat);
+                    curMat.setValue(fluidMat);
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.FLUID.getKey(fluidState.getType());
                         obj.setActiveGroupNames(Collections.singletonList("fluid." + id));
@@ -138,13 +154,11 @@ public class BlockTessellator {
                 }
 
                 if (blockState.getRenderShape() == RenderShape.MODEL) {
-//                    BlockMaterialInfo mat = blockMatFactory.apply(blockState);
-//                    obj.setActiveMaterialGroupName(blockMatFactory.apply(blockState).name());
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
                         obj.setActiveGroupNames(Collections.singletonList(id.toString()));
                     }
-                    curBlockState.setValue(blockState);
+                    curResolver.setValue(blockFaceMatFactory.forState(blockState));
                     blockRenderer.tesselateBlock(
                             perFaceQuadOutput,
                             pos.getX() - origin.getX(),
@@ -158,7 +172,7 @@ public class BlockTessellator {
 
             } catch (Throwable t) {
                 CrashReport report = CrashReport.forThrowable(t, "Tessellating block in replay export");
-                CrashReportCategory category = report.addCategory("Block being tesselated");
+                CrashReportCategory category = report.addCategory("Block being tessellated");
                 CrashReportCategory.populateBlockDetails(category, region, pos, blockState);
                 throw new ReportedException(report);
             }

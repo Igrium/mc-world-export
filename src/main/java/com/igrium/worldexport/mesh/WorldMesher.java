@@ -6,7 +6,7 @@ import com.igrium.worldexport.mesh.postprocess.MeshMergeVerts;
 import com.igrium.worldexport.mesh.tessellate.BlockModelOverride;
 import com.igrium.worldexport.mesh.tessellate.BlockStateModelSupplier;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
-import com.igrium.worldexport.mesh.tessellate.BlockTessellator.BlockMaterialInfo;
+import com.igrium.worldexport.mesh.tessellate.BlockTessellator.FaceMaterialResolver;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ManagedNativeImage;
 import com.igrium.worldexport.tex.ReplayMtl;
@@ -28,7 +28,6 @@ import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.data.AtlasIds;
@@ -149,8 +148,7 @@ public class WorldMesher {
                 .blockColors(blockColors)
                 .blockModelSet(modelSupplier)
                 .fluidModelSet(modelManager.getFluidStateModelSet())
-                .blockMatFactory(this::getMaterial)
-                .blockFaceMatFactory(this::getFaceMaterial)
+                .blockFaceMatFactory(this::getFaceMaterials)
                 .fluidMatFactory(this::getDefaultMaterialName)
                 .splitBlocks(this.splitBlocks)
                 .build();
@@ -161,38 +159,36 @@ public class WorldMesher {
 
     /// === MATERIALS & TEXTURES ===
 
-    @Deprecated
-    public String getDefaultMaterialName(BlockState state) {
-        return state.isSolidRender() ? WORLD : WORLD_CUTOUT;
+    /**
+     * Resolve world materials based on their render layer
+     */
+    private static final FaceMaterialResolver WORLD_MATERIALS = quad -> switch (quad.materialInfo().layer()) {
+        case SOLID -> WORLD;
+        case CUTOUT -> WORLD_CUTOUT;
+        case TRANSLUCENT -> WORLD_TRANS;
+    };
+    
+    private final Map<BlockState, BlockTessellator.FaceMaterialResolver> faceMaterialCache = new ConcurrentHashMap<>();
+
+    public FaceMaterialResolver getFaceMaterials(BlockState state) {
+        return faceMaterialCache.computeIfAbsent(state, this::computeFaceMaterials);
     }
 
-    @Deprecated
-    public BlockMaterialInfo getMaterial(BlockState state) {
-        // I don't like that we're doing allocations per-block, but I can't think of something better rn
+    private FaceMaterialResolver computeFaceMaterials(BlockState state) {
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        if (override != null) {
-            String matName = override.material() != null ? override.material() : getDefaultMaterialName(state);
-            return new BlockMaterialInfo(matName, override.faceMats() != null && !override.faceMats().isEmpty());
-        } else {
-            return new BlockMaterialInfo(getDefaultMaterialName(state), false);
-        }
-    }
+        if (override == null) return WORLD_MATERIALS;
 
-    public String getFaceMaterial(BlockState state, BakedQuad quad) {
-        var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        if (override != null) {
-            int tintIdx = quad.materialInfo().tintIndex();
-            if (override.faceMats() != null && override.faceMats().containsKey(tintIdx)) {
-                return override.faceMats().get(tintIdx);
-            } else if (override.material() != null) {
-                return override.material();
-            }
+        Int2ObjectMap<String> overrideMats = override.faceMats();
+        String material = override.material();
+
+        if (overrideMats == null || overrideMats.isEmpty()) {
+            return material != null ? _ -> material : WORLD_MATERIALS;
         }
 
-        return switch (quad.materialInfo().layer()) {
-            case SOLID -> WORLD;
-            case CUTOUT -> WORLD_CUTOUT;
-            case TRANSLUCENT -> WORLD_TRANS;
+        return quad -> {
+            String faceMat = overrideMats.get(quad.materialInfo().tintIndex());
+            if (faceMat != null) return faceMat;
+            return material != null ? material : WORLD_MATERIALS.get(quad);
         };
     }
 
@@ -434,6 +430,7 @@ public class WorldMesher {
                 builder.put(entry.getKey(), model);
         }
         modelOverrideCache = builder.build();
+        faceMaterialCache.clear();
         blockColors.build();
     }
 
