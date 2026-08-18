@@ -32,7 +32,7 @@
 
   "worldexport.gui.status.init": "Initializing",
   "worldexport.gui.status.capture": "Capturing game",
-  "worldexport.gui.status.serialization": "Writing replay file",
+  "worldexport.gui.status.serialization": "Saving to disk",
   "worldexport.gui.status.world": "Tessellating world",
   "worldexport.gui.status.entities": "Serializing entities",
   "worldexport.gui.status.materials": "Extracting materials",

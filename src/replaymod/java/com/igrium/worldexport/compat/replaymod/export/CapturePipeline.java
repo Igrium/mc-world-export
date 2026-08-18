@@ -53,6 +53,7 @@ public class CapturePipeline {
             capture.finish();
         }
 
+
         CompletableFuture<?> finish = saveAsync(info);
 
         while (!finish.isDone()) {
@@ -95,6 +96,7 @@ public class CapturePipeline {
         compiler.setPhaseListener(info::setPhase);
 
         return compiler.compile().thenCompose(replay -> {
+            info.setPhase(ExportPhase.SERIALIZATION);
             CompletableFuture<?> result;
             if (getSettings().isExportZip()) {
                 Path exportPath = getSettings().getExportPath();
