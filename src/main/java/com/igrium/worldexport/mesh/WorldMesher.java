@@ -28,6 +28,7 @@ import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.data.AtlasIds;
@@ -53,8 +54,24 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class WorldMesher {
+    /**
+     * Solid world material
+     */
     public static final String WORLD = "world";
+
+    /**
+     * Alpha-blended world material
+     */
     public static final String WORLD_TRANS = "world_trans";
+
+    /**
+     * Alpha-cutout world material
+     */
+    public static final String WORLD_CUTOUT = "world_dithered";
+
+    /**
+     * Grass material
+     */
     public static final String GRASS_MAT = "grass_block";
 
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/WorldMesher");
@@ -144,10 +161,12 @@ public class WorldMesher {
 
     /// === MATERIALS & TEXTURES ===
 
+    @Deprecated
     public String getDefaultMaterialName(BlockState state) {
-        return state.isSolidRender() ? WORLD : WORLD_TRANS;
+        return state.isSolidRender() ? WORLD : WORLD_CUTOUT;
     }
 
+    @Deprecated
     public BlockMaterialInfo getMaterial(BlockState state) {
         // I don't like that we're doing allocations per-block, but I can't think of something better rn
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
@@ -159,15 +178,22 @@ public class WorldMesher {
         }
     }
 
-    public String getFaceMaterial(BlockState state, int tintIdx) {
+    public String getFaceMaterial(BlockState state, BakedQuad quad) {
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        if (override == null) return getDefaultMaterialName(state);
-
-        if (override.faceMats() != null && override.faceMats().containsKey(tintIdx)) {
-            return override.faceMats().get(tintIdx);
-        } else {
-            return override.material() != null ? override.material() : getDefaultMaterialName(state);
+        if (override != null) {
+            int tintIdx = quad.materialInfo().tintIndex();
+            if (override.faceMats() != null && override.faceMats().containsKey(tintIdx)) {
+                return override.faceMats().get(tintIdx);
+            } else if (override.material() != null) {
+                return override.material();
+            }
         }
+
+        return switch (quad.materialInfo().layer()) {
+            case SOLID -> WORLD;
+            case CUTOUT -> WORLD_CUTOUT;
+            case TRANSLUCENT -> WORLD_TRANS;
+        };
     }
 
     public String getDefaultMaterialName(FluidState state) {
@@ -182,16 +208,27 @@ public class WorldMesher {
     public static List<ReplayMtl> getDefaultWorldMtls() {
         List<ReplayMtl> mtls = new ArrayList<>(2);
 
+        // World Solid
         ReplayMtl world = new ReplayMtl(Mtls.create(WORLD));
         world.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         world.properties().put("vertexTint", ReplayMtl.Property.of(true));
         mtls.add(world);
 
+        // World transparent
         ReplayMtl worldTrans = new ReplayMtl(Mtls.create(WORLD_TRANS));
         worldTrans.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         worldTrans.mtl().setMapD(ReplayCapture.WORLD_TEX);
         worldTrans.properties().put("vertexTint", ReplayMtl.Property.of(true));
+        worldTrans.properties().put("renderMode", ReplayMtl.Property.of("blended"));
         mtls.add(worldTrans);
+
+        // World cutout
+        ReplayMtl worldCutout = new ReplayMtl(Mtls.create(WORLD_CUTOUT));
+        worldCutout.mtl().setMapKd(ReplayCapture.WORLD_TEX);
+        worldCutout.mtl().setMapD(ReplayCapture.WORLD_TEX);
+        worldCutout.properties().put("vertexTint", ReplayMtl.Property.of(true));
+        worldCutout.properties().put("renderMode", ReplayMtl.Property.of("dithered"));
+        mtls.add(worldCutout);
 
         // Grass material
         ReplayMtl grassBlock = new ReplayMtl(Mtls.create(GRASS_MAT));

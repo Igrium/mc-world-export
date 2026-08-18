@@ -78,6 +78,10 @@ def apply_custom_props(mat: Material, custom_props: dict[str, Any], context: Rep
 
     if custom_props.get('glint'):
         apply_glint(node_tree, principled_node, context)
+    
+    render_mode = custom_props.get('renderMode')
+    if isinstance(render_mode, str) and render_mode.lower() == 'blended':
+        mat.surface_render_method = 'BLENDED'
 
 
 def apply_grass_overlay(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled, overlay: tuple[float, float], context: ReplayImportContext):

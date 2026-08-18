@@ -38,7 +38,7 @@ import java.util.function.Function;
 public class BlockTessellator {
 
     public interface FaceMaterialFactory {
-        String get(BlockState state, int tintIdx);
+        String get(BlockState state, BakedQuad quad);
     }
 
     /**
@@ -53,10 +53,11 @@ public class BlockTessellator {
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
 
+    @Deprecated
     private final @NonNull Function<BlockState, BlockMaterialInfo> blockMatFactory;
     private final @NonNull Function<FluidState, String> fluidMatFactory;
 
-    private final @Nullable FaceMaterialFactory blockFaceMatFactory;
+    private final @NonNull FaceMaterialFactory blockFaceMatFactory;
 
     @Builder.Default
     private final boolean splitBlocks = true;
@@ -106,8 +107,7 @@ public class BlockTessellator {
         final Mutable<BlockState> curBlockState = new MutableObject<>();
 
         BlockQuadOutput perFaceQuadOutput = (x, y, z, quad, instance) -> {
-            //noinspection DataFlowIssue (should only be called of blockFaceMatFactory is non-null)
-            obj.setActiveMaterialGroupName(blockFaceMatFactory.get(curBlockState.get(), quad.materialInfo().tintIndex()));
+            obj.setActiveMaterialGroupName(blockFaceMatFactory.get(curBlockState.get(), quad));
             addQuad(obj, x, y, z, quad, instance);
         };
 
@@ -138,15 +138,15 @@ public class BlockTessellator {
                 }
 
                 if (blockState.getRenderShape() == RenderShape.MODEL) {
-                    BlockMaterialInfo mat = blockMatFactory.apply(blockState);
-                    obj.setActiveMaterialGroupName(blockMatFactory.apply(blockState).name());
+//                    BlockMaterialInfo mat = blockMatFactory.apply(blockState);
+//                    obj.setActiveMaterialGroupName(blockMatFactory.apply(blockState).name());
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
                         obj.setActiveGroupNames(Collections.singletonList(id.toString()));
                     }
                     curBlockState.setValue(blockState);
                     blockRenderer.tesselateBlock(
-                            mat.perFace() && blockFaceMatFactory != null ? perFaceQuadOutput : quadOutput,
+                            perFaceQuadOutput,
                             pos.getX() - origin.getX(),
                             pos.getY() - origin.getY(),
                             pos.getZ() - origin.getZ(),
