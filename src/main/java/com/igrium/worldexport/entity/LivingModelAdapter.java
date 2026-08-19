@@ -5,6 +5,7 @@ import com.igrium.worldexport.entity.features.FeatureAdapter;
 import com.igrium.worldexport.entity.features.FeatureAdapters;
 import com.igrium.worldexport.mixin.AccessorLivingEntityRenderer;
 import com.igrium.worldexport.replay.MaterialHolder;
+import com.igrium.worldexport.tex.MaterialGen;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -162,11 +163,11 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     protected void captureBaseModel(T entity, S state, CapturedEntity capture, MaterialHolder materials) {
         // Extract texture
         Identifier texId = renderer.getTextureLocation(state);
-        String texName = EntityCapture.getEntityTexturePath(texId);
+        String texName = MaterialGen.getTexturePath(texId);
         String texPath = texName.endsWith(".png") ? texName : texName + ".png";
 
         materials.getTextures().computeIfAbsent(texName, tex ->
-                CompletableFuture.completedFuture(TextureExtractor.pullTexture(texId)));
+                TextureExtractor.pullTextureAsync(texId));
 
         ReplayMtl mat = materials.getOrCreateMtl("entities.mtl", texName, n -> {
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
@@ -176,7 +177,6 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             return mtl;
         });
 
-        // TODO: Check if doing this every frame causes performance issues.
         if (model == null) return;
         ModelParts.buildParentHierarchy(model.root(), "root", capture.getParents()::put);
 

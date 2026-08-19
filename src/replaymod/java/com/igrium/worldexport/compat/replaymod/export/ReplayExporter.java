@@ -276,6 +276,10 @@ public class ReplayExporter implements RenderInfo {
         }
     }
 
+    public void runTaskQueue() {
+        ((MCVer.MinecraftMethodAccessor) this.mc).replayModExecuteTaskQueue();
+    }
+
     private void tick() {
         mc.getTextureManager().tick();
         mc.tick();

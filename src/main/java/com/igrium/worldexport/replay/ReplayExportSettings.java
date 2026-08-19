@@ -110,4 +110,6 @@ public class ReplayExportSettings {
 
     @Builder.Default
     private boolean mergeDoubleVertices = true;
+
+
 }

@@ -7,8 +7,10 @@ import com.igrium.worldexport.mesh.tessellate.BlockModelOverride;
 import com.igrium.worldexport.mesh.tessellate.BlockStateModelSupplier;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
 import com.igrium.worldexport.mesh.tessellate.BlockTessellator.FaceMaterialResolver;
+import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ManagedNativeImage;
+import com.igrium.worldexport.tex.MaterialGen;
 import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;
@@ -28,6 +30,7 @@ import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.geometry.BakedQuad;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.data.AtlasIds;
@@ -75,9 +78,11 @@ public class WorldMesher {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/WorldMesher");
 
-    /// === STATE & CONFIGURATION ===
+    // === STATE & CONFIGURATION ===
 
     private final ClientLevel baseWorld;
+
+    private final MaterialHolder materials;
 
     @Getter
     @Setter
@@ -138,8 +143,9 @@ public class WorldMesher {
 
     private final ExportBlockColors blockColors;
 
-    public WorldMesher(ClientLevel baseWorld) {
+    public WorldMesher(ClientLevel baseWorld, MaterialHolder materials) {
         this.baseWorld = baseWorld;
+        this.materials = materials;
 
         var modelManager = Minecraft.getInstance().getModelManager();
         var modelSupplier = new OverrideBlockStateModelSupplier(modelManager.getBlockStateModelSet());
@@ -157,16 +163,23 @@ public class WorldMesher {
         taskManager = new TaskManager<>(Runtime.getRuntime().availableProcessors() - 1, this::tessellateSection);
     }
 
-    /// === MATERIALS & TEXTURES ===
+    // === MATERIALS & TEXTURES ===
 
     /**
-     * Resolve world materials based on their render layer
+     * Resolve face materials against their render layer
      */
-    private static final FaceMaterialResolver WORLD_MATERIALS = quad -> switch (quad.materialInfo().layer()) {
-        case SOLID -> WORLD;
-        case CUTOUT -> WORLD_CUTOUT;
-        case TRANSLUCENT -> WORLD_TRANS;
-    };
+    @SuppressWarnings("resource") // We're not taking ownership of sprite()
+    private String getFaceMaterial(BakedQuad quad) {
+//        if (quad.materialInfo().sprite().isAnimated()) {
+//            return MaterialGen.getAnimatedTex(materials, "entities.mtl", quad.materialInfo().sprite().contents());
+//        } else {
+            return switch (quad.materialInfo().layer()) {
+                case SOLID -> WORLD;
+                case CUTOUT -> WORLD_CUTOUT;
+                case TRANSLUCENT -> WORLD_TRANS;
+            };
+//        }
+    }
     
     private final Map<BlockState, BlockTessellator.FaceMaterialResolver> faceMaterialCache = new ConcurrentHashMap<>();
 
@@ -176,19 +189,19 @@ public class WorldMesher {
 
     private FaceMaterialResolver computeFaceMaterials(BlockState state) {
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        if (override == null) return WORLD_MATERIALS;
+        if (override == null) return this::getFaceMaterial;
 
         Int2ObjectMap<String> overrideMats = override.faceMats();
         String material = override.material();
 
         if (overrideMats == null || overrideMats.isEmpty()) {
-            return material != null ? _ -> material : WORLD_MATERIALS;
+            return material != null ? _ -> material : this::getFaceMaterial;
         }
 
         return quad -> {
             String faceMat = overrideMats.get(quad.materialInfo().tintIndex());
             if (faceMat != null) return faceMat;
-            return material != null ? material : WORLD_MATERIALS.get(quad);
+            return material != null ? material : getFaceMaterial(quad);
         };
     }
 
@@ -260,7 +273,7 @@ public class WorldMesher {
         return TextureExtractor.pullAtlasTextureAsync(AtlasIds.ITEMS);
     }
 
-    /// === MESHING ===
+    // === MESHING ===
 
     private Obj tessellateSection(SectionPos pos, BlockAndTintGetter region) {
         Obj obj = tessellator.compileSection(pos, region);

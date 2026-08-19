@@ -112,10 +112,4 @@ public class EntityCapture {
         modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
     }
 
-    public static String getEntityTexturePath(Identifier id) {
-        String path = id.getPath();
-        if (!path.endsWith(".png"))
-            path += ".png";
-        return id.getNamespace() + "/" + path;
-    }
 }

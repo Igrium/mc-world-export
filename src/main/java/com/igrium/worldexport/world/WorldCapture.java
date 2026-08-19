@@ -1,6 +1,7 @@
 package com.igrium.worldexport.world;
 
 import com.igrium.worldexport.mesh.WorldMesher;
+import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.util.ChunkDiffs;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
@@ -70,14 +71,15 @@ public class WorldCapture {
     @Getter
     private final boolean doUpdates;
 
-    public WorldCapture(ClientLevel world, Set<ChunkPos> chunks, Predicate<BlockPos> processDeltas, int minY, int height, boolean doUpdates) {
+    public WorldCapture(ClientLevel world, MaterialHolder materials, Set<ChunkPos> chunks,
+                        Predicate<BlockPos> processDeltas, int minY, int height, boolean doUpdates) {
         this.world = world;
         this.chunks = Set.copyOf(chunks);
         this.processDeltas = processDeltas;
         this.minY = minY;
         this.height = height;
 
-        mesher = new WorldMesher(world);
+        mesher = new WorldMesher(world, materials);
         factory = PalettedContainerFactory.create(world.registryAccess());
         this.doUpdates = doUpdates;
     }

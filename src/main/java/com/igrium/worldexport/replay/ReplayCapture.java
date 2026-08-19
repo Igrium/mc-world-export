@@ -147,7 +147,7 @@ public class ReplayCapture {
         };
 
         if (settings.isExportWorld()) {
-            worldCapture = new WorldCapture(world, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
+            worldCapture = new WorldCapture(world, materialHolder, ChunkSections.getSet(bounds.minX(), bounds.minZ(),
                     bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY(),
                     settings.isExportUpdates());
 

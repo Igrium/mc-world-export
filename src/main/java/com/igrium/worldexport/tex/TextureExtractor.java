@@ -27,11 +27,15 @@ public class TextureExtractor {
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/TextureExtractor");
 
     public static CompletableFuture<ManagedNativeImage> pullTextureAsync(AbstractTexture texture) {
+        if (!RenderSystem.isOnRenderThread()) {
+            return CompletableFuture.supplyAsync(() -> pullTextureAsync(texture), Minecraft.getInstance()).thenCompose(f -> f);
+        }
         if (texture instanceof DynamicTexture dynamicTexture) {
             return CompletableFuture.completedFuture(ManagedNativeImage.copyOf(dynamicTexture.getPixels()));
         }
 
-        return CompletableFuture.supplyAsync(() -> downloadTexture(texture.getTexture()), TextureExtractor::onRenderThread)
+        return CompletableFuture.supplyAsync(() -> downloadTexture(texture.getTexture()),
+                        TextureExtractor::onRenderThread)
                 .thenCompose(f -> f);
 
     }
@@ -57,6 +61,10 @@ public class TextureExtractor {
 
     public static CompletableFuture<ManagedNativeImage> pullTextureAsync(Identifier texID) {
         LOGGER.info("Fetching texture: {}", texID);
+        if (!RenderSystem.isOnRenderThread()) {
+            return CompletableFuture.supplyAsync(() -> pullTextureAsync(texID), Minecraft.getInstance())
+                    .thenCompose(f -> f);
+        }
         AbstractTexture texture = getTexture(texID);
         if (texture instanceof DynamicTexture dynamicTexture) {
             return CompletableFuture.completedFuture(ManagedNativeImage.copyOf(dynamicTexture.getPixels()));

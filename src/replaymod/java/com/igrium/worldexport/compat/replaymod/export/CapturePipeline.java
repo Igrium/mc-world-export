@@ -58,6 +58,7 @@ public class CapturePipeline {
 
         while (!finish.isDone()) {
             exporter.drawGui();
+            exporter.runTaskQueue();
             try {
                 //noinspection BusyWait
                 Thread.sleep(50);
@@ -89,6 +90,9 @@ public class CapturePipeline {
         return replayCapture;
     }
 
+    /**
+     * MINECRAFT CLIENT EXECUTOR MUST BE SPUN WHILE WAITING
+     */
     private CompletableFuture<?> saveAsync(ExportInfo.Mutable info) {
         LOGGER.info("Saving replay as {}", replayCapture);
 
