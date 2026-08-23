@@ -67,9 +67,9 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             var mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(tex);
             mtl.mtl().setMapD(tex);
-            mtl.properties().put("item", ReplayMtl.Property.of(true));
+            mtl.properties().addProperty("item", true);
             if (glint) {
-                mtl.properties().put("glint", ReplayMtl.Property.of(true));
+                mtl.properties().addProperty("glint", true);
             }
             return mtl;
         });

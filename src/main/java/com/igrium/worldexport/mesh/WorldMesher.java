@@ -245,33 +245,33 @@ public class WorldMesher {
         // World Solid
         ReplayMtl world = new ReplayMtl(Mtls.create(WORLD));
         world.mtl().setMapKd(ReplayCapture.WORLD_TEX);
-        world.properties().put("vertexTint", ReplayMtl.Property.of(true));
+        world.properties().addProperty("vertexTint", true);
         mtls.add(world);
 
         // World transparent
         ReplayMtl worldTrans = new ReplayMtl(Mtls.create(WORLD_TRANS));
         worldTrans.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         worldTrans.mtl().setMapD(ReplayCapture.WORLD_TEX);
-        worldTrans.properties().put("vertexTint", ReplayMtl.Property.of(true));
-        worldTrans.properties().put("renderMode", ReplayMtl.Property.of("blended"));
+        worldTrans.properties().addProperty("vertexTint", true);
+        worldTrans.properties().addProperty("renderMode", "blended");
         mtls.add(worldTrans);
 
         // World cutout
         ReplayMtl worldCutout = new ReplayMtl(Mtls.create(WORLD_CUTOUT));
         worldCutout.mtl().setMapKd(ReplayCapture.WORLD_TEX);
         worldCutout.mtl().setMapD(ReplayCapture.WORLD_TEX);
-        worldCutout.properties().put("vertexTint", ReplayMtl.Property.of(true));
-        worldCutout.properties().put("renderMode", ReplayMtl.Property.of("dithered"));
+        worldCutout.properties().addProperty("vertexTint", true);
+        worldCutout.properties().addProperty("renderMode", "dithered");
         mtls.add(worldCutout);
 
         // Grass material
         ReplayMtl grassBlock = new ReplayMtl(Mtls.create(GRASS_MAT));
         grassBlock.mtl().setMapKd(ReplayCapture.WORLD_TEX);
-        grassBlock.properties().put("vertexTint", ReplayMtl.Property.of(true));
+        grassBlock.properties().addProperty("vertexTint", true);
 
         Vector2f overlayOffset = getGrassOverlayOffset(new Vector2f());
-        grassBlock.properties().put("grassOverlayU", ReplayMtl.Property.of(overlayOffset.x));
-        grassBlock.properties().put("grassOverlayV", ReplayMtl.Property.of(overlayOffset.y));
+        grassBlock.properties().addProperty("grassOverlayU", overlayOffset.x);
+        grassBlock.properties().addProperty("grassOverlayV", overlayOffset.y);
         mtls.add(grassBlock);
         return mtls;
     }

@@ -58,9 +58,9 @@ public abstract class FeatureAdapter<S extends EntityRenderState, M extends Enti
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texPath);
             mtl.mtl().setMapD(texPath);
-            mtl.properties().put("armor", ReplayMtl.Property.of(true));
+            mtl.properties().addProperty("armor", true);
             if (glint) {
-                mtl.properties().put("glint", ReplayMtl.Property.of(true));
+                mtl.properties().addProperty("glint", true);
             }
             return mtl;
         });

@@ -48,7 +48,7 @@ public class MtlInspectorWindow {
                     ImGui.tableSetColumnIndex(0);
                     ImGui.text(entry.getKey());
                     ImGui.tableSetColumnIndex(1);
-                    ImGui.text(entry.getValue().getValue().toString());
+                    ImGui.text(entry.getValue().toString());
                 }
             }
             ImGui.endTable();

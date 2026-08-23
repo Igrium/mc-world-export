@@ -2,6 +2,7 @@ package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.mesh.WorldMesh;
@@ -369,7 +370,7 @@ public class ReplayIO {
         }
 
         List<Mtl> mtls = new ArrayList<>(rMtls.size());
-        Map<String, Map<String, ReplayMtl.Property<?>>> properties = new HashMap<>(rMtls.size());
+        Map<String, JsonObject> properties = new HashMap<>(rMtls.size());
 
         for (ReplayMtl rMtl : rMtls) {
             mtls.add(rMtl.mtl());
@@ -389,7 +390,7 @@ public class ReplayIO {
         }
     }
 
-    private static final TypeToken<Map<String, Map<String, ReplayMtl.Property<?>>>> mtlPropertyType = new TypeToken<>() {};
+    private static final TypeToken<Map<String, JsonObject>> mtlPropertyType = new TypeToken<>() {};
 
     private static void loadMtls(Path root, CompiledReplay replay) {
         List<Path> mtlFiles;
@@ -417,7 +418,7 @@ public class ReplayIO {
             mtls = MtlReader.read(reader);
         }
 
-        Map<String, Map<String, ReplayMtl.Property<?>>> properties;
+        Map<String, JsonObject> properties;
         Path propertyFile = root.resolve(name + ".json");
         if (Files.exists(propertyFile)) {
             try (BufferedReader reader = Files.newBufferedReader(propertyFile)) {
@@ -429,8 +430,8 @@ public class ReplayIO {
 
         List<ReplayMtl> result = new ArrayList<>(mtls.size());
         for (var mtl : mtls) {
-            Map<String, ReplayMtl.Property<?>> props = properties.get(mtl.getName());
-            result.add(new ReplayMtl(mtl, props != null ? props : new HashMap<>()));
+            JsonObject props = properties.get(mtl.getName());
+            result.add(new ReplayMtl(mtl, props != null ? props : new JsonObject()));
         }
         return result;
     }

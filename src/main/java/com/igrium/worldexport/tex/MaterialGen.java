@@ -27,7 +27,7 @@ public final class MaterialGen {
             materials.getTextures().computeIfAbsent(matName, _ -> buildSpritesheet(sprite));
 
             ReplayMtl mat = new ReplayMtl(mtl);
-            mat.properties().put("spritesheet", ReplayMtl.Property.of(true));
+            mat.properties().addProperty("spritesheet", true);
 
             return mat;
         });

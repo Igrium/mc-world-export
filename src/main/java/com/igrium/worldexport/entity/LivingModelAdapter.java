@@ -173,7 +173,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texPath);
             mtl.mtl().setMapD(texPath);
-            mtl.properties().put("entityType", ReplayMtl.Property.of(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString()));
+            mtl.properties().addProperty("entityType", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
             return mtl;
         });
 
