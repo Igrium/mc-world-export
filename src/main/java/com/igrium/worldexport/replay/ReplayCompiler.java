@@ -65,7 +65,8 @@ public class ReplayCompiler {
         if (entCap == null) return replay;
         setPhase(ExportPhase.ENTITIES);
         for (var entEntry : entCap.getEntities().entrySet()) {
-            String name = getUniqueName(entEntry.getKey().getName().getString(), replay.getEntities().keySet());
+            String sanitized = sanitizeFilename(entEntry.getKey().getName().getString());
+            String name = getUniqueName(sanitized, replay.getEntities().keySet());
             replay.getEntities().put(name, entEntry.getValue());
         }
         return replay;
@@ -90,6 +91,10 @@ public class ReplayCompiler {
     private CompiledReplay writeMeta(CompiledReplay replay) {
         replay.getMeta().setOrigin(replayCapture.getSettings().getOffset().multiply(-1));
         return replay;
+    }
+
+    public static String sanitizeFilename(String name) {
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
     public static String getUniqueName(String baseName, Collection<? extends String> existing) {
