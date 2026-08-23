@@ -1,5 +1,7 @@
 package com.igrium.worldexport.tex;
 
+import com.google.gson.JsonObject;
+import com.igrium.worldexport.mixin_helper.SpriteAnimMetaProvider;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.mojang.blaze3d.platform.NativeImage;
 import de.javagl.obj.Mtl;
@@ -7,6 +9,7 @@ import de.javagl.obj.Mtls;
 import lombok.experimental.UtilityClass;
 import net.minecraft.client.renderer.texture.SpriteContents;
 import net.minecraft.client.renderer.texture.atlas.SpriteSource;
+import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection;
 import net.minecraft.resources.Identifier;
 
 import java.util.concurrent.CompletableFuture;
@@ -15,10 +18,9 @@ import java.util.concurrent.CompletableFuture;
 public final class MaterialGen {
     public String getAnimatedTex(MaterialHolder materials, String mtlLibName, SpriteContents sprite) {
         Identifier spriteName = sprite.name();
-        String matName = spriteName.getNamespace() + "." + spriteName.getPath() + ".spritesheet.png";
-        Identifier texId = SpriteSource.TEXTURE_ID_CONVERTER.idToFile(sprite.name());
+        String matName = spriteName.getNamespace() + "/" + spriteName.getPath() + ".spritesheet.png";
 
-        materials.getOrCreateMtl(mtlLibName, matName, n -> {
+        materials.getOrCreateMtl(mtlLibName, matName, _ -> {
 
             Mtl mtl = Mtls.create(matName);
             mtl.setMapKd(matName);
@@ -27,7 +29,20 @@ public final class MaterialGen {
             materials.getTextures().computeIfAbsent(matName, _ -> buildSpritesheet(sprite));
 
             ReplayMtl mat = new ReplayMtl(mtl);
-            mat.properties().addProperty("spritesheet", true);
+
+            JsonObject spritesheet = new JsonObject();
+            AnimationMetadataSection animData = SpriteAnimMetaProvider.getAnimData(sprite);
+
+            spritesheet.addProperty("frames", sprite.getUniqueFrames().size());
+            if (animData != null) {
+                // TODO: can we support per-frame frametime? That would suck in blender.
+                spritesheet.addProperty("frametime", animData.defaultFrameTime());
+                spritesheet.addProperty("interpolate", animData.interpolatedFrames());
+            } else {
+                spritesheet.addProperty("frametime", 1);
+                spritesheet.addProperty("interpolate", false);
+            }
+            mat.properties().add("spritesheet", spritesheet);
 
             return mat;
         });

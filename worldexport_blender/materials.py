@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Iterable, cast
+from typing import Any, Iterable, TypedDict, cast
 
 from bpy.types import (
     Material,
@@ -79,6 +79,10 @@ def apply_custom_props(mat: Material, custom_props: dict[str, Any], context: Rep
     if custom_props.get('glint'):
         apply_glint(node_tree, principled_node, context)
     
+    spritesheet = custom_props.get('spritesheet')
+    if spritesheet:
+        apply_spritesheet(node_tree, spritesheet, context)
+
     render_mode = custom_props.get('renderMode')
     if isinstance(render_mode, str) and render_mode.lower() == 'blended':
         mat.surface_render_method = 'BLENDED'
@@ -126,6 +130,11 @@ def apply_grass_overlay(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPri
     links.new(overlay_tex.outputs['Alpha'], post.inputs['OverlayMask'])  # pyright: ignore[reportOptionalSubscript]
     links.new(post.outputs['Result'], principled.inputs['Base Color'])
 
+class SpritesheetData(TypedDict):
+    frames: int
+    frametime: int | None
+    interpolate: bool
+
 def apply_glint(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled, context: ReplayImportContext):
     nodes = node_tree.nodes
     if not principled.inputs: return
@@ -156,3 +165,27 @@ def apply_glint(node_tree: ShaderNodeTree, principled: ShaderNodeBsdfPrincipled,
         return
 
     links.new(from_socket, group.inputs['Texture'])
+
+def apply_spritesheet(node_tree: ShaderNodeTree, data: SpritesheetData, context: ReplayImportContext) -> None:
+    nodes = node_tree.nodes
+    tex_nodes = [cast(ShaderNodeTexImage, node) for node in nodes if node.type == 'TEX_IMAGE']
+
+    group = cast(ShaderNodeGroup, nodes.new('ShaderNodeGroup'))
+    group.node_tree = context.prefabs.spritesheet
+    group.location = (-980, 180)
+    group.name = "Spritesheet"
+    
+    group.inputs['Frames'].default_value = data['frames'] 
+
+    render = context.bl_context.scene.render   
+
+    fcurve = group.inputs['FrameIdx'].driver_add('default_value')
+    driver = fcurve.driver
+    driver.type = 'SCRIPTED'
+    driver.expression = f'(frame * 20 * {render.fps_base}) / {render.fps}'
+
+    out_socket = group.outputs['Vector']
+    links = node_tree.links
+
+    for node in tex_nodes:
+        links.new(out_socket, node.inputs['Vector'])

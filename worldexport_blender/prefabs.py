@@ -11,6 +11,7 @@ class PrefabDatablocks:
     grass_tint_pre: ShaderNodeTree
     grass_tint_post: ShaderNodeTree
     glint: ShaderNodeTree
+    spritesheet: ShaderNodeTree
 
     def clear_unused(self):
         """Remove any prefab node group that nothing ended up referencing.
@@ -33,7 +34,7 @@ class PrefabDatablocks:
 
 def load(filepath: str):
     with bpy.data.libraries.load(filepath, assets_only=True) as (data_from, data_to):
-        data_to.node_groups = ['MulVertexColor', 'GrassTintPre', 'GrassTintPost', 'Glint']
+        data_to.node_groups = ['MulVertexColor', 'GrassTintPre', 'GrassTintPost', 'Glint', 'Spritesheet']
 
     datablocks: PrefabDatablocks = PrefabDatablocks()
 
@@ -48,5 +49,8 @@ def load(filepath: str):
 
     datablocks.glint = data_to.node_groups[3] # type: ignore
     datablocks.glint.asset_clear()
+
+    datablocks.spritesheet = data_to.node_groups[4] # type: ignore
+    datablocks.spritesheet.asset_clear()
 
     return datablocks

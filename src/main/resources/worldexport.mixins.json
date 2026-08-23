@@ -8,15 +8,16 @@
         "defaultRequire": 1
     },
     "client": [
-        "AccessorHumanoidArmorLayer",
         "AccessorEntityRenderDispatcher",
         "AccessorEquipmentLayerRenderer",
-        "AccessorRenderLayer",
+        "AccessorHumanoidArmorLayer",
         "AccessorItemStackRenderState",
         "AccessorLayerRenderState",
         "AccessorLivingEntityRenderer",
         "AccessorModelPart",
+        "AccessorRenderLayer",
         "AccessorWingsLayer",
-        "MixinClientLevel"
+        "MixinClientLevel",
+        "MixinSpriteContents"
     ]
 }
