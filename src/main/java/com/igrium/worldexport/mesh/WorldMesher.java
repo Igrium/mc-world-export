@@ -3,10 +3,9 @@ package com.igrium.worldexport.mesh;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.igrium.worldexport.mesh.postprocess.MeshMergeVerts;
+import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
 import com.igrium.worldexport.mesh.tessellate.BlockModelOverride;
 import com.igrium.worldexport.mesh.tessellate.BlockStateModelSupplier;
-import com.igrium.worldexport.mesh.tessellate.BlockTessellator;
-import com.igrium.worldexport.mesh.tessellate.BlockTessellator.FaceMaterialResolver;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ManagedNativeImage;
@@ -15,6 +14,7 @@ import com.igrium.worldexport.tex.ReplayMtl;
 import com.igrium.worldexport.tex.TextureExtractor;
 import com.igrium.worldexport.util.TaskManager;
 import com.igrium.worldexport.world.*;
+import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import it.unimi.dsi.fastutil.ints.*;
@@ -154,7 +154,7 @@ public class WorldMesher {
                 .blockColors(blockColors)
                 .blockModelSet(modelSupplier)
                 .fluidModelSet(modelManager.getFluidStateModelSet())
-                .blockFaceMatFactory(this::getFaceMaterials)
+                .quadConsumerFactory(this::getQuadConsumer)
                 .fluidMatFactory(this::getDefaultMaterialName)
                 .splitBlocks(this.splitBlocks)
                 .build();
@@ -168,40 +168,65 @@ public class WorldMesher {
     /**
      * Resolve face materials against their render layer
      */
-    @SuppressWarnings("resource") // We're not taking ownership of sprite()
     private String getFaceMaterial(BakedQuad quad) {
-//        if (quad.materialInfo().sprite().isAnimated()) {
-//            return MaterialGen.getAnimatedTex(materials, "entities.mtl", quad.materialInfo().sprite().contents());
-//        } else {
-            return switch (quad.materialInfo().layer()) {
-                case SOLID -> WORLD;
-                case CUTOUT -> WORLD_CUTOUT;
-                case TRANSLUCENT -> WORLD_TRANS;
-            };
-//        }
-    }
-    
-    private final Map<BlockState, BlockTessellator.FaceMaterialResolver> faceMaterialCache = new ConcurrentHashMap<>();
-
-    public FaceMaterialResolver getFaceMaterials(BlockState state) {
-        return faceMaterialCache.computeIfAbsent(state, this::computeFaceMaterials);
+        return switch (quad.materialInfo().layer()) {
+            case SOLID -> WORLD;
+            case CUTOUT -> WORLD_CUTOUT;
+            case TRANSLUCENT -> WORLD_TRANS;
+        };
     }
 
-    private FaceMaterialResolver computeFaceMaterials(BlockState state) {
+    @SuppressWarnings("resource") // We don't own sprite
+    private void consumeDefaultQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance) {
+        TextureAtlasSprite sprite = quad.materialInfo().sprite();
+        if (sprite.isAnimated()) {
+            String mat = MaterialGen.getAnimatedTex(materials, "world.mtl", sprite.contents());
+            obj.setActiveMaterialGroupName(mat);
+
+            int numFrames = sprite.contents().getUniqueFrames().size();
+
+            float uvSize = 1.0f / numFrames;
+
+            BlockTessellator.addQuad(obj, x, y, z, quad, instance,
+                    0f, 0f,
+                    0f, uvSize,
+                    1f, uvSize,
+                    1f, 0);
+        } else {
+            obj.setActiveMaterialGroupName(getFaceMaterial(quad));
+            BlockTessellator.addQuad(obj, x, y, z, quad, instance);
+        }
+    }
+
+    private final Map<BlockState, BlockTessellator.QuadConsumer> quadConsumerCache = new ConcurrentHashMap<>();
+
+    private BlockTessellator.QuadConsumer getQuadConsumer(Obj obj, BlockState state) {
+        return quadConsumerCache.computeIfAbsent(state, this::computeQuadConsumer);
+    }
+
+    private BlockTessellator.QuadConsumer computeQuadConsumer(BlockState state) {
         var override = modelOverrideCache != null ? modelOverrideCache.get(state) : null;
-        if (override == null) return this::getFaceMaterial;
+        if (override == null) return this::consumeDefaultQuad;
 
         Int2ObjectMap<String> overrideMats = override.faceMats();
         String material = override.material();
 
+        // Whole block uses a single material; no need to look at each face.
         if (overrideMats == null || overrideMats.isEmpty()) {
-            return material != null ? _ -> material : this::getFaceMaterial;
+            if (material == null) return this::consumeDefaultQuad;
+            return (obj, x, y, z, quad, instance) -> {
+                obj.setActiveMaterialGroupName(material);
+                BlockTessellator.addQuad(obj, x, y, z, quad, instance);
+            };
         }
 
-        return quad -> {
+        return (obj, x, y, z, quad, instance) -> {
             String faceMat = overrideMats.get(quad.materialInfo().tintIndex());
-            if (faceMat != null) return faceMat;
-            return material != null ? material : getFaceMaterial(quad);
+            if (faceMat == null) {
+                faceMat = material != null ? material : getFaceMaterial(quad);
+            }
+            obj.setActiveMaterialGroupName(faceMat);
+            BlockTessellator.addQuad(obj, x, y, z, quad, instance);
         };
     }
 
@@ -443,7 +468,7 @@ public class WorldMesher {
                 builder.put(entry.getKey(), model);
         }
         modelOverrideCache = builder.build();
-        faceMaterialCache.clear();
+        quadConsumerCache.clear();
         blockColors.build();
     }
 

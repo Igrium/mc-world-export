@@ -29,50 +29,92 @@ import org.joml.Vector3f;
 import java.util.Collections;
 import java.util.function.Function;
 
-/**
- * Reimplementation of SectionCompiler to tessellate base world chunks
- */
 @Builder
 public class BlockTessellator {
-
-    public interface FaceMaterialFactory {
+    public interface QuadConsumerFactory {
         /**
          * Called once per block to do per-block operations (override checking, etc.)
-         *
          * @param state Block being tessellated
-         * @return Face resolver for that block
+         * @return Quad consumer for that block.
          */
-        FaceMaterialResolver forState(BlockState state);
+        QuadConsumer forState(Obj obj, BlockState state);
+    }
+
+    public interface QuadConsumer {
+        void accept(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance);
     }
 
     /**
-     * Chooses the material to use for each face in a block. Keep as cheap as possible.
-     */
-    @FunctionalInterface
-    public interface FaceMaterialResolver {
-        String get(BakedQuad quad);
-    }
-
-    /**
-     * Data pertaining to block materials
+     * Write a baked quad into an obj, applying the position offset and vertex colors.
      *
-     * @param name    Obj material name
-     * @param perFace If set, blockFaceMatFactory will be called for each face of the block
+     * @param obj      Obj to write into.
+     * @param x        Block X, relative to the obj origin.
+     * @param y        Block Y, relative to the obj origin.
+     * @param z        Block Z, relative to the obj origin.
+     * @param quad     Quad to write.
+     * @param instance Quad instance holding the baked vertex colors.
      */
-    public record BlockMaterialInfo(String name, boolean perFace) {};
+    public static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance) {
+        int n = obj.getNumVertices();
+        for (int idx = 0; idx < 4; idx++) {
+            // Quad positions are model-local
+            var pos = quad.position(idx).add(x, y, z, new Vector3f());
+            obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(idx), new Vector3f())));
+
+            long packedUv = quad.packedUV(idx);
+            obj.addTexCoord(UVPair.unpackU(packedUv), 1 - UVPair.unpackV(packedUv));
+        }
+        obj.addFaceWithTexCoords(n, n + 1, n + 2, n + 3);
+    }
+
+    // So much variable bloat because this is called for every quad and Java doesn't have structs lol
+    public static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance,
+                               float u0, float v0,
+                               float u1, float v1,
+                               float u2, float v2,
+                               float u3, float v3) {
+        int n = obj.getNumVertices();
+        for (int idx = 0; idx < 4; idx++) {
+            // Quad positions are model-local
+            var pos = quad.position(idx).add(x, y, z, new Vector3f());
+            obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(idx), new Vector3f())));
+
+            float u = switch(idx) {
+                case 0 -> u0;
+                case 1 -> u1;
+                case 2 -> u2;
+                case 3 -> u3;
+                default -> throw new IllegalStateException("Unexpected value: " + idx);
+            };
+
+            float v = switch(idx) {
+                case 0 -> v0;
+                case 1 -> v1;
+                case 2 -> v2;
+                case 3 -> v3;
+                default -> throw new IllegalStateException("Unexpected value: " + idx);
+            };
+            obj.addTexCoord(u, 1 - v);
+        }
+        obj.addFaceWithTexCoords(n, n + 1, n + 2, n + 3);
+    }
+
+    private static Vector3f unpackColor(int color, Vector3f dest) {
+        dest.x = (color >> 16 & 0xFF) / 255f;
+        dest.y = (color >> 8 & 0xFF) / 255f;
+        dest.z = (color & 0xFF) / 255f;
+        return dest;
+    }
 
     private final @NonNull BlockStateModelSupplier blockModelSet;
     private final @NonNull FluidStateModelSet fluidModelSet;
     private final @NonNull BlockColors blockColors;
 
     private final @NonNull Function<FluidState, String> fluidMatFactory;
-    private final @NonNull FaceMaterialFactory blockFaceMatFactory;
+    private final @NonNull QuadConsumerFactory quadConsumerFactory;
 
     @Builder.Default
     private final boolean splitBlocks = true;
-
-    @Builder.Default
-    private final boolean mergeDoubles = true;
 
     /**
      * Tessellate a world section into an obj
@@ -107,24 +149,15 @@ public class BlockTessellator {
         FluidRenderer fluidRenderer = new FluidRenderer(fluidModelSet);
 
         Obj obj = Objs.create();
-
         ObjVertexConsumer objConsumer = new ObjVertexConsumer(obj);
-        
-        // The material resolver for the current block
-        final Mutable<FaceMaterialResolver> curResolver = new MutableObject<>();
-        
-        final Mutable<String> curMat = new MutableObject<>();
+
+        final Mutable<QuadConsumer> curQuadConsumer = new MutableObject<>();
 
         BlockQuadOutput perFaceQuadOutput = (x, y, z, quad, instance) -> {
-            // Don't change the material if we don't have to
-            String mat = curResolver.get().get(quad);
-            if (!mat.equals(curMat.get())) {
-                obj.setActiveMaterialGroupName(mat);
-                curMat.setValue(mat);
-            }
-            addQuad(obj, x, y, z, quad, instance);
+            curQuadConsumer.get().accept(obj, x, y, z, quad, instance);
         };
 
+        // TODO: update based on layer
         FluidRenderer.Output fluidOutput = _ -> objConsumer;
 
         for (BlockPos pos : blocks) {
@@ -145,7 +178,6 @@ public class BlockTessellator {
                 if (!fluidState.isEmpty()) {
                     String fluidMat = fluidMatFactory.apply(fluidState);
                     obj.setActiveMaterialGroupName(fluidMat);
-                    curMat.setValue(fluidMat);
                     if (splitBlocks) {
                         Identifier id = BuiltInRegistries.FLUID.getKey(fluidState.getType());
                         obj.setActiveGroupNames(Collections.singletonList("fluid." + id));
@@ -158,7 +190,7 @@ public class BlockTessellator {
                         Identifier id = BuiltInRegistries.BLOCK.getKey(blockState.getBlock());
                         obj.setActiveGroupNames(Collections.singletonList(id.toString()));
                     }
-                    curResolver.setValue(blockFaceMatFactory.forState(blockState));
+                    curQuadConsumer.setValue(quadConsumerFactory.forState(obj, blockState));
                     blockRenderer.tesselateBlock(
                             perFaceQuadOutput,
                             pos.getX() - origin.getX(),
@@ -177,29 +209,8 @@ public class BlockTessellator {
                 throw new ReportedException(report);
             }
         }
-
         return obj;
     }
 
-
-    private static void addQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance) {
-        int n = obj.getNumVertices();
-        for (int v = 0; v < 4; v++) {
-            // Quad positions are model-local
-            var pos = quad.position(v).add(x, y, z, new Vector3f());
-            obj.addVertex(new ColoredVertex(pos, unpackColor(instance.getColor(v), new Vector3f())));
-
-            long packedUv = quad.packedUV(v);
-            obj.addTexCoord(UVPair.unpackU(packedUv), 1 - UVPair.unpackV(packedUv));
-        }
-        obj.addFaceWithTexCoords(n, n + 1, n + 2, n + 3);
-    }
-
-    private static Vector3f unpackColor(int color, Vector3f dest) {
-        dest.x = (color >> 16 & 0xFF) / 255f;
-        dest.y = (color >> 8 & 0xFF) / 255f;
-        dest.z = (color & 0xFF) / 255f;
-        return dest;
-    }
 
 }

@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 public final class MaterialGen {
     public String getAnimatedTex(MaterialHolder materials, String mtlLibName, SpriteContents sprite) {
         Identifier spriteName = sprite.name();
-        String matName = "spritesheet." + spriteName.getNamespace() + "." + spriteName.getPath();
+        String matName = spriteName.getNamespace() + "." + spriteName.getPath() + ".spritesheet.png";
         Identifier texId = SpriteSource.TEXTURE_ID_CONVERTER.idToFile(sprite.name());
 
         materials.getOrCreateMtl(mtlLibName, matName, n -> {
