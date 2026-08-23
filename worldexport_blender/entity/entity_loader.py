@@ -20,5 +20,9 @@ def import_entities(context: ReplayImportContext):
         entity = CapturedEntity(name)
         entity.parents = parents
 
-        entity.load(dir, context)
-        entity.apply_animation(context)
+        try:
+            entity.load(dir, context)
+            entity.apply_animation(context)
+        except Exception as e:
+            # TODO: Propogate this to the UI
+            print(f"Failed to import entity '{name}': {e}")
