@@ -15,7 +15,7 @@ from . import materials
 
 from .entity import entity_loader
 
-REPLAY_FORMAT_VERSION = (2, 1)
+REPLAY_FORMAT_VERSION = (2, 2)
 """The replay format version this addon-implements (see doc/ReplayFormat.md)
 """
 

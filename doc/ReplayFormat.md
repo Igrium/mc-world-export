@@ -4,7 +4,7 @@ This document specifies the format used to export `.replay` files from Minecraft
 
 ## Versioning
 
-Replay files use [Semantic Versioning](https://semver.org/). This document covers version `2.1`.
+Replay files use [Semantic Versioning](https://semver.org/). This document covers version `2.2`.
 
 Versions should strive to be backward-compatible. If an importer attempts to load a replay file with a version greater than what it supports, various features may be missing, but it shouldn't break entirely.
 
@@ -193,6 +193,7 @@ The Replay Exporter mod uses the following properties:
 | `glint`                          | bool                        | Apply an enchantment glint shader.              |
 | `renderMode`                     | `"dithered"` \| `"blended"` | Alpha handling. Default `"dithered"`.           |
 | `grassOverlayU`, `grassOverlayV` | float                       | (see below)                                     |
+| `spritesheet`                    | Object (see below)          | This texture should be animated                 |
 
 **This property list is non-exhaustive.** If an importer encounters a property it doesn't recognize, it should be ignored, and likewise, the exporter must anticipate that a given property might not be respected.
 
@@ -201,6 +202,18 @@ The Replay Exporter mod uses the following properties:
 Some blocks, namely grass, render as two stacked texture layers: a base layer and a tinted overlay. Minecraft handles this by drawing two quads on top of each other, tinting one of them with the block tint. This, however, causes z-fighting in most rendering engines.
 
 The solution is a special material type which emulates this behavior in a shader. If `grassOverlayU` or `grassOverlayV` is specified, they define an offset in UV space (0-1) from which the base texture is sampled a second time, tinted with the vertex color, and mixed with the base color using its alpha channel.
+
+### Spritesheet
+
+Animated textures (fire, etc) are exported as a **vertical spritesheet**, each frame stacked on top of each other, in order.
+
+To use a spritesheet, the material metadata declares a `spritesheet` object with the following fields.
+
+| Property      | Type  | Meaning                                             |
+| ------------- | ----- | --------------------------------------------------- |
+| `frames`      | int   | The total number of frames in the animation         |
+| `frametime`   | float | The number of game ticks each frame is visible for  |
+| `interpolate` | bool  | If true, blend between the frames in the animation. |
 
 ## Specification Updates
 
