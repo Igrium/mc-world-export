@@ -1,4 +1,4 @@
-package com.igrium.worldexport.entity.models;
+package com.igrium.worldexport.entity.model_adapters;
 
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;

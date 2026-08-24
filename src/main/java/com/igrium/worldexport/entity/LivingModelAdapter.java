@@ -16,6 +16,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -40,8 +41,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>>
-        extends ModelAdapter<T, S> implements RenderLayerParent<S, M> {
-
+        extends ModelAdapter<T, S> {
 
     /**
      * Attempt to create a living model adapter by casting an <code>EntityRenderer</code> to <code>LivingEntityRenderer</code>
@@ -66,12 +66,6 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     protected final void addFeature(@NonNull FeatureAdapter<S, ?> feature) {
         features.add(feature);
     }
-
-    /**
-     * The model gets set each capture based on the vanilla renderer's model.
-     */
-    @Nullable @Setter(AccessLevel.PROTECTED)
-    private M model;
 
     @Getter @Setter @NonNull
     private AnimationCurve.CurveFormat curveFormat = AnimationCurve.CurveFormat.POS_ROT;
@@ -100,7 +94,6 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         AccessorLivingEntityRenderer<? super T, S, M> rendererAccessor = getRendererAccessor(renderer);
 
         M model = renderer.getModel();
-        setModel(model);
 
         Vec3 pos = renderer.getRenderOffset(state).add(offset).add(entity.position());
         capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS, pos.toVector3f(), null, null);
@@ -161,6 +154,8 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     }
 
     protected void captureBaseModel(T entity, S state, CapturedEntity capture, MaterialHolder materials) {
+        M model = getModel(entity);
+        if (model == null) return;
         // Extract texture
         Identifier texId = renderer.getTextureLocation(state);
         String texName = MaterialGen.getTexturePath(texId);
@@ -177,7 +172,6 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             return mtl;
         });
 
-        if (model == null) return;
         ModelParts.buildParentHierarchy(model.root(), "root", capture.getParents()::put);
 
         // Add part meshes if needed.
@@ -191,12 +185,17 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
         });
     }
 
-    @Override
-    public @NonNull M getModel() {
-        if (model == null) {
-            throw new NullPointerException("Model must be initialized before getModel is called.");
-        }
-        return model;
+    /**
+     * Get the model being used for a given render state
+     *
+     * @param entity Entity to use
+     * @return The model; <code>null</code> if it's not ready (skins being loaded, etc)
+     * @apiNote This is NOT used for animation capture; only for mesh capture.
+     */
+    @SuppressWarnings("unchecked") // See comment above
+    protected @Nullable M getModel(T entity) {
+        var renderer = Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity);
+        return ((LivingEntityRenderer<T, S, M>) renderer).getModel();
     }
 
     /**

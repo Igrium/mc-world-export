@@ -2,8 +2,8 @@ package com.igrium.worldexport.entity;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.igrium.worldexport.entity.models.ItemModelAdapter;
-import com.igrium.worldexport.entity.models.PlayerModelAdapter;
+import com.igrium.worldexport.entity.model_adapters.ItemModelAdapter;
+import com.igrium.worldexport.entity.model_adapters.PlayerModelAdapter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.ItemEntityRenderer;

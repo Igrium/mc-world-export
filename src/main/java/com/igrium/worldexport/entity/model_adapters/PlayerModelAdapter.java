@@ -1,4 +1,4 @@
-package com.igrium.worldexport.entity.models;
+package com.igrium.worldexport.entity.model_adapters;
 
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.entity.LivingModelAdapter;
@@ -8,11 +8,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
-import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerSkin;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,14 +34,10 @@ public class PlayerModelAdapter extends LivingModelAdapter<Player, AvatarRenderS
         super(renderer);
     }
 
-
     @Override
-    protected void captureBaseModel(Player entity, AvatarRenderState state, CapturedEntity capture, MaterialHolder materials) {
-        // Wait to capture base model until the skin is loaded
+    protected @Nullable PlayerModel getModel(Player entity) {
         var skinLoader = skinLoaders.computeIfAbsent(entity.getGameProfile(), this::loadSkinAsync);
-        if (skinLoader.isDone()) {
-            super.captureBaseModel(entity, state, capture, materials);
-        }
+        return skinLoader.isDone() ? super.getModel(entity) : null;
     }
 
     private CompletableFuture<PlayerSkin> loadSkinAsync(GameProfile profile) {

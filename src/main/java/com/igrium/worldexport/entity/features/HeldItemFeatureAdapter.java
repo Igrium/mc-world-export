@@ -3,7 +3,7 @@ package com.igrium.worldexport.entity.features;
 import com.google.common.collect.ImmutableList;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
-import com.igrium.worldexport.entity.models.ItemModelAdapter;
+import com.igrium.worldexport.entity.model_adapters.ItemModelAdapter;
 import com.igrium.worldexport.mesh.vertex.ObjVertexConsumer;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.tex.ReplayMtl;
