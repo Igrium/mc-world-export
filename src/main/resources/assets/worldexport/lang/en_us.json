@@ -17,6 +17,7 @@
   "worldexport.gui.export.world": "World",
   "worldexport.gui.export.updates": "Block Updates",
   "worldexport.gui.export.entities": "Entities",
+  "worldexport.gui.export.spritesheets": "Animated Textures",
 
   "worldexport.gui.export.world_bounds": "World",
   "worldexport.gui.export.update_bounds": "Block Updates",

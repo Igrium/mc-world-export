@@ -68,10 +68,17 @@ public class ReplayExportSettings {
     private boolean exportWorld = true;
 
     /**
-     * Export block updates (depends on {@link #exportWorld})
+     * Export block updates
+     * @apiNote Depends on {@link #exportWorld}
      */
     @Builder.Default
     private boolean exportUpdates = true;
+
+    /**
+     * Export animated textures (fire, etc.)
+     */
+    @Builder.Default
+    private boolean exportSpritesheets = true;
 
     /**
      * Export entity animations

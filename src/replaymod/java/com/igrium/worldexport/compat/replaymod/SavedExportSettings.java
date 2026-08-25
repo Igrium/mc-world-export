@@ -18,7 +18,8 @@ public record SavedExportSettings(@Nullable Path outputFile,
                                   @Nullable SectionPos exportCenter,
                                   @Nullable Boolean exportWorld,
                                   @Nullable Boolean exportUpdates,
-                                  @Nullable Boolean exportEntities) {
+                                  @Nullable Boolean exportEntities,
+                                  @Nullable Boolean exportSpritesheets) {
     private static final String SETTINGS_FILE = "worldexport-settings.json";
 
     private static final Gson GSON = JsonAdapters.registerAdapters(new GsonBuilder())

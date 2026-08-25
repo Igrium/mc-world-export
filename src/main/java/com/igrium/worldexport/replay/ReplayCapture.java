@@ -159,6 +159,7 @@ public class ReplayCapture {
             // TODO: WorldMesher stores these but doesn't act on them yet.
             worldMesher.setMergeBaseMeshes(settings.isMergeBaseMeshes());
             worldMesher.setMergeDoubleVertices(settings.isMergeDoubleVertices());
+            worldMesher.setSplitBlocks(settings.isExportSpritesheets());
         } else {
             worldCapture = null;
         }

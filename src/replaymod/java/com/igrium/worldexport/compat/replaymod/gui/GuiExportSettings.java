@@ -135,6 +135,18 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
         exportUpdates.setEnabled(exportWorld.isChecked());
     }
 
+    private final GuiCheckbox exportSpritesheets = new GuiCheckbox()
+            .setI18nLabel("worldexport.gui.export.spritesheets")
+            .setChecked(false); // Change to true once spritesheets are fixed
+
+    public boolean isExportSpritesheets() {
+        return exportSpritesheets.isChecked();
+    }
+
+    public void setExportSpritesheets(boolean exportSpritesheets) {
+        this.exportSpritesheets.setChecked(exportSpritesheets);
+    }
+
     private final GuiCheckbox exportEntities = new GuiCheckbox()
             .setI18nLabel("worldexport.gui.export.entities")
             .setChecked(true);
@@ -149,7 +161,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     
     private final GuiPanel flagsPanel = new GuiPanel()
             .setLayout(new VerticalLayout().setSpacing(4))
-            .addElements(new VerticalLayout.Data(0), exportWorld, exportUpdates, exportEntities);
+            .addElements(new VerticalLayout.Data(0), exportWorld, exportUpdates, exportSpritesheets, exportEntities);
 
     // === Settings list ===
 
@@ -250,9 +262,10 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
             if (saved.worldBounds() != null) boundsWorld = saved.worldBounds();
             if (saved.updateBounds() != null) boundsUpdate = saved.updateBounds();
             if (saved.entityBounds() != null) boundsEntity = saved.entityBounds();
-            if (saved.exportWorld() != null) exportWorld.setChecked(saved.exportWorld());
-            if (saved.exportUpdates() != null) exportUpdates.setChecked(saved.exportUpdates());
-            if (saved.exportEntities() != null) exportEntities.setChecked(saved.exportEntities());
+            if (saved.exportWorld() != null) setExportWorld(saved.exportWorld());
+            if (saved.exportUpdates() != null) setExportUpdates(saved.exportUpdates());
+            if (saved.exportEntities() != null) setExportEntities(saved.exportEntities());
+            if (saved.exportSpritesheets() != null) setExportSpritesheets(saved.exportSpritesheets());
         }
         updateExportUpdatesEnabled();
 
@@ -358,7 +371,7 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
      */
     public SavedExportSettings captureSettings() {
         return new SavedExportSettings(outputFile.toPath(), boundsWorld, boundsUpdate, boundsEntity, getExportCenter(),
-                exportWorld.isChecked(), exportUpdates.isChecked(), exportEntities.isChecked());
+                isExportWorld(), isExportUpdates(), isExportEntities(), isExportSpritesheets());
     }
 
     @Override

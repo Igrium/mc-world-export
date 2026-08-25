@@ -114,6 +114,13 @@ public class WorldMesher {
     @Setter
     private @Nullable Consumer<SectionPos> onSectionTessellated;
 
+    /**
+     * Export animated textures (fire, etc)
+     */
+    @Getter
+    @Setter
+    private boolean spritesheets;
+
     private final BlockTessellator tessellator;
 
     private final TaskManager<SectionPos, BlockAndTintGetter, Obj> taskManager;
@@ -179,7 +186,7 @@ public class WorldMesher {
     @SuppressWarnings("resource") // We don't own sprite
     private void consumeDefaultQuad(Obj obj, float x, float y, float z, BakedQuad quad, QuadInstance instance) {
         TextureAtlasSprite sprite = quad.materialInfo().sprite();
-        if (sprite.isAnimated()) {
+        if (spritesheets && sprite.isAnimated()) {
             String mat = MaterialGen.getAnimatedTex(materials, "world.mtl", sprite.contents());
             obj.setActiveMaterialGroupName(mat);
 
