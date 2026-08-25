@@ -25,6 +25,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockColors;
 import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.color.block.BlockTintSources;
+import net.minecraft.client.model.geom.builders.UVPair;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.client.renderer.block.BlockStateModelSet;
@@ -194,16 +195,42 @@ public class WorldMesher {
 
             float uvSize = 1.0f / numFrames;
 
+            // Convert from atlas UVs to raw UVs
+            // I REALLY with Java had structs. The only reason this is so bloated is that we call this for every
+            // vertex, so we can't afford allocations
+            float su0 = sprite.getU0();
+            float sv0 = sprite.getV0();
+            float width = sprite.getU1() - su0;
+            float height = sprite.getV1() - sv0;
+
+            long uv0 = quad.packedUV(0);
+            long uv1 = quad.packedUV(1);
+            long uv2 = quad.packedUV(2);
+            long uv3 = quad.packedUV(3);
+
+            float u0 = (UVPair.unpackU(uv0) - su0) / width;
+            float v0 = (UVPair.unpackV(uv0) - sv0) / height * uvSize;
+
+            float u1 = (UVPair.unpackU(uv1) - su0) / width;
+            float v1 = (UVPair.unpackV(uv1) - sv0) / height * uvSize;
+
+            float u2 = (UVPair.unpackU(uv2) - su0) / width;
+            float v2 = (UVPair.unpackV(uv2) - sv0) / height * uvSize;
+
+            float u3 = (UVPair.unpackU(uv3) - su0) / width;
+            float v3 = (UVPair.unpackV(uv3) - sv0) / height * uvSize;
+
             BlockTessellator.addQuad(obj, x, y, z, quad, instance,
-                    0f, 0f,
-                    0f, uvSize,
-                    1f, uvSize,
-                    1f, 0);
+                    u0, v0,
+                    u1, v1,
+                    u2, v2,
+                    u3, v3);
         } else {
             obj.setActiveMaterialGroupName(getFaceMaterial(quad));
             BlockTessellator.addQuad(obj, x, y, z, quad, instance);
         }
     }
+
 
     private final Map<BlockState, BlockTessellator.QuadConsumer> quadConsumerCache = new ConcurrentHashMap<>();
 
@@ -449,10 +476,12 @@ public class WorldMesher {
     }
 
     public void registerDefaultOverrides() {
-        registerBlockOverride(Blocks.GRASS_BLOCK, ExportModels.GRASS_BLOCK_KEY, null, Int2ObjectMaps.singleton(5, GRASS_MAT));
+        registerBlockOverride(Blocks.GRASS_BLOCK, ExportModels.GRASS_BLOCK_KEY, null, Int2ObjectMaps.singleton(5,
+                GRASS_MAT));
     }
 
-    public void registerBlockOverride(Block block, ExtraModelKey<BlockStateModel> modelKey, @Nullable String material, @Nullable Int2ObjectMap<String> faceMats) {
+    public void registerBlockOverride(Block block, ExtraModelKey<BlockStateModel> modelKey, @Nullable String material
+            , @Nullable Int2ObjectMap<String> faceMats) {
         LOGGER.info("Registering model override for {}: {}", block, modelKey);
         Supplier<BlockModelOverride> supplier = () -> {
             BlockStateModel model = Minecraft.getInstance().getModelManager().getModel(modelKey);
