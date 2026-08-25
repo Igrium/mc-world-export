@@ -177,12 +177,14 @@ def apply_spritesheet(node_tree: ShaderNodeTree, data: SpritesheetData, context:
     
     group.inputs['Frames'].default_value = data['frames'] 
 
-    render = context.bl_context.scene.render   
+    render = context.bl_context.scene.render
+
+    frametime = data.get('frametime') or 1
 
     fcurve = group.inputs['FrameIdx'].driver_add('default_value')
     driver = fcurve.driver
     driver.type = 'SCRIPTED'
-    driver.expression = f'(frame * 20 * {render.fps_base}) / {render.fps}'
+    driver.expression = f'(frame * 20 * {render.fps_base}) / ({render.fps} * {frametime})'
 
     out_socket = group.outputs['Vector']
     links = node_tree.links
