@@ -30,7 +30,7 @@ import java.util.function.Predicate;
 public class WorldCapture {
     private static final Logger LOGGER = LoggerFactory.getLogger("WorldExport/WorldCapture");
 
-    public record BlockUpdate(int tick, BlockState newBlock) {
+    public record BlockUpdate(int tick, BlockState oldBlock, BlockState newBlock) {
     }
 
     /// === STATE & CONFIGURATION ===
@@ -132,7 +132,7 @@ public class WorldCapture {
                 var diffs = ChunkDiffs.diff(oldVal, newVal);
                 for (var diff : diffs) {
                     BlockPos globalPos = cPos.getBlockAt(diff.x(), diff.y(), diff.z());
-                    addBlockUpdate(globalPos, diff.secondVal(), tick);
+                    addBlockUpdate(globalPos, diff.firstVal(), diff.secondVal(), tick);
                 }
             }
         } else {
@@ -187,11 +187,12 @@ public class WorldCapture {
      * Add a block update keyframe.
      *
      * @param pos      Position of the updated block.
+     * @param oldBlock The previous block state
      * @param newBlock The new block.
      * @param tick     The current tick.
      */
-    public final void addBlockUpdate(BlockPos pos, BlockState newBlock, int tick) {
-        addBlockUpdate(pos, new BlockUpdate(tick, newBlock));
+    public final void addBlockUpdate(BlockPos pos, BlockState oldBlock, BlockState newBlock, int tick) {
+        addBlockUpdate(pos, new BlockUpdate(tick, oldBlock, newBlock));
     }
 
     public Map<BlockPos, Int2ObjectSortedMap<BlockUpdate>> getBlockUpdates() {

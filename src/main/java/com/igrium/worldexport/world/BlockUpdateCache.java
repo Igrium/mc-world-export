@@ -4,6 +4,8 @@ import it.unimi.dsi.fastutil.ints.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
 
@@ -29,21 +31,49 @@ public class BlockUpdateCache {
     private BlockUpdateCache() {};
 
     private void generateInternal(WorldCapture capture) {
+        Direction[] directions = Direction.values();
         // For each block
         for (var entry : capture.getBlockUpdates().entrySet()) {
+            BlockPos center = entry.getKey();
             // For each update
-            for (int frame : entry.getValue().keySet()) {
-                // For each adjacent block (updates culling)
-                for (BlockPos pos : AdjacentDirectionIterator.getIterable(entry.getKey())) {
-                    blockUpdates.computeIfAbsent(pos, p -> new IntAVLTreeSet()).add(frame);
+            for (var updateEntry : entry.getValue().int2ObjectEntrySet()) {
+                int tick = updateEntry.getIntKey();
+                BlockState prevSelf = updateEntry.getValue().oldBlock();
+                BlockState self = updateEntry.getValue().newBlock();
 
-                    sortedKeyframes
-                            .computeIfAbsent(SectionPos.of(pos), s -> new Int2ObjectAVLTreeMap<>())
-                            .computeIfAbsent(frame, i -> new HashSet<>())
-                            .add(pos);
+                blockUpdates.computeIfAbsent(center, p -> new IntAVLTreeSet()).add(tick);
+                addSortedKeyframe(tick, center);
+
+                // For each adjacent block (updates culling)
+                for (var dir : directions) {
+                    Direction opp = dir.getOpposite();
+                    BlockPos adj = center.relative(dir);
+                    // TODO: profile how much this affects performance
+                    BlockState prevOther = capture.getBlock(adj, Math.max(tick - 1, 0));
+                    BlockState other = capture.getBlock(adj, tick);
+
+                    boolean shouldUpdate;
+                    if (!prevOther.getFluidState().isEmpty() || !other.getFluidState().isEmpty()) {
+                        shouldUpdate = true;
+                    } else {
+                        shouldUpdate = Block.shouldRenderFace(prevOther, prevSelf, opp)
+                                != Block.shouldRenderFace(other, self, opp);
+                    }
+
+                    if (shouldUpdate) {
+                        blockUpdates.computeIfAbsent(adj, p -> new IntAVLTreeSet()).add(tick);
+                        addSortedKeyframe(tick, adj);
+                    }
                 }
             }
         }
+    }
+
+    private void addSortedKeyframe(int tick, BlockPos pos) {
+        sortedKeyframes
+                .computeIfAbsent(SectionPos.of(pos), s -> new Int2ObjectAVLTreeMap<>())
+                .computeIfAbsent(tick, _ -> new HashSet<>())
+                .add(pos);
     }
 
     /**

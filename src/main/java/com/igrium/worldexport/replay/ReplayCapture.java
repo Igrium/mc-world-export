@@ -77,7 +77,7 @@ public class ReplayCapture {
      */
     public static void globalClientBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, Level world) {
         for (var cap : activeCaptures) {
-            cap.onUpdateBlock(pos, newState, world);
+            cap.onUpdateBlock(pos, oldState, newState, world);
         }
     }
 
@@ -133,8 +133,7 @@ public class ReplayCapture {
         this.world = world;
         this.settings = settings;
 
-        executor = Util.backgroundExecutor(); // Make our own as to not starve this.
-
+        executor = Util.backgroundExecutor();
 
         var bounds = settings.getWorldBounds();
 
@@ -151,7 +150,6 @@ public class ReplayCapture {
                     bounds.maxXInclusive(), bounds.maxZInclusive()), updatePredicate, bounds.minY(), bounds.sizeY(),
                     settings.isExportUpdates());
 
-            // WorldMesher owns its own worker threads, so it takes no executor.
             var worldMesher = worldCapture.getMesher();
             worldMesher.setOffset(settings.getOffset());
             worldMesher.setSplitBlocks(settings.isSplitBlocks());
@@ -222,9 +220,9 @@ public class ReplayCapture {
         gameTick++;
     }
 
-    public void onUpdateBlock(BlockPos globalPos, BlockState newBlock, Level world) {
+    public void onUpdateBlock(BlockPos globalPos, BlockState oldBlock, BlockState newBlock, Level world) {
         if (world == this.world && worldCapture != null) {
-            worldCapture.addBlockUpdate(globalPos, newBlock, replayTick);
+            worldCapture.addBlockUpdate(globalPos, oldBlock, newBlock, replayTick);
         }
     }
 
