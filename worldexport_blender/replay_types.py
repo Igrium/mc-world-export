@@ -35,6 +35,10 @@ class ReplayImportSettings:
     """Run a 'clean curves' operator on the imported entities.
     """
 
+    interp_spritesheets: bool = True
+    """Allow spritesheets to be interpolated. Can cause artifacts on lower sample counts.
+    """
+
 
 @dataclass
 class ReplayImportContext:

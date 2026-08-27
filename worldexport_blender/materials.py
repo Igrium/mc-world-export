@@ -170,8 +170,10 @@ def apply_spritesheet(node_tree: ShaderNodeTree, data: SpritesheetData, context:
     nodes = node_tree.nodes
     tex_nodes = [cast(ShaderNodeTexImage, node) for node in nodes if node.type == 'TEX_IMAGE']
 
+    interp = (data['interpolate'] or False) and context.settings.interp_spritesheets
+
     group = cast(ShaderNodeGroup, nodes.new('ShaderNodeGroup'))
-    group.node_tree = context.prefabs.spritesheet
+    group.node_tree = context.prefabs.spritesheet_interp if interp else context.prefabs.spritesheet
     group.location = (-980, 180)
     group.name = "Spritesheet"
     
