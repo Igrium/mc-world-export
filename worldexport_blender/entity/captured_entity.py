@@ -111,6 +111,7 @@ class CapturedEntity(AnimationProvider):
         if (len(self.curves) == 1):
             empty_obj = bpy.data.objects.new(self.name, None)
             empty_obj.empty_display_size = 1
+            empty_obj.rotation_mode = 'QUATERNION'
             
             context.entity_collection.objects.link(empty_obj)
             self.armature = empty_obj
@@ -119,7 +120,8 @@ class CapturedEntity(AnimationProvider):
         
         armature = bpy.data.armatures.new(self.name)
         obj = bpy.data.objects.new(self.name, armature)
-        
+        obj.rotation_mode = 'QUATERNION'
+
         context.entity_collection.objects.link(obj)
         
         context.bl_context.view_layer.objects.active = obj # pyright: ignore[reportOptionalMemberAccess]
@@ -171,14 +173,16 @@ class CapturedEntity(AnimationProvider):
         for part_name, curve_list in self.curves.items():
             if part_name == ROOT_NAME:
                 data_prefix = ''
-                transform_operator = common.convert_coords
+                pos_operator = common.convert_coords
+                rot_operator = common.convert_rotation
             else:
                 data_prefix = f'pose.bones["{part_name}"].'
-                transform_operator = None
-            
-            
+                pos_operator = None
+                rot_operator = None
+
+
             for curve in curve_list:
-                for ref, vals in curve.to_key_arrays(data_prefix, context.tick_to_frame, transform_operator).items():
+                for ref, vals in curve.to_key_arrays(data_prefix, context.tick_to_frame, pos_operator, rot_operator).items():
                     flattened_curves.setdefault(ref, []).extend(vals)
 
                 # TODO: Don't create visibility keyframes
