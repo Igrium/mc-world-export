@@ -10,6 +10,7 @@
     "client": [
         "AccessorBellRenderer",
         "AccessorChestRenderer",
+        "AccessorEnchantTableRenderer",
         "AccessorEntityRenderDispatcher",
         "AccessorEquipmentLayerRenderer",
         "AccessorHumanoidArmorLayer",

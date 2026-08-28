@@ -2,6 +2,7 @@ package com.igrium.worldexport.blockentity;
 
 import com.igrium.worldexport.blockentity.model_adapters.BellModelAdapter;
 import com.igrium.worldexport.blockentity.model_adapters.ChestModelAdapter;
+import com.igrium.worldexport.blockentity.model_adapters.EnchantTableModelAdapter;
 import com.igrium.worldexport.blockentity.model_adapters.ShulkerBoxModelAdapter;
 import com.igrium.worldexport.blockentity.model_adapters.SkullBlockModelAdapter;
 import net.minecraft.client.Minecraft;
@@ -51,5 +52,7 @@ public class BlockModelAdapters {
         register(BlockEntityTypes.SHULKER_BOX, ShulkerBoxModelAdapter::fromRenderer);
 
         register(BlockEntityTypes.SKULL, SkullBlockModelAdapter::fromRenderer);
+
+        register(BlockEntityTypes.ENCHANTING_TABLE, EnchantTableModelAdapter::fromRenderer);
     }
 }
