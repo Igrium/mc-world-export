@@ -19,6 +19,7 @@
         "AccessorModelPart",
         "AccessorRenderLayer",
         "AccessorShulkerBoxRenderer",
+        "AccessorSkullBlockRenderer",
         "AccessorWingsLayer",
         "MixinClientLevel",
         "MixinSpriteContents"
