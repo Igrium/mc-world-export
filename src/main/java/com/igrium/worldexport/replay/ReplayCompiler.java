@@ -69,6 +69,11 @@ public class ReplayCompiler {
             String name = getUniqueName(sanitized, replay.getEntities().keySet());
             replay.getEntities().put(name, entEntry.getValue());
         }
+        for (var bEntEntry : entCap.getBlockEntities().entrySet()) {
+            String sanitized = sanitizeFilename(bEntEntry.getKey().typeHolder().getRegisteredName());
+            String name = getUniqueName(sanitized, replay.getEntities().keySet());
+            replay.getEntities().put(name, bEntEntry.getValue());
+        }
         return replay;
     }
 
