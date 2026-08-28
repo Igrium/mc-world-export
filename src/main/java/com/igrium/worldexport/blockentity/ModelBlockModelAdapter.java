@@ -29,9 +29,7 @@ public abstract class ModelBlockModelAdapter<T extends BlockEntity, S extends Bl
 
     @Override
     public void capture(T blockEntity, S state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
-        Vec3 pos = Vec3.atLowerCornerOf(blockEntity.getBlockPos()).add(offset);
-        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS,
-                pos.toVector3f(), null, null);
+        setupTransforms(blockEntity, state, capture, offset, tick);
 
         M model = getModel(state);
         setupAnim(model, state);
@@ -39,6 +37,12 @@ public abstract class ModelBlockModelAdapter<T extends BlockEntity, S extends Bl
         ModelParts.captureModelPose(model.root(), "root", AnimationCurve.CurveFormat.POS_ROT, capture, tick, true);
 
         captureBaseModel(state, capture, materials);
+    }
+
+    protected void setupTransforms(T blockEntity, S state, CapturedEntity capture, Vec3 offset, int tick) {
+        Vec3 pos = Vec3.atLowerCornerOf(blockEntity.getBlockPos()).add(offset);
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS,
+                pos.toVector3f(), null, null);
     }
 
     protected void captureBaseModel(S state, CapturedEntity capture, MaterialHolder materials) {

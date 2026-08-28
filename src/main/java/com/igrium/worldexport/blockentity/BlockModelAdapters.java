@@ -2,6 +2,7 @@ package com.igrium.worldexport.blockentity;
 
 import com.igrium.worldexport.blockentity.model_adapters.BellModelAdapter;
 import com.igrium.worldexport.blockentity.model_adapters.ChestModelAdapter;
+import com.igrium.worldexport.blockentity.model_adapters.ShulkerBoxModelAdapter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 
@@ -45,5 +46,7 @@ public class BlockModelAdapters {
         register(BlockEntityTypes.ENDER_CHEST, ChestModelAdapter::fromRenderer);
 
         register(BlockEntityTypes.BELL, BellModelAdapter::fromRenderer);
+
+        register(BlockEntityTypes.SHULKER_BOX, ShulkerBoxModelAdapter::fromRenderer);
     }
 }

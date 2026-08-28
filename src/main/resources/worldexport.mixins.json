@@ -18,6 +18,7 @@
         "AccessorLivingEntityRenderer",
         "AccessorModelPart",
         "AccessorRenderLayer",
+        "AccessorShulkerBoxRenderer",
         "AccessorWingsLayer",
         "MixinClientLevel",
         "MixinSpriteContents"

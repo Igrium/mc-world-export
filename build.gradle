@@ -64,6 +64,7 @@ sourceSets {
 // The compat source sets are split for compile-time isolation only. At runtime they're all
 // one mod, so Loader has to be told to treat their output dirs as a single classpath group.
 loom {
+    accessWidenerPath = file("src/main/resources/worldexport.accesswidener")
     mods {
         "worldexport" {
             sourceSet sourceSets.main

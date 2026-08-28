@@ -56,15 +56,9 @@ public class ChestModelAdapter<T extends BlockEntity & LidBlockEntity>
     }
 
     @Override
-    public void capture(T blockEntity, ChestRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
-        Matrix4fc transform = ChestRenderer.modelTransformation(state.facing).getMatrix();
-
-        Vector3f pos = Vec3.atLowerCornerOf(blockEntity.getBlockPos()).add(offset).toVector3f()
-                .add(transform.getTranslation(new Vector3f()));
-
-        Quaternionf rot = transform.getNormalizedRotation(new Quaternionf());
-
-        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS_ROT, pos, rot, null);
+    public void capture(T blockEntity, ChestRenderState state, CapturedEntity capture, MaterialHolder materials,
+                        Vec3 offset, int tick) {
+        setupTransforms(blockEntity, state, capture, offset, tick);
 
         ChestModel model = getModel(state);
         setupAnim(model, state);
@@ -77,9 +71,22 @@ public class ChestModelAdapter<T extends BlockEntity & LidBlockEntity>
     }
 
     @Override
+    protected void setupTransforms(T blockEntity, ChestRenderState state, CapturedEntity capture,
+                                   Vec3 offset, int tick) {
+        Matrix4fc transform = ChestRenderer.modelTransformation(state.facing).getMatrix();
+
+        Vector3f pos = Vec3.atLowerCornerOf(blockEntity.getBlockPos()).add(offset).toVector3f()
+                .add(transform.getTranslation(new Vector3f()));
+
+        Quaternionf rot = transform.getNormalizedRotation(new Quaternionf());
+
+        capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS_ROT, pos, rot, null);
+    }
+
+    @Override
     protected void setupAnim(ChestModel model, ChestRenderState state) {
         // IDK ChestRenderer does this
-        float open =  1 -state.open;
+        float open = 1 - state.open;
         open = 1 - open * open * open;
         model.setupAnim(open);
     }

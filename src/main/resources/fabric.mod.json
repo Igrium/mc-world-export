@@ -19,6 +19,7 @@
             "com.igrium.worldexport.IgriumsReplayExporter"
         ]
     },
+    "accessWidener": "worldexport.accesswidener",
     "mixins": [
         "worldexport.mixins.json",
         "worldexport.replaymod.mixins.json"
