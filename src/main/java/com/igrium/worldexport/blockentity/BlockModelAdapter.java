@@ -1,6 +1,7 @@
 package com.igrium.worldexport.blockentity;
 
 import com.igrium.worldexport.entity.CapturedEntity;
+import lombok.Getter;
 import com.igrium.worldexport.replay.MaterialHolder;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
@@ -17,7 +18,8 @@ import net.minecraft.world.phys.Vec3;
  * @apiNote One instance exists <em>per exported replay</em>
  */
 public abstract class BlockModelAdapter<T extends BlockEntity, S extends BlockEntityRenderState> {
-    private final BlockEntityRenderer<? super T,  S> renderer;
+    @Getter
+    private final BlockEntityRenderer<? super T, S> renderer;
 
     public BlockModelAdapter(BlockEntityRenderer<? super T, S> renderer) {
         this.renderer = renderer;

@@ -8,6 +8,8 @@
         "defaultRequire": 1
     },
     "client": [
+        "AccessorBellRenderer",
+        "AccessorChestRenderer",
         "AccessorEntityRenderDispatcher",
         "AccessorEquipmentLayerRenderer",
         "AccessorHumanoidArmorLayer",
