@@ -5,6 +5,7 @@ import com.igrium.worldexport.compat.replaymod.export.ReplayExporter;
 import com.igrium.worldexport.compat.replaymod.gui.GuiBoundsEditor.EditMode;
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.replay.ReplayExportSettings;
+import com.igrium.worldexport.replay.CompatChecker;
 import com.replaymod.core.utils.Utils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.*;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
@@ -26,6 +27,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.CrashReport;
@@ -42,6 +44,7 @@ import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Objects;
 
 public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
@@ -385,7 +388,6 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
     }
 
     public void export() {
-        close();
 
         ReplayExportSettings exportSettings = ReplayExportSettings.builder()
                 .exportPath(outputFile.toPath())
@@ -398,9 +400,22 @@ public class GuiExportSettings extends AbstractGuiPopup<GuiExportSettings> {
                 .exportEntities(exportEntities.isChecked())
                 .build();
 
+        List<ModMetadata> breaks = CompatChecker.checkModCompat();
+        if (!breaks.isEmpty()) {
+            GuiCompatWarning warning = new GuiCompatWarning(breaks);
+            warning.setContCallback(() -> doExport(exportSettings));
+            warning.setCancelCallback(screen::display);
+            warning.display();
+        } else {
+            doExport(exportSettings);
+        }
+    }
+
+    private void doExport(ReplayExportSettings settings) {
+        close();
         try {
             createOutputDir();
-            ReplayExporter exporter = new ReplayExporter(exportSettings, replayHandler, timeline);
+            ReplayExporter exporter = new ReplayExporter(settings, replayHandler, timeline);
             exporter.exportReplay();
         } catch (Throwable e) {
             // This popup is already closed, so the error has to attach to the screen behind it.

@@ -1,6 +1,7 @@
 package com.igrium.worldexport.replay;
 
 import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -69,6 +70,11 @@ public class ReplayCompiler {
             String name = getUniqueName(sanitized, replay.getEntities().keySet());
             replay.getEntities().put(name, entEntry.getValue());
         }
+        for (var bEntEntry : entCap.getBlockEntities().entrySet()) {
+            String sanitized = sanitizeFilename(bEntEntry.getKey().typeHolder().getRegisteredName());
+            String name = getUniqueName(sanitized, replay.getEntities().keySet());
+            replay.getEntities().put(name, bEntEntry.getValue());
+        }
         return replay;
     }
 
@@ -90,6 +96,12 @@ public class ReplayCompiler {
 
     private CompiledReplay writeMeta(CompiledReplay replay) {
         replay.getMeta().setOrigin(replayCapture.getSettings().getOffset().multiply(-1));
+
+        for (var mod : FabricLoader.getInstance().getAllMods()) {
+            var meta = mod.getMetadata();
+            replay.getMeta().getModlist().put(meta.getId(), meta.getVersion().getFriendlyString());
+        }
+
         return replay;
     }
 

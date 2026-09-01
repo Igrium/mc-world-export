@@ -8,6 +8,9 @@
         "defaultRequire": 1
     },
     "client": [
+        "AccessorBellRenderer",
+        "AccessorChestRenderer",
+        "AccessorEnchantTableRenderer",
         "AccessorEntityRenderDispatcher",
         "AccessorEquipmentLayerRenderer",
         "AccessorHumanoidArmorLayer",
@@ -16,6 +19,8 @@
         "AccessorLivingEntityRenderer",
         "AccessorModelPart",
         "AccessorRenderLayer",
+        "AccessorShulkerBoxRenderer",
+        "AccessorSkullBlockRenderer",
         "AccessorWingsLayer",
         "MixinClientLevel",
         "MixinSpriteContents"

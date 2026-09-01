@@ -39,6 +39,12 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
         default=True
     )
 
+    interp_spritesheets: BoolProperty(
+        name="Interpolate Animated Textures",
+        description="Allow spritesheets to be interpolated. Can cause artifacts on lower sample counts",
+        default=True
+    )
+
     import_world: BoolProperty(
         name="World",
         description="Import the block world",
@@ -85,6 +91,7 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
             import_entities=self.import_entities,
             local_root_bone=self.local_root_bone,
             clean_curves=self.clean_curves,
+            interp_spritesheets=self.interp_spritesheets
         )
 
         if version is None:
@@ -121,6 +128,8 @@ class WORLDEXPORT_OT_import_replay(Operator, ImportHelper): # type: ignore
 
         layout.prop(self, 'use_scene_framerate') # type: ignore
         layout.prop(self, 'process_materials') # type: ignore
+
+        layout.prop(self, 'interp_spritesheets') # type: ignore
 
 
 class WORLDEXPORT_PT_import_world(Panel):

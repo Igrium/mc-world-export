@@ -25,6 +25,9 @@ def create_action(id_data, name: str, id_type: str = 'OBJECT'):
 def convert_coords(x: float, y: float, z: float):
     return (x, -z, y)
 
+def convert_rotation(w: float, x: float, y: float, z: float):
+    return (w, *convert_coords(x, y, z))
+
 def add_vis_keyframe(obj: Object, visible: bool, frame: float):
     obj.hide_viewport = not visible
     obj.hide_render = not visible

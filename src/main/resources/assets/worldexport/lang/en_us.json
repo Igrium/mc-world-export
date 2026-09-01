@@ -37,5 +37,9 @@
   "worldexport.gui.status.world": "Tessellating world",
   "worldexport.gui.status.entities": "Serializing entities",
   "worldexport.gui.status.materials": "Extracting materials",
-  "worldexport.gui.status.finished": "Finished writing replay file!"
+  "worldexport.gui.status.finished": "Finished writing replay file!",
+
+  "worldexport.gui.compatwarning.title": "Mod Incompatibilities Detected",
+  "worldexport.gui.compatwarning.desc": "The following mod(s) are known to break Replay Exporter:",
+  "worldexport.gui.continue": "Continue"
 }

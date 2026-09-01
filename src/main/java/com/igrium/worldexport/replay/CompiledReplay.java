@@ -54,5 +54,11 @@ public class CompiledReplay {
          */
         @JsonAdapter(JsonAdapters.BlockPosAdapter.class)
         private @NonNull BlockPos origin = BlockPos.ZERO;
+
+        /**
+         * All the mods that were loaded at the time of export (modid:version)
+         */
+        @Getter
+        private Map<String, String> modlist = new HashMap<>();
     }
 }
