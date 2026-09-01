@@ -1,4 +1,4 @@
-package com.igrium.worldexport.util;
+package com.igrium.worldexport.replay;
 
 import com.google.gson.Gson;
 import lombok.experimental.UtilityClass;
@@ -33,14 +33,6 @@ public final class CompatChecker {
                     breaks.stream().map(ModMetadata::getId).toList());
         }
         return breaks;
-    }
-
-    private static void printErrors(List<ModMetadata> breaks) {
-        StringBuilder str = new StringBuilder("The following mods are known to break Replay Exporter: \n");
-        for (var mod : breaks) {
-            str.append(mod.getId()).append("\n");
-        }
-        LOGGER.warn(str.toString());
     }
 
     private record CompatList(Set<String> breaks) {

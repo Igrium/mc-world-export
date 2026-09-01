@@ -1,6 +1,7 @@
 package com.igrium.worldexport.replay;
 
 import lombok.Setter;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -95,6 +96,12 @@ public class ReplayCompiler {
 
     private CompiledReplay writeMeta(CompiledReplay replay) {
         replay.getMeta().setOrigin(replayCapture.getSettings().getOffset().multiply(-1));
+
+        for (var mod : FabricLoader.getInstance().getAllMods()) {
+            var meta = mod.getMetadata();
+            replay.getMeta().getModlist().put(meta.getId(), meta.getVersion().getFriendlyString());
+        }
+
         return replay;
     }
 

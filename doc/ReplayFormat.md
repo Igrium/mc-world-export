@@ -24,8 +24,11 @@ In the root of the archive is a file called `meta.json`, containing general info
 
 ```json
 {
-    "version": "2.0",
-    "origin": [-104, 62, 127]
+    "version": "2.2",
+    "origin": [-104, 62, 127],
+    "modlist": {
+        "modid": "1.1.0"
+    }
 }
 ```
 
@@ -33,6 +36,7 @@ In the root of the archive is a file called `meta.json`, containing general info
 |:--------- |:------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `version` | string | version format string (see: [Versioning](#Versioning))                                                                                           |
 | `origin`  | vector | The world-space coordinates of the replay origin. Everything else in the file is replay-local; add `origin` to recover the original coordinates. |
+| `modlist` | object | All the mods that were loaded at the time of export (mod-id and version). Used only for debugging.                                               |
 
 All JSON vectors in the format are 3-dimensional arrays: `[x, y, z]`
 

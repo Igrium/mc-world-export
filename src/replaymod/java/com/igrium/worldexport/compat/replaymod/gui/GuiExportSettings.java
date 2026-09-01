@@ -5,7 +5,7 @@ import com.igrium.worldexport.compat.replaymod.export.ReplayExporter;
 import com.igrium.worldexport.compat.replaymod.gui.GuiBoundsEditor.EditMode;
 import com.igrium.worldexport.math.ChunkSectionBox;
 import com.igrium.worldexport.replay.ReplayExportSettings;
-import com.igrium.worldexport.util.CompatChecker;
+import com.igrium.worldexport.replay.CompatChecker;
 import com.replaymod.core.utils.Utils;
 import com.replaymod.lib.de.johni0702.minecraft.gui.container.*;
 import com.replaymod.lib.de.johni0702.minecraft.gui.element.GuiButton;
