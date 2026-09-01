@@ -23,3 +23,12 @@ license = [
 
 [permissions]
 files = "Import Replay files from disk"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  "*.blend1",
+  "/pyrightconfig.json",
+]
