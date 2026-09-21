@@ -38,6 +38,23 @@ sourceSets {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
+    // No entrypoint or run configuration of its own
+    imgui {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+// flashback and the debugger test app both depend on imgui.
+sourceSets {
+    flashback {
+        compileClasspath += sourceSets.imgui.output + sourceSets.imgui.compileClasspath
+        runtimeClasspath += sourceSets.imgui.output + sourceSets.imgui.runtimeClasspath
+    }
+    debugger {
+        compileClasspath += sourceSets.imgui.output + sourceSets.imgui.compileClasspath
+        runtimeClasspath += sourceSets.imgui.output + sourceSets.imgui.runtimeClasspath
+    }
 }
 
 // Holds no sources. A Loom run's classpath is exactly one source set's, and the compat sets
@@ -70,6 +87,7 @@ loom {
             sourceSet sourceSets.main
 //            sourceSet sourceSets.replaymod
             sourceSet sourceSets.flashback
+            sourceSet sourceSets.imgui
         }
     }
     runs {
@@ -98,6 +116,7 @@ dependencies {
     // For debugging exported replays
     debuggerImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
 //    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
+    imguiImplementation "io.github.spair:imgui-java-binding:1.92.7.1"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
@@ -138,6 +157,7 @@ jar {
     }
 //    from sourceSets.replaymod.output
     from sourceSets.flashback.output
+    from sourceSets.imgui.output
 }
 // configure the maven publication
 publishing {
