@@ -1,5 +1,9 @@
 package com.igrium.worldexport.tex;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.igrium.worldexport.mixin.AccessorTextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -85,6 +89,26 @@ public class TextureExtractor {
                 throw ExceptionUtils.asRuntimeException(e);
             }
         }, Util.ioPool());
+    }
+
+    /** Exact sprite identities and Blender-oriented UV rectangles, independent of resource-pack resolution. */
+    public static JsonArray atlasSpriteMetadata(Identifier atlasID) {
+        TextureAtlas atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(atlasID);
+        JsonArray sprites = new JsonArray();
+        ((AccessorTextureAtlas) atlas).worldexport$getTexturesByName().entrySet().stream()
+                .sorted(java.util.Map.Entry.comparingByKey(java.util.Comparator.comparing(Identifier::toString)))
+                .forEach(entry -> {
+                    var sprite = entry.getValue();
+                    JsonObject data = new JsonObject();
+                    data.addProperty("resource", entry.getKey().getNamespace() + "/textures/" + entry.getKey().getPath() + ".png");
+                    data.addProperty("animated", sprite.isAnimated());
+                    JsonArray uv = new JsonArray();
+                    uv.add(sprite.getU0()); uv.add(1 - sprite.getV1());
+                    uv.add(sprite.getU1()); uv.add(1 - sprite.getV0());
+                    data.add("uv", uv);
+                    sprites.add(data);
+                });
+        return sprites;
     }
 
     public static AbstractTexture getAtlasTexture(Identifier atlasID) {

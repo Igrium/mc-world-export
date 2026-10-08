@@ -8,6 +8,8 @@ import com.igrium.worldexport.entity.features.ItemQuadCollector;
 import com.igrium.worldexport.replay.MaterialHolder;
 import com.igrium.worldexport.replay.ReplayCapture;
 import com.igrium.worldexport.tex.ReplayMtl;
+import com.igrium.worldexport.tex.TextureExtractor;
+import net.minecraft.data.AtlasIds;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.QuadInstance;
 import de.javagl.obj.Mtls;
@@ -68,6 +70,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             mtl.mtl().setMapKd(tex);
             mtl.mtl().setMapD(tex);
             mtl.properties().addProperty("item", true);
+            mtl.properties().add("pbrAtlas", TextureExtractor.atlasSpriteMetadata(blockAtlas ? AtlasIds.BLOCKS : AtlasIds.ITEMS));
             if (glint) {
                 mtl.properties().addProperty("glint", true);
             }

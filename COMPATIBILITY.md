@@ -1,5 +1,9 @@
 # Minecraft 26.3 Fabric port: build and limited test results
 
+This report describes **1.4.0+mc26.3**. The subsequent 1.4.1 custom-PBR feature
+was tested on Windows and Blender only; see [PBR.md](PBR.md). The earlier Linux
+results below do not certify that newer feature.
+
 Status on 2026-10-08: compiles; short Windows and Linux X11/OpenGL smoke tests
 passed with the matching ReplayMod port. Both final scene exports and their
 separate camera GLBs imported successfully into Blender 4.5.3 LTS.

@@ -58,6 +58,7 @@ public abstract class FeatureAdapter<S extends EntityRenderState, M extends Enti
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texPath);
             mtl.mtl().setMapD(texPath);
+            mtl.properties().addProperty("textureResource", texPath);
             mtl.properties().addProperty("armor", true);
             if (glint) {
                 mtl.properties().addProperty("glint", true);

@@ -15,8 +15,8 @@ For other platforms, use Java 25 and:
 ./gradlew build buildAddon -Preplaymod_jar=/absolute/path/to/replaymod-26.3.jar -Pblender_executable=/path/to/blender
 ```
 
-Output: `build/libs/worldexport-1.4.0+mc26.3.jar` and
-`build/libs/worldexport_blender-1.4.0+mc26.3.zip`.
+Output: `build/libs/worldexport-1.4.1+mc26.3.jar` and
+`build/libs/worldexport_blender-1.4.1+mc26.3.zip`.
 Install the JAR alongside ReplayMod and install the ZIP through Blender's extension
 preferences. Use ReplayMod's **Export Replay File** button, then Blender's
 **File > Import > Minecraft Replay File (.replay)**.
@@ -26,6 +26,12 @@ mod versions, platforms and short test scope. These are not complete companion-m
 feature or compatibility suites. EMF/ETF being installed does not establish that
 all custom model/resource packs export correctly. Minecraft shader-pack effects
 are not transferred as Blender shader materials.
+
+Version 1.4.1 adds a **Replay Export > Custom PBR Packs** sidebar in Blender.
+Apply your own resource-pack ZIPs or extracted folders using exported texture
+identities, with LabPBR 1.3 or SEUS decoding and reversible material assignments.
+See [custom PBR usage and test scope](PBR.md). Terrain from older exports needs
+a fresh export with this JAR; an existing recording can be reused.
 
 Camera animation is exported separately by ReplayMod's camera-path option as
 GLB. Replay Exporter's `.replay` file contains world/entity data, not the camera.

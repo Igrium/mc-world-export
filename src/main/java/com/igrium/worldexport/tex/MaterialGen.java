@@ -29,6 +29,7 @@ public final class MaterialGen {
             materials.getTextures().computeIfAbsent(matName, _ -> buildSpritesheet(sprite));
 
             ReplayMtl mat = new ReplayMtl(mtl);
+            mat.properties().addProperty("textureResource", spriteName.getNamespace() + "/textures/" + spriteName.getPath() + ".png");
 
             JsonObject spritesheet = new JsonObject();
             AnimationMetadataSection animData = SpriteAnimMetaProvider.getAnimData(sprite);

@@ -2,8 +2,7 @@
     "required": true,
     "package": "com.igrium.worldexport.mixin",
     "compatibilityLevel": "JAVA_17",
-    "mixins": [
-    ],
+    "mixins": [],
     "injectors": {
         "defaultRequire": 1
     },
@@ -23,6 +22,7 @@
         "AccessorSkullBlockRenderer",
         "AccessorWingsLayer",
         "MixinClientLevel",
-        "MixinSpriteContents"
+        "MixinSpriteContents",
+        "AccessorTextureAtlas"
     ]
 }

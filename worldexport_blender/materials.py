@@ -37,6 +37,7 @@ def process_material(mat: Material, custom_props: dict[str, Any] | None, context
             cast(ShaderNodeTexImage, node).interpolation = 'Closest'
     
     if custom_props:
+        mat["worldexport_texture_metadata"] = json.dumps(custom_props)
         apply_custom_props(mat, custom_props, context)
 
 def apply_custom_props(mat: Material, custom_props: dict[str, Any], context: ReplayImportContext):

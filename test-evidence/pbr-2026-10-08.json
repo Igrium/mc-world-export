@@ -1,0 +1,75 @@
+{
+  "faces": 7992,
+  "materials": 15,
+  "missing_maps": 1324,
+  "missing_identity": 0,
+  "animated_skipped": 304,
+  "unsupported_uv": 0,
+  "failed_apply_rollback_verified": true,
+  "geometry_uv_weights_actions_unchanged": true,
+  "pack_priority_verified": true,
+  "restore_verified": true,
+  "blender": "4.5.3 LTS",
+  "atlas_sprites": 1310,
+  "pack_names": [
+    "Emma-PBR-Clean-phase1.zip",
+    "minecraft-PBR-armor-weapons-part-0006.zip",
+    "minecraft-PBR-creatures-part-0009.zip",
+    "minecraft-PBR-emission-fix-part-0010.zip"
+  ],
+  "numeric_cycles_checks": {
+    "roughness": [
+      0.06299114227294922,
+      0.0629911572472126
+    ],
+    "metal_230": [
+      1.0,
+      1
+    ],
+    "dielectric_229": [
+      0.0,
+      0
+    ],
+    "alpha_255_emission_off": [
+      0.0,
+      0
+    ],
+    "alpha_254_emission_full": [
+      10.0,
+      10
+    ],
+    "seus_metal": [
+      0.501960813999176,
+      0.5019607843137255
+    ],
+    "seus_emission": [
+      2.50980544090271,
+      2.5098039215686274
+    ],
+    "normal_z_reconstructed_not_ao": [
+      0.999992311000824,
+      1
+    ]
+  },
+  "version": "1.4.1+mc26.3",
+  "date": "2026-10-08",
+  "platform": "Windows OpenGL; Minecraft shaders disabled",
+  "linux_pbr_tested": false,
+  "existing_unit_tests_passed": 84,
+  "short_minecraft_smoke_passed": true,
+  "full_mod_suite_tested": false,
+  "artifacts": {
+    "worldexport-1.4.1+mc26.3-sources.jar": {
+      "bytes": 140202,
+      "sha256": "40ac769457a5543a88b3fc234998d414b0e6afb881f40e7aa20193a494c69594"
+    },
+    "worldexport-1.4.1+mc26.3.jar": {
+      "bytes": 438606,
+      "sha256": "3819b9df7368e46ef8fe3f6a3076a2d5a74439274571968942a86cd1adb496f5"
+    },
+    "worldexport_blender-1.4.1+mc26.3.zip": {
+      "bytes": 176988,
+      "sha256": "d797cb4c3c9b12a77b734f45caab87d892530193a647c80fe6d6ca9442e173dd"
+    }
+  }
+}

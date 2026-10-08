@@ -63,6 +63,7 @@ public abstract class ModelBlockModelAdapter<T extends BlockEntity, S extends Bl
             ReplayMtl mtl = new ReplayMtl(Mtls.create(n));
             mtl.mtl().setMapKd(texName);
             mtl.mtl().setMapD(texName);
+            mtl.properties().addProperty("textureResource", texName);
             return mtl;
         });
 
