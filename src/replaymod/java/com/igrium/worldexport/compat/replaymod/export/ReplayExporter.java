@@ -7,7 +7,7 @@ import com.igrium.worldexport.compat.replaymod.gui.GuiReplayExporter;
 import com.igrium.worldexport.replay.ExportPhase;
 import com.igrium.worldexport.replay.ReplayExportSettings;
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.mixin.BlockableEventLoopAccessor;
@@ -38,14 +38,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.state.WindowRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -291,8 +289,8 @@ public class ReplayExporter implements RenderInfo {
     @SuppressWarnings("DataFlowIssue")
     public boolean drawGui() {
         Window window = this.mc.getWindow();
-        if (!GLFW.glfwWindowShouldClose(window.handle()) && ((BlockableEventLoopAccessor) this.mc).getDelayedCrash() == null) {
-            RenderSystem.pollEvents();
+        if (!window.shouldClose() && ((BlockableEventLoopAccessor) this.mc).getDelayedCrash() == null) {
+            RenderSystem.pollEvents(((MinecraftAccessor) mc).getSdlEventHandler());
             com.replaymod.core.versions.MCVer.pushMatrix();
             clearRenderTarget();
             this.guiWindow.beginWrite();
@@ -306,12 +304,7 @@ public class ReplayExporter implements RenderInfo {
             GuiRenderState guiRenderState = gameRenderer.getGameRenderState().guiRenderState;
             guiRenderState.reset();
             GuiGraphicsExtractor drawContext = new GuiGraphicsExtractor(this.mc, guiRenderState, mouseX, mouseY);
-            WindowRenderState windowRenderState = gameRenderer.getGameRenderState().windowRenderState;
-            windowRenderState.width = window.getWidth();
-            windowRenderState.height = window.getHeight();
-            windowRenderState.guiScale = window.getGuiScale();
-            windowRenderState.appropriateLineWidth = window.getAppropriateLineWidth();
-            windowRenderState.isMinimized = window.isMinimized();
+            gameRenderer.invokeExtractWindow();
             if (this.mc.gui.overlay() != null) {
                 Screen orgScreen = this.mc.gui.screen();
 

@@ -1,3 +1,40 @@
+# Minecraft 26.3 Fabric port (experimental)
+
+This fork ports Igrium's Replay Exporter to Minecraft 26.3 and the matching
+[DragonbornElric ReplayMod port](https://github.com/DragonbornElric/ReplayMod).
+It is a separate companion mod, not a replacement for ReplayMod.
+
+Requirements: Minecraft 26.3, Java 25, Fabric Loader 0.19.5+, Fabric API
+0.161.0+26.3 and the matching rebuilt ReplayMod. The Blender importer requires
+Blender 4.4+; the local round-trip test used Blender 4.5.3 LTS.
+
+Build on Windows with `./build-26.3.ps1`, or pass `-ReplayModJar` explicitly.
+For other platforms, use Java 25 and:
+
+```sh
+./gradlew build buildAddon -Preplaymod_jar=/absolute/path/to/replaymod-26.3.jar -Pblender_executable=/path/to/blender
+```
+
+Output: `build/libs/worldexport-1.4.0+mc26.3.jar` and
+`build/libs/worldexport_blender-1.4.0+mc26.3.zip`.
+Install the JAR alongside ReplayMod and install the ZIP through Blender's extension
+preferences. Use ReplayMod's **Export Replay File** button, then Blender's
+**File > Import > Minecraft Replay File (.replay)**.
+
+[Build and limited compatibility results](COMPATIBILITY.md) describe the exact
+mod versions, platforms and short test scope. These are not complete companion-mod
+feature or compatibility suites. EMF/ETF being installed does not establish that
+all custom model/resource packs export correctly. Minecraft shader-pack effects
+are not transferred as Blender shader materials.
+
+Camera animation is exported separately by ReplayMod's camera-path option as
+GLB. Replay Exporter's `.replay` file contains world/entity data, not the camera.
+Match the frame rate, frame-zero alignment and export origin when combining them.
+
+The original project documentation follows.
+
+---
+
 # Igrium's Replay Exporter
 
 An addon for the [Replay Mod](https://www.replaymod.com/) that allows you to export your replays

@@ -148,7 +148,7 @@ public class WorldCapture {
      */
     public void addBlockUpdate(BlockPos pos, BlockUpdate update) {
         if (!doUpdates || !processDeltas.test(pos) || !chunks.contains(ChunkPos.containing(pos))) return;
-        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(new BlockPos(pos),
+        Int2ObjectSortedMap<BlockUpdate> map = blockUpdates.computeIfAbsent(pos.immutable(),
                 p -> Int2ObjectSortedMaps.synchronize(new Int2ObjectAVLTreeMap<>()));
         map.put(update.tick(), update);
         // Stop meshing the base chunk

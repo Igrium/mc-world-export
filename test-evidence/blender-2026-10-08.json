@@ -1,0 +1,714 @@
+{
+  "windows-final": {
+    "blender": "4.5.3 LTS",
+    "meshes": 33,
+    "vertices": 17686,
+    "armatures": 9,
+    "animated_objects": 41,
+    "exported_entities": 9,
+    "missing_entities": [],
+    "moving_roots": [
+      "section_1_4_-1_3",
+      "section_0_4_0_0",
+      "section_0_4_-1_3",
+      "section_1_4_-1_6",
+      "section_1_4_-1_5",
+      "section_0_4_-1_6",
+      "section_0_4_-1_5",
+      "section_-1_3_1_0",
+      "Bat",
+      "White Wool",
+      "Raw Mutton"
+    ],
+    "actions": [
+      {
+        "object": "section_1_4_-1_3",
+        "action": "section_1_4_-1_3Action",
+        "range": [
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_0",
+        "action": "section_0_4_-1_0Action",
+        "range": [
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_2",
+        "action": "section_1_4_-1_2Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_1",
+        "action": "section_1_4_-1_1Action",
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_2",
+        "action": "section_0_4_-1_2Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_0",
+        "action": "section_1_4_-1_0Action",
+        "range": [
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_1",
+        "action": "section_0_4_-1_1Action",
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_7",
+        "action": "section_1_4_-1_7Action",
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_4",
+        "action": "section_0_4_-1_4Action",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "object": "section_-1_3_1_1",
+        "action": "section_-1_3_1_1Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_0_4_0_0",
+        "action": "section_0_4_0_0Action",
+        "range": [
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_3",
+        "action": "section_0_4_-1_3Action",
+        "range": [
+          0.0,
+          5.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_6",
+        "action": "section_1_4_-1_6Action",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_5",
+        "action": "section_1_4_-1_5Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_0_4_0_1",
+        "action": "section_0_4_0_1Action",
+        "range": [
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_6",
+        "action": "section_0_4_-1_6Action",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_5",
+        "action": "section_0_4_-1_5Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_4",
+        "action": "section_1_4_-1_4Action",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "object": "section_-1_3_1_0",
+        "action": "section_-1_3_1_0Action",
+        "range": [
+          0.0,
+          10.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_7",
+        "action": "section_0_4_-1_7Action",
+        "range": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "object": "Armor Stand",
+        "action": "Armor Stand_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "minecraft:iron_helmet.root/head",
+        "action": "minecraft:iron_helmet.root/headAction",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "item.0",
+        "action": "item.0Action",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "minecraft:iron_helmet.root/head/hat",
+        "action": "minecraft:iron_helmet.root/head/hatAction",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Armor Stand.001",
+        "action": "Armor Stand.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Raw Beef",
+        "action": "Raw Beef_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Raw Beef.001",
+        "action": "Raw Beef.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Bat",
+        "action": "Bat_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Bat.001",
+        "action": "Bat.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Creeper",
+        "action": "Creeper_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Creeper.001",
+        "action": "Creeper.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Villager",
+        "action": "Villager_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Villager.001",
+        "action": "Villager.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Leather",
+        "action": "Leather_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Leather.001",
+        "action": "Leather.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "White Wool",
+        "action": "White Wool_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "White Wool.001",
+        "action": "White Wool.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "CompatTest",
+        "action": "CompatTest_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "CompatTest.001",
+        "action": "CompatTest.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Raw Mutton",
+        "action": "Raw Mutton_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Raw Mutton.001",
+        "action": "Raw Mutton.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      }
+    ],
+    "packed_images": 17,
+    "camera_glb": "compat-export.glb",
+    "camera_actions": [
+      {
+        "camera": "Camera",
+        "range": [
+          0.0,
+          19.0
+        ]
+      }
+    ]
+  },
+  "linux-final": {
+    "blender": "4.5.3 LTS",
+    "meshes": 32,
+    "vertices": 18288,
+    "armatures": 8,
+    "animated_objects": 39,
+    "exported_entities": 8,
+    "missing_entities": [],
+    "moving_roots": [
+      "section_1_4_-1_3",
+      "section_1_4_-1_1",
+      "section_0_4_-1_1",
+      "section_0_4_-1_3",
+      "section_0_4_0_0",
+      "section_1_4_-1_6",
+      "section_1_4_-1_5",
+      "section_0_4_-1_6",
+      "section_0_4_-1_5",
+      "section_-1_3_1_0",
+      "Leather",
+      "Raw Porkchop",
+      "Raw Mutton"
+    ],
+    "actions": [
+      {
+        "object": "section_1_4_-1_3",
+        "action": "section_1_4_-1_3Action",
+        "range": [
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_0",
+        "action": "section_0_4_-1_0Action",
+        "range": [
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_2",
+        "action": "section_1_4_-1_2Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_1",
+        "action": "section_1_4_-1_1Action",
+        "range": [
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_2",
+        "action": "section_0_4_-1_2Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_0",
+        "action": "section_1_4_-1_0Action",
+        "range": [
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_1",
+        "action": "section_0_4_-1_1Action",
+        "range": [
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_7",
+        "action": "section_1_4_-1_7Action",
+        "range": [
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_4",
+        "action": "section_0_4_-1_4Action",
+        "range": [
+          0.0,
+          17.0
+        ]
+      },
+      {
+        "object": "section_-1_3_1_1",
+        "action": "section_-1_3_1_1Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_3",
+        "action": "section_0_4_-1_3Action",
+        "range": [
+          0.0,
+          7.0
+        ]
+      },
+      {
+        "object": "section_0_4_0_0",
+        "action": "section_0_4_0_0Action",
+        "range": [
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_6",
+        "action": "section_1_4_-1_6Action",
+        "range": [
+          0.0,
+          17.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_5",
+        "action": "section_1_4_-1_5Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_0_4_0_1",
+        "action": "section_0_4_0_1Action",
+        "range": [
+          0.0,
+          11.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_6",
+        "action": "section_0_4_-1_6Action",
+        "range": [
+          0.0,
+          17.0
+        ]
+      },
+      {
+        "object": "section_1_4_-1_4",
+        "action": "section_1_4_-1_4Action",
+        "range": [
+          0.0,
+          17.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_5",
+        "action": "section_0_4_-1_5Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_-1_3_1_0",
+        "action": "section_-1_3_1_0Action",
+        "range": [
+          0.0,
+          12.0
+        ]
+      },
+      {
+        "object": "section_0_4_-1_7",
+        "action": "section_0_4_-1_7Action",
+        "range": [
+          0.0,
+          2.0
+        ]
+      },
+      {
+        "object": "Armor Stand",
+        "action": "Armor Stand_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "minecraft:iron_helmet.root/head",
+        "action": "minecraft:iron_helmet.root/headAction",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "item.0",
+        "action": "item.0Action",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "minecraft:iron_helmet.root/head/hat",
+        "action": "minecraft:iron_helmet.root/head/hatAction",
+        "range": [
+          10.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Armor Stand.001",
+        "action": "Armor Stand.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Villager",
+        "action": "Villager_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Villager.001",
+        "action": "Villager.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Leather",
+        "action": "Leather_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Leather.001",
+        "action": "Leather.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Raw Porkchop",
+        "action": "Raw Porkchop_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Raw Porkchop.001",
+        "action": "Raw Porkchop.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Skeleton",
+        "action": "Skeleton_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Skeleton.001",
+        "action": "Skeleton.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "CompatTest",
+        "action": "CompatTest_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "CompatTest.001",
+        "action": "CompatTest.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Raw Mutton",
+        "action": "Raw Mutton_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Raw Mutton.001",
+        "action": "Raw Mutton.001Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      },
+      {
+        "object": "Skeleton.002",
+        "action": "Skeleton.001_action",
+        "range": [
+          0.0,
+          18.0
+        ]
+      },
+      {
+        "object": "Skeleton.003",
+        "action": "Skeleton.003Action",
+        "range": [
+          -1.0,
+          19.0
+        ]
+      }
+    ],
+    "packed_images": 13,
+    "camera_glb": "compat-camera-linux-final.glb",
+    "camera_actions": [
+      {
+        "camera": "Camera",
+        "range": [
+          0.0,
+          19.0
+        ]
+      }
+    ]
+  }
+}

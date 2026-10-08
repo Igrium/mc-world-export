@@ -77,6 +77,12 @@ public abstract class FaceVertexConsumer implements VertexConsumer {
         return this;
     }
 
+    // UV3 is the glint transform; exported glint uses its own Blender material.
+    @Override
+    public FaceVertexConsumer setUv3(float u, float v) {
+        return this;
+    }
+
     @Override
     public FaceVertexConsumer setNormal(float x, float y, float z) {
         normalCache[head].set(x, y, z).mulDirection(matrices.last().pose()).normalize();

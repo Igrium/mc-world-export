@@ -23,7 +23,6 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.joml.*;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -308,11 +307,11 @@ public class GuiBoundsOverview extends AbstractGuiElement<GuiBoundsOverview> imp
         }
         if (!isMouseHovering(pos)) return false;
 
-        if (click.button == GLFW.GLFW_MOUSE_BUTTON_2) {
+        if (click.button == 1) {
             return mouseDragSecondary(click);
         }
 
-        if (click.button != GLFW.GLFW_MOUSE_BUTTON_1) return false;
+        if (click.button != 0) return false;
 
         if (lastDragPosition == null) {
             lastDragPosition = click;

@@ -9,7 +9,7 @@
     ],
     "contact": {
         "homepage": "https://github.com/Sam54123/mc-world-export",
-        "sources": "https://github.com/Sam54123/mc-world-export"
+        "sources": "https://github.com/DragonbornElric/mc-world-export"
     },
     "license": "GPL-3.0-or-later",
     "icon": "assets/worldexport/icon.png",
@@ -25,8 +25,8 @@
         "worldexport.replaymod.mixins.json"
     ],
     "depends": {
-        "fabricloader": ">=0.19.3",
-        "minecraft": "~26.2",
+        "fabricloader": ">=0.19.5",
+        "minecraft": "~26.3",
         "java": ">=25",
         "fabric-api": "*"
     },

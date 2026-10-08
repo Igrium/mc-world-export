@@ -97,7 +97,12 @@ dependencies {
     implementation(include("de.javagl:obj:0.4.0"))
     // For debugging exported replays
     debuggerImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
-    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
+    // Compile against the matching port; it remains a separate runtime mod.
+    def replaymodJar = providers.gradleProperty("replaymod_jar")
+    if (!replaymodJar.isPresent() || !file(replaymodJar.get()).isFile()) {
+        throw new GradleException("Pass -Preplaymod_jar=/path/to/the/built/26.3/ReplayMod.jar")
+    }
+    replaymodImplementation files(replaymodJar.get())
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'

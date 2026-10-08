@@ -1,0 +1,39 @@
+Short smoke tests on 2026-10-08; selected markers only.
+Final Windows run: Prism Microsoft OpenJDK 25.0.1; shaders enabled.
+[18:38:14] [Render thread/INFO]: [STDOUT]: [COMPAT] Replay Exporter harness initialized
+[18:38:24] [Render thread/INFO]: [STDOUT]: [COMPAT] STARTUP_OK; Sodium Flawless Frames registered=true
+[18:38:29] [Render thread/INFO]: [STDOUT]: [COMPAT] WORLD_OK; recording=true
+[18:38:36] [Render thread/INFO]: [STDOUT]: [COMPAT] TEST_EQUIPMENT_AND_BLOCK_CHANGE_SENT
+[18:38:38] [Render thread/INFO]: [STDOUT]: [COMPAT] RECORDING_OK; disconnecting test world
+[18:38:42] [Render thread/INFO]: [STDOUT]: [COMPAT] INPUT_OK; keyboard state polling and mouse capture succeeded
+[18:38:42] [Render thread/INFO]: [STDOUT]: [COMPAT] REPLAY_KEYBOARD_OK; native T key opened the controls
+[18:38:42] [Render thread/INFO]: [STDOUT]: [COMPAT] REPLAY_BUTTONS_OK; native SDL left-click toggled play/pause twice
+[18:38:42] [Render thread/INFO]: [STDOUT]: [COMPAT] PLAYBACK_OK; duration=9472
+[18:38:46] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORT_START
+[18:38:47] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORT_OK; frames=20; bytes=720272
+[18:38:47] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORTER_BUTTON_OK
+[18:38:47] [Render thread/INFO]: [STDOUT]: [COMPAT] SCENE_EXPORT_START
+[18:38:48] [Render thread/INFO]: [STDOUT]: [COMPAT] SCENE_EXPORT_OK; frames=20; bytes=1085529
+[18:38:48] [Render thread/INFO]: [STDOUT]: [COMPAT] ALL_TESTS_OK
+Client process exit code: 0
+
+Final Linux run: Ubuntu 25.10, Java 25.0.2, AMD/Mesa, SDL X11; shaders enabled.
+[22:38:22] [Render thread/INFO]: [STDOUT]: [COMPAT] Replay Exporter harness initialized
+[22:38:32] [Render thread/INFO]: [STDOUT]: [COMPAT] STARTUP_OK; Sodium Flawless Frames registered=true
+[22:38:36] [Render thread/INFO]: [STDOUT]: [COMPAT] WORLD_OK; recording=true
+[22:38:43] [Render thread/INFO]: [STDOUT]: [COMPAT] TEST_EQUIPMENT_AND_BLOCK_CHANGE_SENT
+[22:38:45] [Render thread/INFO]: [STDOUT]: [COMPAT] RECORDING_OK; disconnecting test world
+[22:38:51] [Render thread/INFO]: [STDOUT]: [COMPAT] INPUT_OK; keyboard state polling and mouse capture succeeded
+[22:38:51] [Render thread/INFO]: [STDOUT]: [COMPAT] REPLAY_KEYBOARD_OK; native T key opened the controls
+[22:38:51] [Render thread/INFO]: [STDOUT]: [COMPAT] REPLAY_BUTTONS_OK; native SDL left-click toggled play/pause twice
+[22:38:51] [Render thread/INFO]: [STDOUT]: [COMPAT] PLAYBACK_OK; duration=9392
+[22:38:55] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORT_START
+[22:38:55] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORT_OK; frames=20; bytes=597052
+[22:38:55] [Render thread/INFO]: [STDOUT]: [COMPAT] EXPORTER_BUTTON_OK
+[22:38:55] [Render thread/INFO]: [STDOUT]: [COMPAT] SCENE_EXPORT_START
+[22:38:56] [Render thread/INFO]: [STDOUT]: [COMPAT] SCENE_EXPORT_OK; frames=20; bytes=1110076
+[22:38:57] [Render thread/INFO]: [STDOUT]: [COMPAT] ALL_TESTS_OK
+Client process exit code: 0
+
+Additional Windows Oracle Java 25.0.2 shader startup: native exit 0xC0000005 before world load; cause not identified.
+Final packaged addon imported both exports in Blender 4.5.3 LTS; see blender-2026-10-08.json.
