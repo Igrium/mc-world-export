@@ -42,6 +42,14 @@ public class CompiledReplay {
 
     private final Map<String, CapturedEntity> entities = new HashMap<>();
 
+    /** Experimental, optional appearance sidecar. Older archives leave this empty. */
+    private final com.google.gson.JsonObject appearance = new com.google.gson.JsonObject();
+
+    private final com.google.gson.JsonObject sounds = new com.google.gson.JsonObject();
+
+    private final com.google.gson.JsonObject environment = new com.google.gson.JsonObject();
+    private final com.google.gson.JsonObject events = new com.google.gson.JsonObject();
+
     @Getter @Setter
     public static class ReplayMeta {
         /**

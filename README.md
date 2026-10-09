@@ -1,3 +1,21 @@
+# Generic capture and Blender editing - experimental 26.3 contribution
+
+`1.5.0-public.1+mc26.3` adds resolved item-display models and head attachments,
+entity identities/coverage reports, sound-reference cues, weather/time tracks,
+and an opt-in semantic event API. The matching Blender extension lets you retime,
+suppress and replace cue audio, key weather/time choices, and apply color-only
+or PBR resource packs with reversible assignments and grass-overlay support.
+
+The public implementation requires no private/custom mod, server companion or
+resource pack. Mods can opt into [the generic event API](docs/EVENT_API.md).
+See [capture format, editing workflow and coverage](docs/CAPTURE.md) and
+[public-build test results](docs/PUBLIC_TESTING.md). No custom mod binaries,
+cosmetics, recordings, texture packs or private commit history are included.
+
+The original project and public 26.3 port instructions follow.
+
+---
+
 # Minecraft 26.3 Fabric port (experimental)
 
 This fork ports Igrium's Replay Exporter to Minecraft 26.3 and the matching
@@ -15,8 +33,8 @@ For other platforms, use Java 25 and:
 ./gradlew build buildAddon -Preplaymod_jar=/absolute/path/to/replaymod-26.3.jar -Pblender_executable=/path/to/blender
 ```
 
-Output: `build/libs/worldexport-1.4.1+mc26.3.jar` and
-`build/libs/worldexport_blender-1.4.1+mc26.3.zip`.
+Output: `build/libs/worldexport-1.5.0-public.1+mc26.3.jar` and
+`build/libs/worldexport_blender-1.5.0-public.1+mc26.3.zip`.
 Install the JAR alongside ReplayMod and install the ZIP through Blender's extension
 preferences. Use ReplayMod's **Export Replay File** button, then Blender's
 **File > Import > Minecraft Replay File (.replay)**.
@@ -27,7 +45,7 @@ feature or compatibility suites. EMF/ETF being installed does not establish that
 all custom model/resource packs export correctly. Minecraft shader-pack effects
 are not transferred as Blender shader materials.
 
-Version 1.4.1 adds a **Replay Export > Custom PBR Packs** sidebar in Blender.
+Version 1.4.1 adds a **Replay Export > Custom Texture / PBR Packs** sidebar in Blender.
 Apply your own resource-pack ZIPs or extracted folders using exported texture
 identities, with LabPBR 1.3 or SEUS decoding and reversible material assignments.
 See [custom PBR usage and test scope](PBR.md). Terrain from older exports needs

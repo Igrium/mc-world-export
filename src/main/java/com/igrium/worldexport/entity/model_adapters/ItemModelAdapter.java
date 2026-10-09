@@ -62,7 +62,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
         //noinspection deprecation
         boolean blockAtlas = TextureAtlas.LOCATION_BLOCKS.equals(atlas);
 
-        String mat = glint ? ITEM_GLINT_MTL : blockAtlas ? BLOCK_ITEM_MTL : ITEM_MTL;
+        String mat = glint ? (blockAtlas ? BLOCK_ITEM_MTL + "_glint" : ITEM_GLINT_MTL) : blockAtlas ? BLOCK_ITEM_MTL : ITEM_MTL;
         String tex = blockAtlas ? ReplayCapture.WORLD_TEX : ReplayCapture.ITEM_TEX;
 
         return materials.getOrCreateMtl("entities.mtl", mat, n -> {
@@ -70,6 +70,7 @@ public class ItemModelAdapter extends ModelAdapter<ItemEntity, ItemEntityRenderS
             mtl.mtl().setMapKd(tex);
             mtl.mtl().setMapD(tex);
             mtl.properties().addProperty("item", true);
+            mtl.properties().addProperty("vertexTint", true);
             mtl.properties().add("pbrAtlas", TextureExtractor.atlasSpriteMetadata(blockAtlas ? AtlasIds.BLOCKS : AtlasIds.ITEMS));
             if (glint) {
                 mtl.properties().addProperty("glint", true);

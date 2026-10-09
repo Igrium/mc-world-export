@@ -46,6 +46,7 @@ public class IgriumsReplayExporter implements ClientModInitializer {
         instance = this;
 
         ExportModels.register();
+        com.igrium.worldexport.timeline.TimelineCapture.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(ReplayCapture::globalEndClientTick);
         ClientBlockUpdatedEvent.EVENT.register(ReplayCapture::globalClientBlockUpdated);

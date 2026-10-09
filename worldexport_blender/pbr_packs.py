@@ -145,7 +145,7 @@ def resource_for_material(material, props):
     return resource
 
 
-def add_pbr(material, resource, uv_rect, passes, settings, props):
+def add_pbr(material, resource, uv_rect, passes, settings, props, overlay_passes=None, overlay_rect=None):
     """Copy existing tint/opacity/overlay/animation nodes and add PBR samplers."""
     result = material.copy()
     result.name = f'{material.name} | PBR {resource}'
@@ -182,10 +182,11 @@ def add_pbr(material, resource, uv_rect, passes, settings, props):
 
     uv = node('ShaderNodeTexCoord', 'Original replay UVs').outputs['UV']
 
-    def local_uv(input_uv):
-        if not uv_rect:
+    def local_uv(input_uv, rect=None):
+        rect = uv_rect if rect is None else rect
+        if not rect:
             return input_uv
-        u0, v0, u1, v1 = uv_rect
+        u0, v0, u1, v1 = rect
         sub = node('ShaderNodeVectorMath', 'Atlas tile origin')
         sub.operation = 'SUBTRACT'
         links.new(input_uv, sub.inputs[0]); sub.inputs[1].default_value = (u0, v0, 0)
@@ -215,6 +216,16 @@ def add_pbr(material, resource, uv_rect, passes, settings, props):
             diffuse.image = load_image(passes['base'], resource, 'base')
             diffuse.interpolation = 'Linear'; diffuse.extension = 'EXTEND'
             links.new(local_uv(previous_uv), diffuse.inputs['Vector'])
+
+    if settings.replace_base and overlay_passes and 'base' in overlay_passes and overlay_rect:
+        # Grass uses two atlas samplers; replace the overlay independently while keeping tint/mask wiring.
+        source_images=[n for n in nodes if n.type=='TEX_IMAGE' and n not in samplers.values()]
+        if len(source_images)>1:
+            overlay=source_images[1]
+            previous_uv=overlay.inputs['Vector'].links[0].from_socket if overlay.inputs['Vector'].is_linked else uv
+            overlay.image=load_image(overlay_passes['base'],props['grassOverlayResource'],'base')
+            overlay.interpolation='Linear';overlay.extension='EXTEND'
+            links.new(local_uv(previous_uv,overlay_rect),overlay.inputs['Vector'])
 
     base_socket = principled.inputs['Base Color']
     color = base_socket.links[0].from_socket if base_socket.is_linked else None
@@ -343,11 +354,19 @@ def apply_packs(objects, paths, settings):
                 if resource not in pass_cache:
                     pass_cache[resource] = stack.passes(resource)
                 passes = pass_cache[resource]
-                if not ('normal' in passes or 'specular' in passes):
+                if not ('normal' in passes or 'specular' in passes or (settings.replace_base and 'base' in passes)):
                     stats['missing_maps'] += 1; continue
                 key = (base.as_pointer(), resource, tuple(rect or ()))
                 if key not in cache:
-                    cache[key] = add_pbr(base, resource, rect, passes, settings, props)
+                    overlay_passes,overlay_rect=None,None
+                    if 'grassOverlayU' in props and resource.endswith('/grass_block_side.png'):
+                        overlay_resource=props.get('grassOverlayResource','minecraft/textures/block/grass_block_side_overlay.png')
+                        props=dict(props,grassOverlayResource=overlay_resource)
+                        overlay_sprite=next((s for s in sprites if s['resource']==overlay_resource),None)
+                        if overlay_sprite and not overlay_sprite.get('animated'):
+                            overlay_rect=overlay_sprite['uv']
+                            overlay_passes=stack.passes(overlay_resource)
+                    cache[key] = add_pbr(base, resource, rect, passes, settings, props,overlay_passes,overlay_rect)
                 material = cache[key]
                 if not material:
                     continue
@@ -446,7 +465,7 @@ class WORLDEXPORT_OT_pbr_order(Operator):
 
 class WORLDEXPORT_OT_pbr_apply(Operator):
     bl_idname = 'worldexport.pbr_apply'
-    bl_label = 'Apply PBR Packs'
+    bl_label = 'Apply Texture / PBR Packs'
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -464,7 +483,7 @@ class WORLDEXPORT_OT_pbr_apply(Operator):
         except (ValueError, OSError, RuntimeError, zipfile.BadZipFile) as exc:
             self.report({'ERROR'}, str(exc)); return {'CANCELLED'}
         scene['worldexport_pbr_report'] = json.dumps(stats)
-        message = f"Applied {stats['materials']} PBR materials to {stats['faces']} faces"
+        message = f"Applied {stats['materials']} pack materials to {stats['faces']} faces"
         if stats['missing_identity']:
             message += '; terrain without identities needs a fresh export with the PBR-enabled JAR'
         if stats['animated_skipped']:
@@ -503,7 +522,7 @@ class WORLDEXPORT_OT_pbr_restore(Operator):
 
 
 class WORLDEXPORT_PT_pbr(Panel):
-    bl_label = 'Custom PBR Packs'
+    bl_label = 'Custom Texture / PBR Packs'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Replay Export'

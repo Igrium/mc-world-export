@@ -126,6 +126,14 @@ public class ReplayCapture {
     @Getter
     private ReplayCaptureState state = ReplayCaptureState.NEW;
 
+    @Getter
+    private final com.igrium.worldexport.audio.SoundCapture soundCapture = new com.igrium.worldexport.audio.SoundCapture(this);
+
+    @Getter
+    private final com.igrium.worldexport.timeline.TimelineCapture timelineCapture = new com.igrium.worldexport.timeline.TimelineCapture(this);
+
+    public double getSoundTick() { return gameTick / (double) Math.max(1, settings.getTickStride()); }
+
     private int gameTick;
     private int replayTick;
 
@@ -207,9 +215,12 @@ public class ReplayCapture {
 
         activeCaptures.add(this);
         state = ReplayCaptureState.RUNNING;
+        timelineCapture.sample();
     }
 
     public void onEndTick() {
+        soundCapture.onTick();
+        timelineCapture.sample();
         int stride = settings.getTickStride();
         if (gameTick % stride == 0) {
             if (entityCapture != null) {
@@ -339,6 +350,7 @@ public class ReplayCapture {
             throw new IllegalStateException("finish() can only be called on the primary client thread.");
         }
 
+        soundCapture.finish();
         activeCaptures.remove(this);
         state = ReplayCaptureState.FINISHED;
     }

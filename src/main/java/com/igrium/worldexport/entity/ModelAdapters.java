@@ -54,5 +54,7 @@ public class ModelAdapters {
     static {
         register(EntityTypes.ITEM, r -> new ItemModelAdapter((ItemEntityRenderer) r));
         register(EntityTypes.PLAYER, PlayerModelAdapter::fromRenderer);
+        register(EntityTypes.ITEM_DISPLAY, r -> new com.igrium.worldexport.entity.model_adapters.ItemDisplayModelAdapter(
+                (net.minecraft.client.renderer.entity.DisplayRenderer.ItemDisplayRenderer) r));
     }
 }

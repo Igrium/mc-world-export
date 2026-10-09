@@ -86,6 +86,10 @@ public class ReplayExportSettings {
     @Builder.Default
     private boolean exportEntities = true;
 
+    /** Export timed sound references without audio data. */
+    @Builder.Default
+    private boolean exportSoundCues = true;
+
     /**
      * An offset to apply to the export
      */

@@ -36,6 +36,8 @@ public class ItemQuadCollector implements SubmitNodeCollector {
 
     @Getter
     private final List<Submission> submissions = new ArrayList<>();
+    @Getter
+    private final java.util.Set<String> ignoredSubmissions = new java.util.TreeSet<>();
 
     @Override
     public OrderedSubmitNodeCollector order(int order) {
@@ -64,6 +66,7 @@ public class ItemQuadCollector implements SubmitNodeCollector {
     public void submitText(PoseStack poseStack, float x, float y, FormattedCharSequence string, boolean dropShadow,
                            Font.DisplayMode displayMode, int lightCoords, int color, int backgroundColor,
                            int outlineColor) {
+        ignoredSubmissions.add("text");
 
     }
 
@@ -81,6 +84,7 @@ public class ItemQuadCollector implements SubmitNodeCollector {
     public <S> void submitModel(Model<? super S> model, S state, PoseStack poseStack, RenderType renderType,
                                 int lightCoords, int overlayCoords, int tintedColor,
                                 @Nullable UvMapping uvMapping, int outlineColor) {
+        ignoredSubmissions.add("model");
 
     }
 
@@ -104,6 +108,7 @@ public class ItemQuadCollector implements SubmitNodeCollector {
     @Override
     public void submitBlockModel(PoseStack poseStack, RenderType renderType, List<BlockStateModelPart> parts,
                                  int[] tintLayers, int lightCoords, int overlayCoords, int outlineColor) {
+        ignoredSubmissions.add("block_model");
 
     }
 
@@ -122,6 +127,7 @@ public class ItemQuadCollector implements SubmitNodeCollector {
     @Override
     public void submitCustomGeometry(PoseStack poseStack, RenderType renderType,
                                      CustomGeometryRenderer customGeometryRenderer) {
+        ignoredSubmissions.add("custom_geometry");
 
     }
 

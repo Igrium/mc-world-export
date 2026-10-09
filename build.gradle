@@ -219,3 +219,17 @@ tasks.register("buildAddon", Exec) {
         outputZip.get().asFile.parentFile.mkdirs()
     }
 }
+// Opt-in synthetic regression mod, excluded from shipped client and source artifacts.
+sourceSets {
+    captureHarness {
+        compileClasspath += sourceSets.main.output + sourceSets.replaymod.output + sourceSets.replaymod.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.replaymod.runtimeClasspath
+    }
+}
+tasks.register("captureHarnessJar", Jar) {
+    group = "verification"
+    description = "Builds the isolated vanilla/synthetic capture harness; never deploy to a normal instance"
+    archiveBaseName = "capture-harness"
+    from sourceSets.captureHarness.output
+    from "LICENSE"
+}

@@ -41,5 +41,6 @@ public class FeatureAdapters {
         REGISTRY.put(ItemInHandLayer.class, HeldItemFeatureAdapter::create);
         REGISTRY.put(PlayerItemInHandLayer.class, HeldItemFeatureAdapter::create);
         REGISTRY.put(WingsLayer.class, ElytraFeatureAdapter::create);
+        REGISTRY.put(net.minecraft.client.renderer.entity.layers.CustomHeadLayer.class, HeadItemFeatureAdapter::create);
     }
 }

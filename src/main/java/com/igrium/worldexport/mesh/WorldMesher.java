@@ -306,6 +306,7 @@ public class WorldMesher {
         Vector2f overlayOffset = getGrassOverlayOffset(new Vector2f());
         grassBlock.properties().addProperty("grassOverlayU", overlayOffset.x);
         grassBlock.properties().addProperty("grassOverlayV", overlayOffset.y);
+        grassBlock.properties().addProperty("grassOverlayResource", "minecraft/textures/block/grass_block_side_overlay.png");
         mtls.add(grassBlock);
         var spriteMetadata = TextureExtractor.atlasSpriteMetadata(AtlasIds.BLOCKS);
         for (var mtl : mtls) mtl.properties().add("pbrAtlas", spriteMetadata);

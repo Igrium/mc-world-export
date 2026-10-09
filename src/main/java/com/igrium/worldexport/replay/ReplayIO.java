@@ -66,7 +66,11 @@ public class ReplayIO {
                 .thenCompose(v -> saveEntitiesAsync(root, replay, executor))
                 .thenCompose(v -> saveTexturesAsync(root, replay, executor))
                 .thenRun(() -> saveMtls(root, replay))
-                .thenRun(() -> saveMeta(root, replay));
+                .thenRun(() -> saveMeta(root, replay))
+                .thenRun(() -> saveAppearance(root, replay))
+                .thenRun(() -> saveSounds(root, replay))
+                .thenRun(() -> saveSidecar(root,"environment.json",replay.getEnvironment()))
+                .thenRun(() -> saveSidecar(root,"events.json",replay.getEvents()));
     }
 
     public static CompletableFuture<?> saveReplayZip(Path zipFile, CompiledReplay replay, Executor executor) {
@@ -94,6 +98,10 @@ public class ReplayIO {
                 .thenCompose(v -> loadTexturesAsync(root, replay, executor))
                 .thenRun(() -> loadMtls(root, replay))
                 .thenRun(() -> loadMeta(root, replay))
+                .thenRun(() -> loadAppearance(root, replay))
+                .thenRun(() -> loadSounds(root, replay))
+                .thenRun(() -> loadSidecar(root,"environment.json",replay.getEnvironment()))
+                .thenRun(() -> loadSidecar(root,"events.json",replay.getEvents()))
                 .thenApply(v -> replay);
     }
 
@@ -125,6 +133,48 @@ public class ReplayIO {
      * Maps entity names to their parent declaration. All entities must be present, even with empty parents.
      */
     public static TypeToken<Map<String, Map<String, String>>> entityJsonType = new TypeToken<>() {};
+
+    private static void saveSidecar(Path dir,String name,JsonObject data){
+        if(data.isEmpty())return;
+        try(var writer=Files.newBufferedWriter(dir.resolve(name))){GSON.toJson(data,writer);}
+        catch(IOException e){throw new UncheckedIOException(e);}
+    }
+    private static void loadSidecar(Path dir,String name,JsonObject data){
+        if(!Files.isRegularFile(dir.resolve(name)))return;
+        try(var reader=Files.newBufferedReader(dir.resolve(name))){
+            JsonObject root=GSON.fromJson(reader,JsonObject.class);
+            if(root!=null)root.entrySet().forEach(e->data.add(e.getKey(),e.getValue()));
+        }catch(IOException e){throw new UncheckedIOException(e);}
+    }
+
+    private static void saveSounds(Path dir, CompiledReplay replay) {
+        if (replay.getSounds().isEmpty()) return;
+        try (var writer=Files.newBufferedWriter(dir.resolve("sounds.json"))) {
+            GSON.toJson(replay.getSounds(),writer);
+        } catch (IOException ex) { throw new java.io.UncheckedIOException(ex); }
+    }
+    private static void loadSounds(Path dir, CompiledReplay replay) {
+        if (!Files.isRegularFile(dir.resolve("sounds.json"))) return;
+        try (var reader=Files.newBufferedReader(dir.resolve("sounds.json"))) {
+            JsonObject data=GSON.fromJson(reader,JsonObject.class);
+            if (data != null) data.entrySet().forEach(e -> replay.getSounds().add(e.getKey(),e.getValue()));
+        } catch (IOException ex) { throw new java.io.UncheckedIOException(ex); }
+    }
+
+    private static void saveAppearance(Path dir, CompiledReplay replay) {
+        if (replay.getAppearance().isEmpty()) return;
+        try (var writer=Files.newBufferedWriter(dir.resolve("appearance.json"))) {
+            GSON.toJson(replay.getAppearance(),writer);
+        } catch (IOException ex) { throw new java.io.UncheckedIOException(ex); }
+    }
+
+    private static void loadAppearance(Path dir, CompiledReplay replay) {
+        if (!Files.isRegularFile(dir.resolve("appearance.json"))) return;
+        try (var reader=Files.newBufferedReader(dir.resolve("appearance.json"))) {
+            JsonObject data=GSON.fromJson(reader,JsonObject.class);
+            if (data != null) data.entrySet().forEach(e -> replay.getAppearance().add(e.getKey(),e.getValue()));
+        } catch (IOException ex) { throw new java.io.UncheckedIOException(ex); }
+    }
 
     private static void saveMeta(Path dir, CompiledReplay replay) {
         try (var writer = Files.newBufferedWriter(dir.resolve("meta.json"))) {

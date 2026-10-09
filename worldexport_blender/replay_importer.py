@@ -12,6 +12,7 @@ from . import world_importer
 from . import prefabs
 from . import material_merge
 from . import materials
+from . import appearance, sound_cues, timeline
 
 from .entity import entity_loader
 
@@ -90,8 +91,13 @@ def import_replay(file: str, settings: ReplayImportSettings, bl_context: Context
     if context.settings.import_world:
         world_importer.import_world(context)
 
+    appearance.load(context)
+
     if context.settings.import_entities:
         entity_loader.import_entities(context)
+
+    sound_cues.load(context)
+    timeline.load(context)
     
     new_meshes = set(bpy.data.meshes) - existing_meshes
     new_mats = set(bpy.data.materials) - existing_mats

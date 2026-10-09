@@ -1,0 +1,64 @@
+{
+  "version": "1.5.0-public.1+mc26.3",
+  "platform": "Linux",
+  "minecraftHarnessPassed": true,
+  "privateModsRequired": false,
+  "syntheticEventFixture": true,
+  "environmentSamples": 76,
+  "eventCues": 5,
+  "soundCues": 29,
+  "appearance": {
+    "instances": 13,
+    "withGeometry": 11,
+    "withoutGeometry": 2,
+    "withWarnings": 6,
+    "blockIdentitiesCaptured": false
+  },
+  "eventAdapterReplayVerified": true,
+  "networkDedupVerified": true,
+  "malformedAndUnknownVersionEventsIgnored": true,
+  "blenderTestsPassed": [
+    "blender_timeline.py",
+    "blender_sound_cues.py",
+    "blender_appearance_smoke.py",
+    "blender_pbr_channels.py"
+  ],
+  "modHashes": {
+    "capture-harness-1.5.0-public.1+mc26.3.jar": "9f3e581fba31414a2794479d8b26e538524998fc5eb8b5e2f211a9590fd43aed",
+    "fabric-api-0.161.0+26.3.jar": "86f16178a3cecc887a85a4cfe9a79d92fa7341d8f39b5951a4d6ad800ab657a6",
+    "replaymod-26.3-2.6.27-dirty.jar": "aa577e771a463c510c71b4c63ad5e38337e24fe30406217322184769586e7ffc",
+    "worldexport-1.5.0-public.1+mc26.3.jar": "8799b35f830250d83e757a90fe96ee4b8a4db72359005af82e3de9967223ca82"
+  },
+  "audioBackend": "null; audible playback not tested",
+  "fullModSuiteTested": false,
+  "longRecordingTested": false,
+  "date": "2026-10-08",
+  "dateTimezone": "America/New_York",
+  "javaTestsPassed": 102,
+  "java": "25.0.2+10",
+  "blender": "4.5.3 LTS",
+  "graphics": {
+    "display": "X11",
+    "gpu": "AMD Radeon 8060S",
+    "mesa": "25.2.8",
+    "hardwareAccelerated": true
+  },
+  "publicBase": "4b7a5c0",
+  "privateCommitHistoryIncluded": false,
+  "customAssetsIncluded": false,
+  "privateBuildDeploymentChanged": false,
+  "artifacts": {
+    "worldexport-1.5.0-public.1+mc26.3.jar": {
+      "bytes": 481430,
+      "sha256": "8799b35f830250d83e757a90fe96ee4b8a4db72359005af82e3de9967223ca82"
+    },
+    "worldexport-1.5.0-public.1+mc26.3-sources.jar": {
+      "bytes": 158089,
+      "sha256": "37a563865c6529536d499194729eb775b9aa167d7ddfa1f63016935e8c446934"
+    },
+    "worldexport_blender-1.5.0-public.1+mc26.3.zip": {
+      "bytes": 187560,
+      "sha256": "5288d8aa4a9f979d451a5788c40da8e5584a595fb2f7cdac6b770ce9c38f434a"
+    }
+  }
+}

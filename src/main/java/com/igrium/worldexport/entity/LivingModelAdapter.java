@@ -62,6 +62,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
     }
 
     private final List<FeatureAdapter<S, ?>> features = new ArrayList<>();
+    private final java.util.Set<String> unsupportedFeatures = new java.util.TreeSet<>();
 
     protected final void addFeature(@NonNull FeatureAdapter<S, ?> feature) {
         features.add(feature);
@@ -81,6 +82,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
             var adapter = FeatureAdapters.create(feature);
             if (adapter != null)
                 addFeature(adapter);
+            else unsupportedFeatures.add(feature.getClass().getSimpleName());
         }
     }
 
@@ -91,6 +93,7 @@ public class LivingModelAdapter<T extends LivingEntity, S extends LivingEntityRe
 
     @Override
     public void capture(T entity, S state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
+        for (String layer : unsupportedFeatures) capture.getCaptureWarnings().add("renderer_layer_not_captured:"+layer);
         AccessorLivingEntityRenderer<? super T, S, M> rendererAccessor = getRendererAccessor(renderer);
 
         M model = renderer.getModel();

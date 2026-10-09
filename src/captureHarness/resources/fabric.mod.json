@@ -1,0 +1,1 @@
+{"schemaVersion": 1, "id": "compat-harness", "version": "1.0", "environment": "client", "entrypoints": {"client": ["compat.CompatHarness"]}, "depends": {"fabricloader": ">=0.19.5", "fabric-api": "*", "replaymod": "*", "minecraft": "26.3"}, "mixins": ["mixins.compat-harness.json"]}

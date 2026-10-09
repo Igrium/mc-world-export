@@ -47,6 +47,13 @@ public class ReplayCompiler {
                 .thenApply(this::packMtls)
                 .thenApply(this::writeMeta)
                 .thenApply(r -> {
+                    if (replayCapture.getSettings().isExportSoundCues()) replayCapture.getSoundCapture().snapshot().entrySet()
+                            .forEach(e -> r.getSounds().add(e.getKey(),e.getValue()));
+                    replayCapture.getTimelineCapture().environment().entrySet().forEach(e -> r.getEnvironment().add(e.getKey(),e.getValue()));
+                    replayCapture.getTimelineCapture().events().entrySet().forEach(e -> r.getEvents().add(e.getKey(),e.getValue()));
+                    return r;
+                })
+                .thenApply(r -> {
                     LOGGER.info("Compiled replay export in {}ms", Util.getMillis() - startTime);
                     return r;
                 });
@@ -75,6 +82,30 @@ public class ReplayCompiler {
             String name = getUniqueName(sanitized, replay.getEntities().keySet());
             replay.getEntities().put(name, bEntEntry.getValue());
         }
+        var manifest = replay.getAppearance();
+        manifest.addProperty("schemaVersion", 1);
+        var instances = new com.google.gson.JsonObject();
+        var report = new com.google.gson.JsonObject();
+        int withGeometry=0, rootOnly=0, withWarnings=0;
+        for (var entry : replay.getEntities().entrySet()) {
+            var captured = entry.getValue();
+            var info = captured.getAppearance().deepCopy();
+            boolean geometry = captured.getModelParts().values().stream().anyMatch(obj -> obj.getNumFaces()>0);
+            info.addProperty("geometryCaptured",geometry);
+            var warnings = new com.google.gson.JsonArray();
+            for (var warning : captured.getCaptureWarnings()) warnings.add(warning);
+            info.add("warnings",warnings);
+            instances.add(entry.getKey(),info);
+            if (geometry) withGeometry++; else rootOnly++;
+            if (!warnings.isEmpty()) withWarnings++;
+        }
+        report.addProperty("instances",instances.size());
+        report.addProperty("withGeometry",withGeometry);
+        report.addProperty("withoutGeometry",rootOnly);
+        report.addProperty("withWarnings",withWarnings);
+        report.addProperty("blockIdentitiesCaptured",false);
+        manifest.add("entities",instances);
+        manifest.add("captureReport",report);
         return replay;
     }
 

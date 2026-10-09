@@ -17,6 +17,7 @@ public class BasicModelAdapter<T extends Entity> extends ModelAdapter<T, EntityR
     private final EntityRenderState defaultState = new EntityRenderState();
 
     public void capture(T entity, EntityRenderState state, CapturedEntity capture, MaterialHolder materials, Vec3 offset, int tick) {
+        capture.getCaptureWarnings().add("renderer_has_no_geometry_adapter");
         Vec3 pos = entity.position().add(offset);
         float yRot = Math.toRadians(entity.getYRot());
         capture.addFrame(CapturedEntity.ROOT_NAME, tick, AnimationCurve.CurveFormat.POS_ROT,

@@ -53,6 +53,8 @@ class ReplayImportContext:
 
     settings: ReplayImportSettings = field(default_factory=ReplayImportSettings)
 
+    appearance: dict = field(default_factory=dict)
+
     def fps(self) -> float:
         scene = self.bl_context.scene
         if scene is not None:

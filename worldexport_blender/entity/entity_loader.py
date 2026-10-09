@@ -3,6 +3,7 @@ import os
 
 from ..replay_types import ReplayImportContext
 from .captured_entity import CapturedEntity
+from .. import appearance
 
 
 def import_entities(context: ReplayImportContext):
@@ -23,6 +24,7 @@ def import_entities(context: ReplayImportContext):
         try:
             entity.load(dir, context)
             entity.apply_animation(context)
+            appearance.attach(entity, context)
         except Exception as e:
             # TODO: Propogate this to the UI
             print(f"Failed to import entity '{name}': {e}")

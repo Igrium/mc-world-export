@@ -44,9 +44,9 @@ is an inference from the images, not verified information from their generator.
 - Normal red/green encode tangent X/Y; green is inverted for Blender and Z is
   reconstructed. Normal blue is optional AO; alpha height is not applied.
 - Specular red smoothness becomes linear roughness `(1 - red)^2`. Green values
-  0–229 encode dielectric F0; 230–237 use predefined metal F0 colors. Other metal
+  0â€“229 encode dielectric F0; 230â€“237 use predefined metal F0 colors. Other metal
   codes use albedo as an approximation in Blender's Principled shader.
-- Specular blue's SSS range drives subsurface weight. Alpha 0–254 drives emission;
+- Specular blue's SSS range drives subsurface weight. Alpha 0â€“254 drives emission;
   **255 means emission off**. Emission strength is adjustable.
 - SEUS uses RGB normals (DirectX green inversion), red smoothness, green metalness
   and blue emission. Pick this explicitly for packs that use that convention.
@@ -94,3 +94,15 @@ Set `WORLDEXPORT_ADDON_ROOT` to the parent folder of an extracted
 
 References: [LabPBR standard](https://shaderlabs.org/wiki/LabPBR_Material_Standard),
 [MCprep usage](https://github.com/Moo-Ack-Productions/MCprep#how-to-use-this-addon).
+
+
+## Generic capture contribution
+
+The 1.5.0-public.1 extension also applies color-only packs when **Replace Base
+Color** is enabled. Disabling that setting keeps PBR-only behavior. Static grass
+side and side-overlay color textures can be replaced independently while
+preserving existing biome tint/mask wiring. Apply to selected imported meshes or
+the full scene using the existing scope control. The pack affects matching
+textures actually used by that export; unused pack entries do not create objects.
+Later packs take priority for each available pass. Geometry and animation are
+preserved; changing a resource-pack model is not a mesh replacement operation.

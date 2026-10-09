@@ -23,6 +23,10 @@
         "AccessorWingsLayer",
         "MixinClientLevel",
         "MixinSpriteContents",
-        "AccessorTextureAtlas"
+        "AccessorTextureAtlas",
+        "AccessorEntityBoundSound",
+        "AccessorSoundParameters",
+        "MixinSoundEngine",
+        "MixinTimelinePayload"
     ]
 }

@@ -138,6 +138,7 @@ public class EntityCapture {
             try {
                 captureEntity(entity, tick);
             } catch (Exception e) {
+                this.entities.computeIfAbsent(entity, ignored -> new CapturedEntity()).getCaptureWarnings().add("capture_failed");
                 LOGGER.error("Error capturing pose for entity {} on tick {}:", entity.getName(), tick, e);
             }
         }
@@ -166,6 +167,7 @@ public class EntityCapture {
                 try {
                     captureBlockEntity(ent, tick);
                 } catch (Exception e) {
+                    blockEntities.computeIfAbsent(ent, ignored -> new CapturedEntity()).getCaptureWarnings().add("capture_failed");
                     LOGGER.error("Error capturing pose for block entity at {} ({}) on tick {}:", pos, ent, tick, e);
                 }
             }
@@ -183,8 +185,15 @@ public class EntityCapture {
 
     private <T extends Entity, S extends EntityRenderState> void captureModelAdapter(ModelAdapter<T, S> modelAdapter,
                                                                                      T entity, int tick) {
-        S state = modelAdapter.getAndUpdateRenderState(entity);
         CapturedEntity capture = entities.computeIfAbsent(entity, e -> new CapturedEntity());
+        var info = capture.getAppearance();
+        info.addProperty("instanceId", entity.getUUID().toString());
+        info.addProperty("entityType", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+        info.addProperty("dimension", entity.level().dimension().identifier().toString());
+        info.addProperty("adapter", modelAdapter.getClass().getSimpleName());
+        if (!info.has("firstFrame")) info.addProperty("firstFrame", tick);
+        info.addProperty("lastFrame", tick);
+        S state = modelAdapter.getAndUpdateRenderState(entity);
         modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
     }
 
@@ -199,8 +208,14 @@ public class EntityCapture {
 
     private <T extends BlockEntity, S extends BlockEntityRenderState> void captureBlockModelAdapter(BlockModelAdapter<T, S> modelAdapter,
                                                                                                     T entity, int tick) {
-        S state = modelAdapter.getAndUpdateRenderState(entity, Minecraft.getInstance().gameRenderer.mainCamera().position());
         CapturedEntity capture = blockEntities.computeIfAbsent(entity, e -> new CapturedEntity());
+        var info = capture.getAppearance();
+        info.addProperty("instanceId", entity.getLevel().dimension().identifier()+":"+entity.getBlockPos().toShortString());
+        info.addProperty("blockEntityType", entity.typeHolder().getRegisteredName());
+        info.addProperty("adapter", modelAdapter.getClass().getSimpleName());
+        if (!info.has("firstFrame")) info.addProperty("firstFrame",tick);
+        info.addProperty("lastFrame",tick);
+        S state = modelAdapter.getAndUpdateRenderState(entity, Minecraft.getInstance().gameRenderer.mainCamera().position());
         modelAdapter.capture(entity, state, capture, materialHolder, globalOffset, tick);
     }
 }

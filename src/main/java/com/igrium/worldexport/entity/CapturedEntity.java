@@ -23,6 +23,13 @@ public class CapturedEntity {
      */
     public static final String ROOT_NAME = "transform";
 
+    /** Optional semantic identity and adapter diagnostics, separate from display names. */
+    @Getter
+    private final com.google.gson.JsonObject appearance = new com.google.gson.JsonObject();
+
+    @Getter
+    private final Set<String> captureWarnings = new TreeSet<>();
+
     /**
      * A map of model part names and their mesh data.
      * @apiNote It's possible for a model part to be present in the animation, but not have an entry here.
