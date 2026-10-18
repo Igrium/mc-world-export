@@ -1,10 +1,12 @@
 package com.igrium.worldexport.mesh.vertex;
 
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import de.javagl.obj.Obj;
 import lombok.Getter;
 import lombok.Setter;
 import org.joml.Vector2fc;
 import org.joml.Vector3fc;
+import org.jspecify.annotations.NonNull;
 
 public class ObjVertexConsumer extends FaceVertexConsumer {
 
@@ -58,5 +60,11 @@ public class ObjVertexConsumer extends FaceVertexConsumer {
         } else {
             obj.addFace(indices, indices, null);
         }
+    }
+
+    @Override
+    public @NonNull VertexConsumer setUv3(float u, float v) {
+        // TODO: do we need to deal with this somehow?
+        return this;
     }
 }

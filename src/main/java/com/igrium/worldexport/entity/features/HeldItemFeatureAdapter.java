@@ -74,8 +74,8 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
             return;
 
         PoseStack matrices = new PoseStack();
-        matrices.mulPose(Axis.XP.rotationDegrees(-90.0F));
-        matrices.mulPose(Axis.YP.rotationDegrees(180.0F));
+        matrices.rotateDegrees(Axis.XP, -90.0F);
+        matrices.rotateDegrees(Axis.YP, 180.0F);
 
         boolean isLeftHand = arm == HumanoidArm.LEFT;
         boolean useBabyOffset = state.isBaby && state.entityType != EntityTypes.ARMOR_STAND;
@@ -84,7 +84,8 @@ public class HeldItemFeatureAdapter<S extends ArmedEntityRenderState, M extends 
         float offsetZ = useBabyOffset ? -4.5F : -10.0F;
         matrices.translate((isLeftHand ? -1 : 1) * offsetX / 16.0F, offsetY / 16.0F, offsetZ / 16.0F);
 
-        if (state.attackTime > 0.0F && state.attackArm == arm && state.swingAnimationType == SwingAnimationType.STAB) {
+        if (state.currentSwing != null && state.currentSwing.hand().asArm(state.mainArm) == arm
+                && state.currentSwing.animation().type() == SwingAnimationType.STAB) {
             SpearAnimations.thirdPersonAttackItem(state, matrices);
         }
 

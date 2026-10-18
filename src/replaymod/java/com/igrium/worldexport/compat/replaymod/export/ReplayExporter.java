@@ -6,8 +6,6 @@ import com.igrium.worldexport.compat.replaymod.ExportInfo;
 import com.igrium.worldexport.compat.replaymod.gui.GuiReplayExporter;
 import com.igrium.worldexport.replay.ExportPhase;
 import com.igrium.worldexport.replay.ReplayExportSettings;
-import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.replaymod.core.mixin.BlockableEventLoopAccessor;
@@ -23,9 +21,7 @@ import com.replaymod.pathing.player.ReplayTimer;
 import com.replaymod.pathing.properties.TimestampProperty;
 import com.replaymod.render.RenderSettings;
 import com.replaymod.render.capturer.RenderInfo;
-import com.replaymod.render.gui.progress.VirtualWindow;
 import com.replaymod.render.hooks.ForceChunkLoadingHook;
-import com.replaymod.render.mixin.GameRendererAccessor;
 import com.replaymod.replay.ReplayHandler;
 import com.replaymod.replaystudio.pathing.path.Path;
 import com.replaymod.replaystudio.pathing.path.Timeline;
@@ -35,17 +31,13 @@ import lombok.Setter;
 import net.minecraft.CrashReport;
 import net.minecraft.ReportedException;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.state.WindowRenderState;
-import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import org.joml.Vector4f;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +75,6 @@ public class ReplayExporter implements RenderInfo {
     private int framesDone;
     private int totalFrames;
 
-    private final VirtualWindow guiWindow = new VirtualWindow(mc);
     @Getter
     private final ExportInfo.Mutable exportInfo = new Info();
     private final GuiReplayExporter gui;
@@ -151,8 +142,6 @@ public class ReplayExporter implements RenderInfo {
 
     @Override
     public float updateForNextFrame() {
-        guiWindow.bind();
-
         while (drawGui() && paused) {
             try {
                 //noinspection BusyWait
@@ -175,8 +164,6 @@ public class ReplayExporter implements RenderInfo {
         if (mc.level != null) {
             mc.level.update();
         }
-
-        guiWindow.unbind();
 
         framesDone++;
         return timer.tickDelta;
@@ -227,8 +214,6 @@ public class ReplayExporter implements RenderInfo {
         }
         timelinePlayer.onTick();
 
-        guiWindow.close();
-
         if (debugInfoWasShown) {
             mc.debugEntries.setOverlayVisible(true);
         }
@@ -248,9 +233,6 @@ public class ReplayExporter implements RenderInfo {
 
         mc.getSoundManager().play(SimpleSoundInstance.forUI(
                 SoundEvent.createVariableRangeEvent(SOUND_RENDER_SUCCESS), 1));
-
-        // TODO: we might not need to do this as we're not actually rendering video
-        MCVer.resizeMainWindow(mc, guiWindow.getFramebufferWidth(), guiWindow.getFramebufferHeight());
     }
 
     private void executeTaskQueue() {
@@ -286,72 +268,35 @@ public class ReplayExporter implements RenderInfo {
     }
 
     /**
-     * Ported from replay mod; no idea what this does
+     * Draw the progress GUI as a full frame. Mirrors {@code VideoRenderer#drawGui} on 26.3: the level is hidden so
+     * {@link Minecraft#renderFrame} only draws the screen (and any overlay) to the window.
      */
-    @SuppressWarnings("DataFlowIssue")
     public boolean drawGui() {
         Window window = this.mc.getWindow();
-        if (!GLFW.glfwWindowShouldClose(window.handle()) && ((BlockableEventLoopAccessor) this.mc).getDelayedCrash() == null) {
-            RenderSystem.pollEvents();
-            com.replaymod.core.versions.MCVer.pushMatrix();
-            clearRenderTarget();
-            this.guiWindow.beginWrite();
-            clearRenderTarget();
-            this.gui.toMinecraft().init(window.getGuiScaledWidth(), window.getGuiScaledHeight());
-            int mouseX = (int) this.mc.mouseHandler.xpos() * window.getGuiScaledWidth()
-                    / Math.max(window.getScreenWidth(), 1);
-            int mouseY = (int) this.mc.mouseHandler.ypos() * window.getGuiScaledHeight()
-                    / Math.max(window.getScreenHeight(), 1);
-            GameRendererAccessor gameRenderer = (GameRendererAccessor) this.mc.gameRenderer;
-            GuiRenderState guiRenderState = gameRenderer.getGameRenderState().guiRenderState;
-            guiRenderState.reset();
-            GuiGraphicsExtractor drawContext = new GuiGraphicsExtractor(this.mc, guiRenderState, mouseX, mouseY);
-            WindowRenderState windowRenderState = gameRenderer.getGameRenderState().windowRenderState;
-            windowRenderState.width = window.getWidth();
-            windowRenderState.height = window.getHeight();
-            windowRenderState.guiScale = window.getGuiScale();
-            windowRenderState.appropriateLineWidth = window.getAppropriateLineWidth();
-            windowRenderState.isMinimized = window.isMinimized();
-            if (this.mc.gui.overlay() != null) {
-                Screen orgScreen = this.mc.gui.screen();
-
-                try {
-                    ((GuiAccessor) this.mc.gui).replaymod$setScreen(this.gui.toMinecraft());
-                    this.mc.gui.overlay().extractRenderState(drawContext, mouseX, mouseY, 0.0F);
-                } finally {
-                    ((GuiAccessor) this.mc.gui).replaymod$setScreen(orgScreen);
-                }
-            } else {
-                this.gui.toMinecraft().tick();
-                this.gui.toMinecraft().extractRenderStateWithTooltipAndSubtitles(drawContext, mouseX, mouseY, 0.0F);
-            }
-
-            GpuBufferSlice orgFog = RenderSystem.getShaderFog();
-            GpuBufferSlice orgProjBuf = RenderSystem.getProjectionMatrixBuffer();
-            ProjectionType orgProjType = RenderSystem.getProjectionType();
-            gameRenderer.getGuiRenderer().render();
-            RenderSystem.setShaderFog(orgFog);
-            RenderSystem.setProjectionMatrix(orgProjBuf, orgProjType);
-            this.guiWindow.endWrite();
-            com.replaymod.core.versions.MCVer.popMatrix();
-            com.replaymod.core.versions.MCVer.pushMatrix();
-            this.guiWindow.flip();
-            com.replaymod.core.versions.MCVer.popMatrix();
-            if (this.mc.mouseHandler.isMouseGrabbed()) {
-                this.mc.mouseHandler.releaseMouse();
-            }
-            RenderSystem.executePendingTasks();
-            return !this.hasFailed() && !this.cancelled;
-        } else {
+        if (window.shouldClose() || ((BlockableEventLoopAccessor) this.mc).getDelayedCrash() != null) {
             return false;
         }
-    }
+        RenderSystem.pollEvents(((MinecraftAccessor) this.mc).getSdlEventHandler());
 
-    private void clearRenderTarget() {
-        var renderTarget = this.mc.gameRenderer.mainRenderTarget();
-        if (renderTarget.getColorTexture() == null || renderTarget.getDepthTexture() == null) return;
-        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(renderTarget.getColorTexture(),
-                new Vector4f(), renderTarget.getDepthTexture(), 0.0F);
+        Screen orgScreen = this.mc.gui.screen();
+        ClientLevel orgLevel = this.mc.level;
+        try {
+            ((GuiAccessor) this.mc.gui).replaymod$setScreen(this.gui.toMinecraft());
+            this.mc.level = null;
+
+            this.gui.toMinecraft().init(window.getGuiScaledWidth(), window.getGuiScaledHeight());
+            this.gui.toMinecraft().tick();
+
+            this.mc.renderFrame(false);
+        } finally {
+            ((GuiAccessor) this.mc.gui).replaymod$setScreen(orgScreen);
+            this.mc.level = orgLevel;
+        }
+
+        if (this.mc.mouseHandler.isMouseGrabbed()) {
+            this.mc.mouseHandler.releaseMouse();
+        }
+        return !this.hasFailed() && !this.cancelled;
     }
 
     @Override

@@ -1,8 +1,8 @@
 package com.igrium.worldexport.debugger;
 
-import com.igrium.craftui.app.CraftApp;
-import com.igrium.craftui.file.FileDialogs;
-import com.igrium.craftui.screen.CraftAppScreen;
+import com.igrium.craftui.api.app.CraftApp;
+import com.igrium.craftui.api.file.FileDialogs;
+import com.igrium.craftui.api.screen.CraftAppScreen;
 import com.igrium.worldexport.anim.AnimationCurve;
 import com.igrium.worldexport.entity.CapturedEntity;
 import com.igrium.worldexport.replay.CompiledReplay;
@@ -93,7 +93,7 @@ public final class ReplayDebugger extends CraftApp {
     private final CurveViewerWindow curveViewer = new CurveViewerWindow(this);
 
     @Override
-    protected void render(Minecraft minecraftClient) {
+    public void render(Minecraft minecraftClient) {
         ImGui.begin("Outliner", ImGuiWindowFlags.MenuBar);
         // MENU BAR
         if (ImGui.beginMenuBar()) {
