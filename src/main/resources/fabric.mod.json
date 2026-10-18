@@ -21,9 +21,7 @@
     },
     "accessWidener": "worldexport.accesswidener",
     "mixins": [
-        "worldexport.mixins.json"
-    ],
-    "mixins_disabled": [
+        "worldexport.mixins.json",
         "worldexport.replaymod.mixins.json"
     ],
     "depends": {

@@ -23,10 +23,10 @@ repositories {
 // Compat source sets. Each one can see main; main can see none of them, so it can never
 // compile against an optional dependency. They're siblings, so they can't see each other.
 sourceSets {
-//    replaymod {
-//        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
-//        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
-//    }
+    replaymod {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     // Empty for now: no sources, no dependency, no mixin config.
     flashback {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
@@ -61,9 +61,9 @@ sourceSets {
 // above are siblings, so this unions them for the dev runs. Add every new compat set here.
 sourceSets {
     devRuntime {
-//        compileClasspath += sourceSets.replaymod.output + sourceSets.replaymod.compileClasspath
+        compileClasspath += sourceSets.replaymod.output + sourceSets.replaymod.compileClasspath
         compileClasspath += sourceSets.flashback.output + sourceSets.flashback.compileClasspath
-//        runtimeClasspath += sourceSets.replaymod.output + sourceSets.replaymod.runtimeClasspath
+        runtimeClasspath += sourceSets.replaymod.output + sourceSets.replaymod.runtimeClasspath
         runtimeClasspath += sourceSets.flashback.output + sourceSets.flashback.runtimeClasspath
     }
 }
@@ -85,7 +85,7 @@ loom {
     mods {
         "worldexport" {
             sourceSet sourceSets.main
-//            sourceSet sourceSets.replaymod
+            sourceSet sourceSets.replaymod
             sourceSet sourceSets.flashback
             sourceSet sourceSets.imgui
         }
@@ -115,7 +115,7 @@ dependencies {
     implementation(include("de.javagl:obj:0.4.0"))
     // For debugging exported replays
     debuggerImplementation "com.github.Igrium:CraftUI:${project.craftui_version}"
-//    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
+    replaymodImplementation "maven.modrinth:replaymod:${replaymod_version}"
     imguiImplementation "io.github.spair:imgui-java-binding:1.92.7.1"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
