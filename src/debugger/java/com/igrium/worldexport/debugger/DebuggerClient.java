@@ -1,5 +1,6 @@
 package com.igrium.worldexport.debugger;
 
+import com.igrium.worldexport.debugger.raw.WorldCaptureCommand;
 import com.igrium.worldexport.debugger.raw.WorldExportCommand;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -15,5 +16,6 @@ public class DebuggerClient implements ClientModInitializer {
     public void onInitializeClient() {
         ReplayDebugger.registerMenuButton();
         ClientCommandRegistrationCallback.EVENT.register(WorldExportCommand::register);
+        ClientCommandRegistrationCallback.EVENT.register(WorldCaptureCommand::register);
     }
 }

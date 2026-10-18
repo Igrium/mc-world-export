@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.nio.file.Path;
 
+@Deprecated
 public record SavedExportSettings(@Nullable Path outputFile,
                                   @Nullable ChunkSectionBox worldBounds,
                                   @Nullable ChunkSectionBox updateBounds,
