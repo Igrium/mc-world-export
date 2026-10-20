@@ -155,7 +155,7 @@ jar {
     from("LICENSE") {
         rename { "${it}_${inputs.properties.archivesName}" }
     }
-//    from sourceSets.replaymod.output
+    from sourceSets.replaymod.output
     from sourceSets.flashback.output
     from sourceSets.imgui.output
 }
